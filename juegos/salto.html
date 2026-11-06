@@ -1,0 +1,1455 @@
+<!doctype html><html><head><script>(function(){try{var AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;window.__mute=false;var P=AC.prototype,d=Object.getOwnPropertyDescriptor(P,"destination");if(!d)return;var m=new WeakMap();Object.defineProperty(P,"destination",{configurable:true,get:function(){var c=this;if(!m.has(c)){var g=c.createGain();g.connect(d.get.call(c));g.gain.value=window.__mute?0:1;m.set(c,g);(window.__gains=window.__gains||[]).push(g)}return m.get(c)}});window.__setMute=function(v){window.__mute=v;(window.__gains||[]).forEach(function(g){g.gain.value=v?0:1})}}catch(e){}})();</script><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Salto Mortal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Manrope:wght@500;700;800&display=swap">
+<style>
+  :root{
+    --sky-top:#bfe4ff;
+    --sky-horizon:#ffd9a0;
+    --hill-far:#a9c6c9;
+    --hill-near:#7fae86;
+    --road:#4a4d55;
+    --road-edge:#33353c;
+    --verge:#6f9457;
+    --verge-dark:#5c7d47;
+    --circle:#33e08a;
+    --circle-ring:#159a5b;
+    --shirt:#e2472c;
+    --shirt-shade:#b73620;
+    --jeans:#2f4a7a;
+    --jeans-shade:#213658;
+    --shoes:#f4f1ea;
+    --skin:#e8b48a;
+    --skin-shade:#c98f66;
+    --accent:#ffcf4d;
+    --text:#211a12;
+    --text-dim:#5a5142;
+    --panel-bg:rgba(20,16,10,0.55);
+    --panel-border:rgba(255,255,255,0.18);
+    --danger:#ff5c5c;
+    color-scheme: light;
+  }
+  *{box-sizing:border-box;}
+  body{
+    background:#eadfc9;
+    font-family:'Manrope',system-ui,sans-serif;
+    color:#2a2318;
+    display:flex;
+    justify-content:center;
+  }
+  #app{
+    width:100%;
+    max-width:720px;
+    padding-inline:16px;
+    padding-block:18px;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  .titlebar{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .titlebar h1{
+    font-family:'Bungee',system-ui,sans-serif;
+    font-size:clamp(22px,5vw,30px);
+    margin:0;
+    letter-spacing:0.5px;
+    color:#c0431f;
+    text-shadow:0 2px 0 rgba(255,255,255,0.4);
+  }
+  .stats{
+    display:flex;
+    gap:14px;
+    font-size:13px;
+    color:#6b5f4a;
+  }
+  .stats b{
+    font-family:'Bungee',system-ui,sans-serif;
+    font-size:15px;
+    color:#2a2318;
+    display:block;
+  }
+  .stats span{display:block; margin-top:2px;}
+
+  .stage-wrap{
+    position:relative;
+    width:100%;
+    aspect-ratio: 16 / 9;
+    border-radius:16px;
+    overflow:hidden;
+    border:1px solid rgba(0,0,0,0.12);
+    box-shadow:0 10px 30px rgba(0,0,0,0.25);
+    touch-action:none;
+    cursor:pointer;
+    user-select:none;
+    background:#bfe4ff;
+  }
+  canvas{
+    display:block;
+    width:100%;
+    height:100%;
+  }
+
+  .hud{
+    position:absolute;
+    top:10px;
+    left:10px;
+    right:10px;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    pointer-events:none;
+    font-family:'Bungee',system-ui,sans-serif;
+  }
+  .pill{
+    background:var(--panel-bg);
+    color:#fff;
+    border:1px solid var(--panel-border);
+    border-radius:999px;
+    padding:6px 14px;
+    font-size:13px;
+    backdrop-filter:blur(4px);
+  }
+
+  .hint{
+    position:absolute;
+    left:0; right:0; top:44%;
+    transform:translateY(-50%);
+    text-align:center;
+    pointer-events:none;
+    font-size:13px;
+    color:#fff;
+    text-shadow:0 1px 4px rgba(0,0,0,0.5);
+    padding:0 20px;
+    opacity:0.95;
+    transition:opacity .2s ease;
+  }
+
+  .overlay{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(20,16,10,0.6);
+    backdrop-filter:blur(3px);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .2s ease;
+  }
+  .overlay.show{opacity:1; pointer-events:auto;}
+  .card{
+    background:#fff8ec;
+    border:1px solid rgba(0,0,0,0.1);
+    border-radius:14px;
+    padding:22px 26px;
+    text-align:center;
+    max-width:320px;
+    box-shadow:0 12px 30px rgba(0,0,0,0.25);
+  }
+  .card h2{
+    font-family:'Bungee',system-ui,sans-serif;
+    margin:0 0 6px;
+    font-size:22px;
+    color:var(--danger);
+  }
+  .card p{
+    margin:0 0 16px;
+    color:#6b5f4a;
+    font-size:14px;
+    line-height:1.5;
+  }
+  .card button{
+    font-family:'Manrope',system-ui,sans-serif;
+    font-weight:800;
+    font-size:15px;
+    background:#c0431f;
+    color:#fff8ec;
+    border:none;
+    border-radius:999px;
+    padding:10px 26px;
+    cursor:pointer;
+  }
+  .card button:active{transform:scale(0.97);}
+
+  .footer-hint{
+    font-size:12.5px;
+    color:#6b5f4a;
+    text-align:center;
+    line-height:1.5;
+  }
+  .footer-hint b{color:#2a2318;}
+
+  /* ---------- cover screen (first 3 seconds) ---------- */
+  .stage-wrap{
+    container-type:inline-size;
+    --u:min(1vw, 6.88px);      /* fallback unit when container units are missing */
+  }
+  @supports (width:1cqw){
+    .stage-wrap{--u:1cqw;}
+  }
+  .stage-wrap.splashing .hud,
+  .stage-wrap.splashing .hint{opacity:0 !important;}
+
+  .splash{
+    position:absolute;
+    inset:0;
+    z-index:5;
+    transition:opacity .45s ease;
+  }
+  .splash.done{opacity:0; pointer-events:none;}
+  .splash-veil{
+    position:absolute;
+    inset:0;
+    background:linear-gradient(180deg,#8fc7f2 0%,#bfe0f5 55%,#ffe6ba 100%);
+    opacity:0;
+    transition:opacity .28s ease;
+  }
+  .splash.closing .splash-veil{opacity:1;}
+  .splash-scrim{
+    position:absolute;
+    inset:0;
+    background:linear-gradient(180deg,rgba(20,16,10,.22) 0%,rgba(20,16,10,0) 30%,rgba(20,16,10,0) 76%,rgba(20,16,10,.34) 100%);
+  }
+  .splash-head{
+    position:absolute;
+    left:0; right:0; top:4%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:calc(var(--u) * .6);
+    padding-inline:16px;
+    text-align:center;
+    animation:splashIn .6s cubic-bezier(.2,.9,.3,1.2) both;
+  }
+  .splash-logo{
+    display:flex;
+    align-items:center;
+    gap:calc(var(--u) * 1.8);
+  }
+  .splash-emblem{
+    flex:none;
+    width:calc(var(--u) * 6.2);
+    height:calc(var(--u) * 6.2);
+    border-radius:50%;
+    background:radial-gradient(circle,#e0301f 0 22%,#ffffff 23% 48%,#2fcf7f 49% 100%);
+    box-shadow:0 0 0 calc(var(--u) * .45) rgba(10,50,30,.6), 0 calc(var(--u) * .6) calc(var(--u) * 1.4) rgba(0,0,0,.35);
+  }
+  .splash-title{
+    font-family:'Bungee',system-ui,sans-serif;
+    font-size:calc(var(--u) * 6.4);
+    line-height:1;
+    letter-spacing:.04em;
+    color:#fff8ec;
+    text-shadow:0 calc(var(--u) * .5) 0 #8f2f16, 0 calc(var(--u) * 1.1) calc(var(--u) * 1.6) rgba(0,0,0,.35);
+  }
+  .splash-tag{
+    font-weight:800;
+    font-size:max(9px, calc(var(--u) * 2));
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:#fff;
+    text-shadow:0 1px 4px rgba(0,0,0,.6);
+  }
+  .splash-bar{
+    position:absolute;
+    left:50%; bottom:5%;
+    width:42%;
+    transform:translateX(-50%);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:6px;
+  }
+  .splash-bar span{
+    font-family:'Bungee',system-ui,sans-serif;
+    font-size:max(8px, calc(var(--u) * 1.6));
+    letter-spacing:.12em;
+    color:#fff;
+    text-shadow:0 1px 3px rgba(0,0,0,.65);
+  }
+  .splash-track{
+    width:100%;
+    height:max(6px, calc(var(--u) * 1));
+    border-radius:999px;
+    background:rgba(20,16,10,.45);
+    border:1px solid rgba(255,255,255,.28);
+    overflow:hidden;
+  }
+  .splash-track i{
+    display:block;
+    height:100%;
+    width:0;
+    background:linear-gradient(90deg,#ffcf4d,#ff8f5e);
+    animation:splashFill 3s linear forwards;
+  }
+  @keyframes splashFill{to{width:100%;}}
+  @keyframes splashIn{
+    from{opacity:0; transform:translateY(-14px) scale(.94);}
+    to{opacity:1; transform:none;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .splash-head{animation:none;}
+  }
+</style>
+
+<div id="app">
+  <div class="titlebar">
+    <h1>Salto Mortal</h1>
+    <div class="stats">
+      <div><b id="hud-level">1</b><span>nivel</span></div>
+      <div><b id="hud-best">1</b><span>mejor</span></div>
+    </div>
+  </div>
+
+  <div class="stage-wrap splashing" id="stage">
+    <canvas id="canvas"></canvas>
+    <div class="hud">
+      <div class="pill" id="hud-msg">Mantén pulsado para agacharte</div>
+      <div class="pill" id="hud-flips">0 vueltas</div>
+    </div>
+    <div class="hint" id="hint">Mantén pulsado para agacharte</div>
+    <div class="overlay" id="overlay">
+      <div class="card">
+        <h2 id="over-title">¡Caída!</h2>
+        <p id="over-text">Llegaste al nivel 1.</p>
+        <button id="retry-btn">Reintentar</button>
+      </div>
+    </div>
+    <div class="splash" id="splash" aria-hidden="true">
+      <div class="splash-veil"></div>
+      <div class="splash-scrim"></div>
+      <div class="splash-head">
+        <div class="splash-logo">
+          <div class="splash-emblem"></div>
+          <div class="splash-title">Salto Mortal</div>
+        </div>
+        <div class="splash-tag">Mortales hacia atrás · Cae de pie en la diana</div>
+      </div>
+      <div class="splash-bar"><div class="splash-track"><i></i></div><span>Preparando el salto…</span></div>
+    </div>
+  </div>
+
+  <div class="footer-hint">
+    <b>Mantén pulsado</b> para agacharte; cuanto más aguantes, más te agachas.
+    <b>Suelta</b> para saltar hacia atrás y caer recto, girando despacio.
+    <b>Pulsa otra vez</b> en el aire para encogerte (cogerte las rodillas) y dar mortales rápido; suelta para estirarte.
+    Cae de pie dentro del <b>círculo verde</b> del suelo. El punto de salida cambia — coche, vagoneta, azotea de un edificio o marquesina de autobús — pero siempre caes al suelo, nunca de un sitio elevado a otro.
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- canvas / dpr setup ----------
+  var stage = document.getElementById('stage');
+  var canvas = document.getElementById('canvas');
+  var ctx = canvas.getContext('2d');
+  var W = 960, H = 540; // internal logical resolution
+  var DPR = Math.max(1, Math.min(window.devicePixelRatio || 1, 2.5));
+
+  function resize(){
+    var rect = stage.getBoundingClientRect();
+    canvas.width = Math.round(rect.width * DPR);
+    canvas.height = Math.round(rect.height * DPR);
+    var scale = (canvas.width / W);
+    ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  }
+  window.addEventListener('resize', resize);
+
+  // ---------- persistent best ----------
+  var best = 1;
+  try {
+    var saved = localStorage.getItem('salto-mortal-best');
+    if (saved) best = parseInt(saved, 10) || 1;
+  } catch(e){}
+  function saveBest(){
+    try { localStorage.setItem('salto-mortal-best', String(best)); } catch(e){}
+  }
+
+  // ---------- constants ----------
+  var GRAVITY = 1700;
+  var ANGLE = 70 * Math.PI / 180; // steep backward hop off the vehicle
+  var MIN_SPEED = 620, MAX_SPEED = 1060;
+  var SLOW_SPIN = 65;   // deg/s, gentle automatic spin while the body is extended
+  var FAST_SPIN = 480;  // deg/s while tucked (holding, mid-air)
+  var GROUND_Y = 430;   // the ground plane, world y
+  var ANCHOR_SCREEN_X = 375; // where the current vehicle sits on screen (pre-zoom)
+  var CHAR_H = 54;
+  var UPRIGHT_TOL = 26;   // degrees
+  var FOOT_MARGIN = 3;
+  var CHARGE_TIME = 1.05; // seconds to reach full crouch/power while held
+  var ZOOM = 1.55;        // overall camera zoom, anchored at ground level — less empty space
+  var CHAR_SCALE = 1.6;   // the character is drawn extra large on top of the zoom
+
+  // ---------- game state ----------
+  var game = {
+    state: 'ready', // ready | charging | flight | result | gameover
+    level: 1,
+    cameraX: 0,
+    power: 0,
+    chargeT: 0,
+    holding: false,
+    resultTimer: 0,
+    resultOk: false,
+    flips: 0,
+    splashT: 0,
+    splashPose: 'stand',
+    splashCrouch: 0
+  };
+  var SPLASH_TIME = 3.0;
+
+  var car = { x:0, w:0, h:0, type:'car' };   // current launch spot (car, wagon, rooftop, bus stop…)
+  var target = { x:0, r:0, theme:'car' };     // circle painted on the ground, themed to match the launch spot
+  var char = { x:0, y:0, vx:0, vy:0, rotation:0 };
+  var particles = [];
+
+  function rand(a,b){ return a + Math.random()*(b-a); }
+  function difficultyT(level){ return Math.min(1, (level-1) / 14); }
+
+  var STAGE_TYPES = ['car', 'busstop', 'wagon', 'building'];
+
+  function makeStage(level, originX){
+    var t = difficultyT(level);
+    var type = STAGE_TYPES[(level-1) % STAGE_TYPES.length];
+    var gap = 220 + t*230 + rand(-15,15);
+    gap = Math.min(gap, 470);
+    var r = Math.max(14, 30 - t*16 + rand(-2,2));
+
+    var w, h;
+    if (type === 'building'){
+      // a rooftop ledge — tall, falling straight to the ground below (never roof-to-roof)
+      w = 78 - t*10;
+      h = Math.min(230, 130 + t*100);
+    } else if (type === 'busstop'){
+      // a low shelter roof — human scale
+      w = 96 - t*10;
+      h = Math.min(95, 58 + t*30);
+    } else if (type === 'wagon'){
+      w = 100 - t*22;
+      h = Math.min(170, 88 + t*70);
+    } else {
+      w = 100 - t*22;
+      h = Math.min(170, 88 + t*70);
+    }
+
+    car.x = originX;
+    car.w = Math.max(64, w);
+    car.h = Math.max(50, h);
+    car.type = type;
+
+    target.x = originX + car.w/2 + gap;
+    target.r = r;
+    target.theme = type;
+  }
+
+  function resetGame(){
+    makeStage(1, 150);
+    game.level = 1;
+    game.state = 'ready';
+    game.power = 0;
+    game.chargeT = 0;
+    game.holding = false;
+    game.flips = 0;
+    char.x = car.x;
+    char.y = GROUND_Y - car.h;
+    char.vx = 0; char.vy = 0; char.rotation = 0;
+    game.cameraX = char.x - ANCHOR_SCREEN_X;
+    particles = [];
+    updateHud();
+    hideOverlay();
+    setHint('Mantén pulsado para agacharte');
+    document.getElementById('hud-msg').textContent = 'Mantén pulsado para agacharte';
+  }
+
+  function setHint(msg){
+    var h = document.getElementById('hint');
+    h.textContent = msg;
+    h.style.opacity = '0.95';
+  }
+
+  function updateHud(){
+    document.getElementById('hud-level').textContent = game.level;
+    document.getElementById('hud-best').textContent = best;
+  }
+
+  function showOverlay(title, text){
+    document.getElementById('over-title').textContent = title;
+    document.getElementById('over-text').textContent = text;
+    document.getElementById('overlay').classList.add('show');
+  }
+  function hideOverlay(){
+    document.getElementById('overlay').classList.remove('show');
+  }
+
+  // ---------- input ----------
+  function onDown(e){
+    if (e.cancelable) e.preventDefault();
+    if (game.state === 'gameover') return;
+    if (game.state === 'ready'){
+      game.state = 'charging';
+      game.chargeT = 0;
+      document.getElementById('hint').style.opacity = '0';
+    } else if (game.state === 'flight'){
+      game.holding = true;
+    }
+  }
+  function onUp(e){
+    if (e.cancelable) e.preventDefault();
+    if (game.state === 'charging'){
+      launch();
+    } else if (game.state === 'flight'){
+      game.holding = false;
+    }
+  }
+
+  stage.addEventListener('pointerdown', onDown);
+  window.addEventListener('pointerup', onUp);
+  stage.addEventListener('pointercancel', onUp);
+  window.addEventListener('keydown', function(e){
+    if (e.code === 'Space'){ onDown(e); }
+  });
+  window.addEventListener('keyup', function(e){
+    if (e.code === 'Space'){ onUp(e); }
+  });
+  document.getElementById('retry-btn').addEventListener('click', function(){
+    resetGame();
+  });
+
+  function launch(){
+    var v = MIN_SPEED + (MAX_SPEED - MIN_SPEED) * game.power;
+    char.vx = v * Math.cos(ANGLE);
+    char.vy = -v * Math.sin(ANGLE);
+    char.rotation = 0;
+    char.x = car.x;
+    char.y = GROUND_Y - car.h;
+    game.flips = 0;
+    game.holding = false;
+    game.state = 'flight';
+    spawnDust(char.x, GROUND_Y - 2, 8, 'rgba(90,80,60,0.45)');
+    document.getElementById('hud-msg').textContent = 'Vas hacia atrás…';
+  }
+
+  // ---------- physics / update ----------
+  var lastT = null;
+  function step(ts){
+    if (lastT === null) lastT = ts;
+    var dt = Math.min(0.033, (ts - lastT) / 1000);
+    lastT = ts;
+
+    update(dt);
+    draw();
+    requestAnimationFrame(step);
+  }
+
+  // ---------- cover screen (3 s, with a scripted demo jump) ----------
+  function startSplash(){
+    game.state = 'splash';
+    game.splashT = 0;
+    game.splashPose = 'stand';
+    game.splashCrouch = 0;
+    var sp = document.getElementById('splash');
+    sp.classList.remove('done', 'closing');
+    document.getElementById('stage').classList.add('splashing');
+    // restart the progress-bar animation
+    var bar = sp.querySelector('.splash-track i');
+    bar.style.animation = 'none';
+    void bar.offsetWidth;
+    bar.style.animation = '';
+  }
+
+  function finishSplash(){
+    var sp = document.getElementById('splash');
+    sp.classList.add('done');
+    document.getElementById('stage').classList.remove('splashing');
+    // put the character back on the launch spot (same stage, nothing regenerated)
+    char.x = car.x; char.y = GROUND_Y - car.h;
+    char.vx = 0; char.vy = 0; char.rotation = 0;
+    particles = [];
+    game.state = 'ready';
+    setHint('Mantén pulsado para agacharte');
+  }
+
+  function updateSplash(dt){
+    game.splashT += dt;
+    var t = game.splashT;
+    var launchY = GROUND_Y - car.h;
+    var T0 = 0.75, T1 = 2.45;               // crouch until T0, flight until T1
+    if (t < T0){
+      game.splashPose = 'stand';
+      game.splashCrouch = Math.min(1, t / (T0 - 0.05));
+      char.x = car.x; char.y = launchY; char.rotation = 0;
+    } else if (t < T1){
+      var u = (t - T0) / (T1 - T0);
+      game.splashCrouch = 0;
+      game.splashPose = (u > 0.18 && u < 0.84) ? 'tuck' : 'extend';
+      char.x = car.x + 230 * u;
+      char.y = launchY + (GROUND_Y - launchY) * u - 105 * 4 * u * (1 - u);
+      char.rotation = -360 * Math.min(1, u * 1.08);
+    } else {
+      game.splashPose = 'stand'; game.splashCrouch = 0;
+      char.x = car.x + 230; char.y = GROUND_Y; char.rotation = -360;
+    }
+    if (t >= SPLASH_TIME - 0.3){
+      document.getElementById('splash').classList.add('closing');
+    }
+    if (t >= SPLASH_TIME){ finishSplash(); }
+  }
+
+  function update(dt){
+    if (game.state === 'splash'){ updateSplash(dt); return; }
+    if (game.state === 'charging'){
+      game.chargeT += dt;
+      game.power = Math.max(0, Math.min(1, game.chargeT / CHARGE_TIME));
+    }
+
+    if (game.state === 'flight'){
+      char.vy += GRAVITY * dt;
+      char.x += char.vx * dt;
+      char.y += char.vy * dt;
+
+      var spinRate = game.holding ? FAST_SPIN : SLOW_SPIN;
+      char.rotation -= spinRate * dt;
+
+      var falling = char.vy > 0;
+      if (falling && char.y >= GROUND_Y - FOOT_MARGIN){
+        resolveLanding();
+      }
+
+      game.cameraX = char.x - ANCHOR_SCREEN_X;
+    }
+
+    if (game.state === 'result'){
+      game.resultTimer -= dt;
+      if (game.resultTimer <= 0){
+        if (game.resultOk){
+          advanceLevel();
+        } else {
+          endRun();
+        }
+      }
+    }
+
+    for (var i = particles.length-1; i>=0; i--){
+      var pt = particles[i];
+      pt.life -= dt;
+      pt.x += pt.vx*dt;
+      pt.y += pt.vy*dt;
+      pt.vy += 700*dt;
+      if (pt.life <= 0) particles.splice(i,1);
+    }
+  }
+
+  function resolveLanding(){
+    var rotMod = ((char.rotation % 360) + 360) % 360;
+    var uprightErr = Math.min(rotMod, 360 - rotMod);
+    var dx = char.x - target.x;
+    var inCircle = Math.abs(dx) <= target.r;
+    var upright = uprightErr <= UPRIGHT_TOL;
+
+    char.y = GROUND_Y;
+    char.vx = 0; char.vy = 0;
+    game.flips = Math.round(Math.abs(char.rotation) / 360);
+
+    var ok = inCircle && upright;
+    game.resultOk = ok;
+    game.state = 'result';
+    game.resultTimer = ok ? 0.55 : 0.9;
+
+    if (ok){
+      spawnDust(char.x, GROUND_Y, 4, 'rgba(90,80,60,0.35)');
+      spawnBurst(char.x, char.y, 'good');
+      document.getElementById('hud-msg').textContent = '¡Perfecto!';
+    } else {
+      spawnDust(char.x, GROUND_Y, 10, 'rgba(90,80,60,0.5)');
+      spawnBurst(char.x, char.y, 'bad');
+      var why = !inCircle ? 'No has caído en el círculo' : 'No has caído de pie';
+      document.getElementById('hud-msg').textContent = why;
+    }
+  }
+
+  function spawnBurst(x,y,kind){
+    var n = kind === 'good' ? 18 : 10;
+    var col = kind === 'good' ? '#33e08a' : '#ff5c5c';
+    for (var i=0;i<n;i++){
+      var ang = Math.random()*Math.PI*2;
+      var spd = rand(60,220);
+      particles.push({
+        x:x, y:y-6,
+        vx: Math.cos(ang)*spd,
+        vy: Math.sin(ang)*spd - 80,
+        life: rand(0.4,0.8),
+        col: col,
+        r: rand(1.5,3.5)
+      });
+    }
+  }
+
+  function spawnDust(x,y,n,col){
+    for (var i=0;i<n;i++){
+      var ang = rand(Math.PI*1.15, Math.PI*1.85);
+      var spd = rand(30,110);
+      particles.push({
+        x:x + rand(-6,6), y:y,
+        vx: Math.cos(ang)*spd,
+        vy: Math.sin(ang)*spd,
+        life: rand(0.3,0.6),
+        col: col,
+        r: rand(2,5)
+      });
+    }
+  }
+
+  function advanceLevel(){
+    game.level += 1;
+    if (game.level > best){ best = game.level; saveBest(); }
+    makeStage(game.level, target.x + rand(30,60));
+    char.x = car.x;
+    char.y = GROUND_Y - car.h;
+    char.rotation = 0;
+    game.state = 'ready';
+    game.power = 0;
+    updateHud();
+    setHint('Mantén pulsado para agacharte');
+    document.getElementById('hud-msg').textContent = 'Mantén pulsado para agacharte';
+  }
+
+  function endRun(){
+    game.state = 'gameover';
+    document.getElementById('hud-msg').textContent = 'Fin del intento';
+    var reached = game.level;
+    showOverlay('¡Caída!', 'Llegaste al nivel ' + reached + (reached >= best ? ' — ¡nuevo récord!' : ('. Mejor: ' + best)) );
+  }
+
+  // ---------- drawing: scenery ----------
+  var cloudSeeds = [
+    {x:0.12, y:70, s:1.0}, {x:0.38, y:48, s:0.7}, {x:0.62, y:96, s:1.25},
+    {x:0.83, y:60, s:0.85}, {x:1.08, y:110, s:0.9}
+  ];
+
+  function drawBackground(){
+    var g = ctx.createLinearGradient(0,0,0,GROUND_Y);
+    g.addColorStop(0, '#8fc7f2');
+    g.addColorStop(0.45, '#bfe0f5');
+    g.addColorStop(0.75, '#eaf2df');
+    g.addColorStop(1, '#ffe6ba');
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,W,GROUND_Y+40);
+
+    // sun with soft glow
+    var sunX = W*0.78 - game.cameraX*0.05;
+    var sunY = 88;
+    var glow = ctx.createRadialGradient(sunX,sunY,4, sunX,sunY,80);
+    glow.addColorStop(0, 'rgba(255,250,225,0.95)');
+    glow.addColorStop(0.35, 'rgba(255,241,190,0.55)');
+    glow.addColorStop(1, 'rgba(255,241,190,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(sunX,sunY,80,0,Math.PI*2); ctx.fill();
+    var core = ctx.createRadialGradient(sunX-6,sunY-6,2, sunX,sunY,28);
+    core.addColorStop(0, '#fffdf2');
+    core.addColorStop(1, '#ffe9ad');
+    ctx.fillStyle = core;
+    ctx.beginPath(); ctx.arc(sunX,sunY,26,0,Math.PI*2); ctx.fill();
+
+    // drifting clouds, parallax
+    var cOff = game.cameraX*0.06;
+    for (var i=0;i<cloudSeeds.length;i++){
+      var c = cloudSeeds[i];
+      var wrapW = W*1.4;
+      var cx = ((c.x*wrapW - cOff) % wrapW + wrapW) % wrapW - W*0.2;
+      drawCloud(cx, c.y, c.s);
+    }
+
+    // far hazy ridge
+    drawHillLayer(game.cameraX*0.10, 232, 26, 'rgba(160,190,196,0.55)');
+    // far hills
+    drawHillLayer(game.cameraX*0.18, 252, 40, '#a9c9c4');
+    // near hills with gradient + tree dots
+    drawHillLayer(game.cameraX*0.35, 288, 32, '#7fae70', true);
+  }
+
+  function drawCloud(x,y,scale){
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = '#ffffff';
+    var r = 16*scale;
+    ctx.beginPath();
+    ctx.ellipse(x, y, r*1.6, r*0.8, 0, 0, Math.PI*2);
+    ctx.ellipse(x-r*1.1, y+r*0.25, r*0.9, r*0.6, 0, 0, Math.PI*2);
+    ctx.ellipse(x+r*1.2, y+r*0.2, r*1.0, r*0.65, 0, 0, Math.PI*2);
+    ctx.ellipse(x+r*0.1, y-r*0.45, r*1.05, r*0.7, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawHillLayer(offset, baseY, amp, color, withTrees){
+    var top = [];
+    ctx.beginPath();
+    ctx.moveTo(0, GROUND_Y+5);
+    var step = 60;
+    var wx0 = -step + offset;
+    ctx.lineTo(-step, baseY - Math.sin(wx0*0.006)*amp - Math.sin(wx0*0.015+1.3)*amp*0.4);
+    for (var x=-step; x<=W+step; x+=step){
+      var wx = x + offset;
+      var y = baseY - Math.sin(wx*0.006)*amp - Math.sin(wx*0.015+1.3)*amp*0.4;
+      ctx.lineTo(x, y);
+      top.push([x,y]);
+    }
+    ctx.lineTo(W, GROUND_Y+5);
+    ctx.closePath();
+    var g = ctx.createLinearGradient(0, baseY-amp, 0, GROUND_Y);
+    g.addColorStop(0, color);
+    g.addColorStop(1, shadeColor(color, -14));
+    ctx.fillStyle = g;
+    ctx.fill();
+
+    if (withTrees){
+      for (var i=0;i<top.length;i+=2){
+        var tx = top[i][0], ty = top[i][1];
+        var seed = Math.abs(Math.sin((tx+offset)*17.13)*10000)%1;
+        if (seed > 0.5){
+          ctx.fillStyle = seed>0.75 ? '#5c8a49' : '#4d7a3d';
+          ctx.beginPath(); ctx.arc(tx, ty+6, 6+seed*4, 0, Math.PI*2); ctx.fill();
+        }
+      }
+    }
+  }
+
+  function shadeColor(hex, amt){
+    var c = hex.replace('#','');
+    if (c.length !== 6) return hex;
+    var num = parseInt(c,16);
+    var r = Math.max(0,Math.min(255,(num>>16)+amt));
+    var gg = Math.max(0,Math.min(255,((num>>8)&0xff)+amt));
+    var b = Math.max(0,Math.min(255,(num&0xff)+amt));
+    return 'rgb(' + r + ',' + gg + ',' + b + ')';
+  }
+
+  function drawGround(){
+    // grassy verge with gradient + blade texture
+    var gg = ctx.createLinearGradient(0, GROUND_Y-30, 0, GROUND_Y+4);
+    gg.addColorStop(0, '#84a862');
+    gg.addColorStop(1, '#5c7d47');
+    ctx.fillStyle = gg;
+    ctx.fillRect(0, GROUND_Y-16, W, 20);
+    ctx.fillStyle = '#4c6a3a';
+    ctx.fillRect(0, GROUND_Y-4, W, 5);
+
+    // road strip with subtle centre highlight (crowned asphalt)
+    var rg = ctx.createLinearGradient(0, GROUND_Y, 0, H);
+    rg.addColorStop(0, '#5b5e67');
+    rg.addColorStop(0.18, '#4a4d55');
+    rg.addColorStop(1, '#34363d');
+    ctx.fillStyle = rg;
+    ctx.fillRect(0, GROUND_Y, W, H-GROUND_Y);
+    ctx.fillStyle = '#26272c';
+    ctx.fillRect(0, GROUND_Y, W, 4);
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    ctx.fillRect(0, GROUND_Y+4, W, 3);
+
+    // dashed centre line, scrolling with the camera
+    ctx.strokeStyle = 'rgba(255,235,180,0.85)';
+    ctx.lineWidth = 4;
+    ctx.setLineDash([26,22]);
+    ctx.lineDashOffset = -game.cameraX;
+    ctx.beginPath();
+    ctx.moveTo(0, GROUND_Y + (H-GROUND_Y)*0.42);
+    ctx.lineTo(W, GROUND_Y + (H-GROUND_Y)*0.42);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // asphalt speckle noise + cracks, deterministic by world position
+    for (var i = Math.floor((game.cameraX-40)/38); i < (game.cameraX+W+40)/38; i++){
+      var wx = i*38 + (i%5)*7;
+      var sx = wx - game.cameraX;
+      var seed = Math.abs(Math.sin(i*12.9898)*43758.5453) % 1;
+      var seed2 = Math.abs(Math.sin(i*78.233)*12543.1) % 1;
+      ctx.fillStyle = seed>0.5 ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.06)';
+      ctx.beginPath(); ctx.ellipse(sx, GROUND_Y+20+seed*60, 3+seed2*3, 1.4, 0, 0, Math.PI*2); ctx.fill();
+    }
+    // grass tufts along the verge edge
+    for (var j = Math.floor((game.cameraX-40)/26); j < (game.cameraX+W+40)/26; j++){
+      var gx = j*26 + (j%3)*6;
+      var gsx = gx - game.cameraX;
+      var gseed = Math.abs(Math.sin(j*33.7)*9999)%1;
+      if (gseed > 0.45){
+        ctx.strokeStyle = '#3f5a2f';
+        ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.moveTo(gsx-2, GROUND_Y+1); ctx.lineTo(gsx-3, GROUND_Y-6-gseed*4); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(gsx, GROUND_Y+1); ctx.lineTo(gsx+1, GROUND_Y-8-gseed*3); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(gsx+2, GROUND_Y+1); ctx.lineTo(gsx+3, GROUND_Y-5-gseed*4); ctx.stroke();
+      }
+    }
+  }
+
+  // a landing target painted on the asphalt: green outer ring, white ring,
+  // red bullseye — like a real stunt landing pad, not a flat green blob
+  function drawTargetCircle(){
+    var sx = target.x - game.cameraX;
+    var y = GROUND_Y + 2;
+    var squash = 0.42; // ground-perspective flattening
+    var pulse = 0.88 + Math.sin(performance.now()/260)*0.12;
+
+    ctx.save();
+
+    // soft ambient glow under the whole pad
+    var glow = ctx.createRadialGradient(sx,y,2, sx,y,target.r*1.7);
+    glow.addColorStop(0, 'rgba(40,200,110,' + (0.30*pulse).toFixed(2) + ')');
+    glow.addColorStop(1, 'rgba(40,200,110,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.ellipse(sx, y, target.r*1.7, target.r*squash*1.5, 0, 0, Math.PI*2); ctx.fill();
+
+    // faint contact shadow so the pad reads as flat on the ground
+    ctx.fillStyle = 'rgba(15,20,15,0.18)';
+    ctx.beginPath(); ctx.ellipse(sx, y+2, target.r*1.02, target.r*squash*1.05, 0, 0, Math.PI*2); ctx.fill();
+
+    function ring(rx, colorTop, colorBot, strokeCol, strokeW){
+      ctx.beginPath();
+      ctx.ellipse(sx, y, rx, rx*squash, 0, 0, Math.PI*2);
+      var g = ctx.createLinearGradient(sx, y-rx*squash, sx, y+rx*squash);
+      g.addColorStop(0, colorTop);
+      g.addColorStop(1, colorBot);
+      ctx.fillStyle = g;
+      ctx.fill();
+      if (strokeCol){
+        ctx.lineWidth = strokeW;
+        ctx.strokeStyle = strokeCol;
+        ctx.stroke();
+      }
+    }
+
+    // outer band — green
+    ring(target.r, '#4ee69b', '#149857', 'rgba(10,50,30,0.55)', 2.4);
+    // middle band — white
+    ring(target.r*0.66, '#ffffff', '#dfe6df', 'rgba(10,50,30,0.35)', 1.6);
+    // bullseye — red, pulsing gently so the exact landing point is obvious
+    ring(target.r*0.30*pulse, '#ff5b48', '#c8291a', 'rgba(90,10,5,0.55)', 1.4);
+
+    // glossy highlight to sell a painted, slightly reflective surface
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.beginPath();
+    ctx.ellipse(sx - target.r*0.35, y - target.r*squash*0.55, target.r*0.22, target.r*squash*0.16, -0.4, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function drawWheel(x,y,r){
+    ctx.save();
+    var tire = ctx.createRadialGradient(x-r*0.3,y-r*0.3,r*0.2, x,y,r);
+    tire.addColorStop(0, '#3a3632');
+    tire.addColorStop(1, '#141210');
+    ctx.fillStyle = tire;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#0c0b0a';
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#0c0b0a';
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.stroke();
+
+    var hub = ctx.createRadialGradient(x-r*0.25,y-r*0.25,r*0.05, x,y,r*0.52);
+    hub.addColorStop(0, '#cfd3d6');
+    hub.addColorStop(1, '#7d8286');
+    ctx.fillStyle = hub;
+    ctx.beginPath(); ctx.arc(x,y,r*0.5,0,Math.PI*2); ctx.fill();
+
+    ctx.strokeStyle = 'rgba(60,60,60,0.6)';
+    ctx.lineWidth = 1.4;
+    for (var a=0;a<5;a++){
+      var ang = a*(Math.PI*2/5);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x+Math.cos(ang)*r*0.46, y+Math.sin(ang)*r*0.46);
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#5b6064';
+    ctx.beginPath(); ctx.arc(x,y,r*0.14,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawVehicle(){
+    var sx = car.x - game.cameraX;
+    var topY = GROUND_Y - car.h;
+    var w = car.w;
+
+    // soft contact shadow
+    var shad = ctx.createRadialGradient(sx,GROUND_Y+3,2, sx,GROUND_Y+3,w*0.62);
+    shad.addColorStop(0, 'rgba(20,16,10,0.32)');
+    shad.addColorStop(1, 'rgba(20,16,10,0)');
+    ctx.fillStyle = shad;
+    ctx.beginPath(); ctx.ellipse(sx, GROUND_Y+3, w*0.62, 9, 0, 0, Math.PI*2); ctx.fill();
+
+    if (car.type === 'car'){
+      var bodyTop = topY + car.h*0.42;
+      var bodyH = car.h*0.58;
+
+      // chassis with glossy vertical gradient
+      var bg = ctx.createLinearGradient(0, bodyTop, 0, bodyTop+bodyH);
+      bg.addColorStop(0, '#e35a34');
+      bg.addColorStop(0.45, '#c0431f');
+      bg.addColorStop(1, '#8f2f16');
+      ctx.fillStyle = bg;
+      roundRectCtx(sx-w/2, bodyTop, w, bodyH, 9); ctx.fill();
+      // specular streak
+      ctx.fillStyle = 'rgba(255,255,255,0.22)';
+      roundRectCtx(sx-w/2+4, bodyTop+3, w-8, 3.5, 2); ctx.fill();
+      // lower shade line
+      ctx.fillStyle = 'rgba(0,0,0,0.18)';
+      roundRectCtx(sx-w/2, bodyTop+bodyH-8, w, 8, 4); ctx.fill();
+
+      // cabin (roof) — narrower, offset toward -x (front, facing left)
+      var cg = ctx.createLinearGradient(0, topY, 0, topY+car.h*0.5);
+      cg.addColorStop(0, '#ef7048');
+      cg.addColorStop(1, '#c94a26');
+      ctx.fillStyle = cg;
+      roundRectCtx(sx-w*0.38, topY, w*0.62, car.h*0.5, 8); ctx.fill();
+
+      // windshield with diagonal reflection
+      ctx.save();
+      roundRectCtx(sx-w*0.30, topY+car.h*0.12, w*0.46, car.h*0.28, 4);
+      ctx.clip();
+      var wg = ctx.createLinearGradient(sx-w*0.30, topY, sx+w*0.16, topY+car.h*0.4);
+      wg.addColorStop(0, '#a9d6e8');
+      wg.addColorStop(1, '#5f93ab');
+      ctx.fillStyle = wg;
+      ctx.fillRect(sx-w*0.30, topY+car.h*0.12, w*0.46, car.h*0.28);
+      ctx.fillStyle = 'rgba(255,255,255,0.45)';
+      ctx.beginPath();
+      ctx.moveTo(sx-w*0.30, topY+car.h*0.18);
+      ctx.lineTo(sx-w*0.18, topY+car.h*0.12);
+      ctx.lineTo(sx-w*0.08, topY+car.h*0.40);
+      ctx.lineTo(sx-w*0.20, topY+car.h*0.40);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+
+      // door seam + handle
+      ctx.strokeStyle = 'rgba(0,0,0,0.16)';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(sx+w*0.02, bodyTop+2); ctx.lineTo(sx+w*0.02, bodyTop+bodyH-8); ctx.stroke();
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      roundRectCtx(sx-w*0.12, bodyTop+bodyH*0.35, 8, 2.6, 1); ctx.fill();
+
+      // headlight + bumper accent at front (-x)
+      var hl = ctx.createRadialGradient(sx-w/2+7,bodyTop+car.h*0.30,1, sx-w/2+7,bodyTop+car.h*0.30,5);
+      hl.addColorStop(0, '#fffbe6');
+      hl.addColorStop(1, '#ffcf6b');
+      ctx.fillStyle = hl;
+      ctx.beginPath(); ctx.arc(sx-w/2+7, bodyTop+car.h*0.30, 4.5, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#7a7d82';
+      ctx.fillRect(sx-w/2-2, bodyTop+bodyH-9, w+4, 5);
+
+      // wheels
+      drawWheel(sx-w*0.32, GROUND_Y-2, 13);
+      drawWheel(sx+w*0.30, GROUND_Y-2, 13);
+
+      ctx.strokeStyle = 'rgba(0,0,0,0.22)';
+      ctx.lineWidth = 1.5;
+      roundRectCtx(sx-w/2, bodyTop, w, bodyH, 9); ctx.stroke();
+    } else if (car.type === 'wagon'){
+      // wagon / cart: flatbed with wooden planks and side rail
+      var deckY = topY + car.h*0.28;
+      var wood = ctx.createLinearGradient(0, deckY, 0, deckY+car.h*0.22);
+      wood.addColorStop(0, '#96683e');
+      wood.addColorStop(1, '#6b4726');
+      ctx.fillStyle = wood;
+      roundRectCtx(sx-w/2, deckY, w, car.h*0.22, 4); ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.22)';
+      ctx.lineWidth = 1;
+      for (var px=-w/2+8; px<w/2; px+=14){
+        ctx.beginPath(); ctx.moveTo(sx+px, deckY+2); ctx.lineTo(sx+px, deckY+car.h*0.22-2); ctx.stroke();
+      }
+      ctx.fillStyle = 'rgba(255,255,255,0.12)';
+      ctx.fillRect(sx-w/2+2, deckY+2, w-4, 2);
+
+      // side rail with metal caps
+      var railG = ctx.createLinearGradient(0, topY, 0, topY+car.h*0.28);
+      railG.addColorStop(0, '#8aa868');
+      railG.addColorStop(1, '#5c7d47');
+      ctx.fillStyle = railG;
+      ctx.fillRect(sx-w/2, topY, 6, car.h*0.28);
+      ctx.fillRect(sx+w/2-6, topY, 6, car.h*0.28);
+      ctx.fillStyle = '#8a8f94';
+      ctx.fillRect(sx-w/2, topY, w, 5);
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.fillRect(sx-w/2, topY, w, 1.5);
+
+      // under-chassis
+      ctx.fillStyle = '#3d3a36';
+      ctx.fillRect(sx-w*0.34, deckY+car.h*0.22, w*0.68, car.h*0.5-8);
+
+      // wheels
+      drawWheel(sx-w*0.30, GROUND_Y-2, 12);
+      drawWheel(sx+w*0.28, GROUND_Y-2, 12);
+
+      ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+      ctx.lineWidth = 1.5;
+      roundRectCtx(sx-w/2, deckY, w, car.h*0.22, 4); ctx.stroke();
+
+    } else if (car.type === 'building'){
+      // skyscraper ledge — a tall facade of windows, you fall straight to the street below
+      var bg2 = ctx.createLinearGradient(0, topY, 0, GROUND_Y);
+      bg2.addColorStop(0, '#8b96a8');
+      bg2.addColorStop(1, '#5b6577');
+      ctx.fillStyle = bg2;
+      ctx.fillRect(sx-w/2, topY, w, car.h);
+      ctx.fillStyle = 'rgba(0,0,0,0.22)';
+      ctx.fillRect(sx-w/2, topY, 5, car.h);
+      ctx.fillStyle = 'rgba(255,255,255,0.16)';
+      ctx.fillRect(sx+w/2-4, topY, 4, car.h);
+
+      // window grid
+      var rows = Math.max(2, Math.floor(car.h/22));
+      var cols = Math.max(2, Math.floor(w/20));
+      var padX = (w - cols*15) / (cols+1);
+      var padY = (car.h - rows*13) / (rows+1);
+      for (var ry=0; ry<rows; ry++){
+        for (var rx=0; rx<cols; rx++){
+          var wx = sx - w/2 + padX + rx*(15+padX);
+          var wy = topY + padY + ry*(13+padY);
+          var lit = Math.abs(Math.sin((rx*7+ry*13+car.x)*0.9))%1 > 0.6;
+          ctx.fillStyle = lit ? 'rgba(255,224,150,0.85)' : 'rgba(20,26,36,0.55)';
+          ctx.fillRect(wx, wy, 15, 13);
+        }
+      }
+
+      // roof ledge / parapet you stand on
+      ctx.fillStyle = '#43485a';
+      ctx.fillRect(sx-w/2-4, topY-8, w+8, 9);
+      ctx.fillStyle = 'rgba(255,255,255,0.18)';
+      ctx.fillRect(sx-w/2-4, topY-8, w+8, 2);
+
+    } else if (car.type === 'busstop'){
+      // bus-stop shelter — low glass-and-metal roof at human scale
+      var roofY = topY;
+      ctx.fillStyle = '#c94a2f';
+      roundRectCtx(sx-w/2-4, roofY, w+8, 8, 3); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.28)';
+      ctx.fillRect(sx-w/2-2, roofY+1, w+4, 2);
+
+      // glass back panel
+      var glassG = ctx.createLinearGradient(0, roofY+8, 0, GROUND_Y-4);
+      glassG.addColorStop(0, 'rgba(170,210,225,0.55)');
+      glassG.addColorStop(1, 'rgba(120,160,180,0.35)');
+      ctx.fillStyle = glassG;
+      ctx.fillRect(sx-w/2+6, roofY+8, w-12, car.h-16);
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(sx-w/2+6, roofY+8, w-12, car.h-16);
+
+      // support posts
+      ctx.fillStyle = '#8a8f94';
+      ctx.fillRect(sx-w/2, roofY+6, 5, car.h-6);
+      ctx.fillRect(sx+w/2-5, roofY+6, 5, car.h-6);
+
+      // little timetable sign
+      ctx.fillStyle = '#2d6b46';
+      roundRectCtx(sx-w*0.06, roofY+car.h*0.35, 14, 18, 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      ctx.fillRect(sx-w*0.06+2, roofY+car.h*0.35+3, 10, 2);
+      ctx.fillRect(sx-w*0.06+2, roofY+car.h*0.35+7, 10, 2);
+
+      // roof edge you stand/crouch on
+      ctx.fillStyle = '#8f3520';
+      ctx.fillRect(sx-w/2-4, roofY-3, w+8, 4);
+    }
+  }
+
+  // a small bench, drawn at the landing circle when the jump started at a bus stop
+  function drawBenchDecoration(){
+    if (target.theme !== 'busstop') return;
+    var sx = target.x - game.cameraX;
+    var y = GROUND_Y - 2;
+    var w = 46;
+    ctx.save();
+    ctx.fillStyle = 'rgba(20,16,10,0.22)';
+    ctx.beginPath(); ctx.ellipse(sx, GROUND_Y+3, w*0.62, 7, 0, 0, Math.PI*2); ctx.fill();
+    // legs
+    ctx.fillStyle = '#5b4a36';
+    ctx.fillRect(sx-w/2+3, y-14, 4, 14);
+    ctx.fillRect(sx+w/2-7, y-14, 4, 14);
+    // seat slats
+    var seatG = ctx.createLinearGradient(0, y-20, 0, y-14);
+    seatG.addColorStop(0, '#a87a4a');
+    seatG.addColorStop(1, '#7a5230');
+    ctx.fillStyle = seatG;
+    for (var i=0;i<4;i++){
+      roundRectCtx(sx-w/2+i*(w/4), y-20, w/4-2, 6, 1.5); ctx.fill();
+    }
+    // backrest
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    ctx.fillRect(sx-w/2, y-34, 3, 16);
+    ctx.fillRect(sx+w/2-3, y-34, 3, 16);
+    ctx.fillStyle = seatG;
+    roundRectCtx(sx-w/2, y-34, w, 6, 2); ctx.fill();
+    ctx.restore();
+  }
+
+  function roundRectCtx(x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+  }
+
+  // ---------- drawing: character ----------
+  function skinGrad(x1,y1,x2,y2){
+    var g = ctx.createLinearGradient(x1,y1,x2,y2);
+    g.addColorStop(0, '#f0c19a'); g.addColorStop(1, '#c98f66');
+    return g;
+  }
+  function shirtGrad(x,y,h){
+    var g = ctx.createLinearGradient(x,y,x,y+h);
+    g.addColorStop(0, '#ea5c37'); g.addColorStop(1, '#b73620');
+    return g;
+  }
+  function jeansGrad(x1,y1,x2,y2){
+    var g = ctx.createLinearGradient(x1,y1,x2,y2);
+    g.addColorStop(0, '#3c5c94'); g.addColorStop(1, '#213658');
+    return g;
+  }
+
+  function drawLimb(x1,y1,x2,y2,x3,y3,width,grad){
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = width;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x1,y1);
+    ctx.lineTo(x2,y2);
+    ctx.lineTo(x3,y3);
+    ctx.stroke();
+  }
+
+  function drawFace(headX, headY, headR){
+    ctx.fillStyle = skinGrad(headX,headY-headR,headX,headY+headR);
+    ctx.beginPath();
+    ctx.moveTo(headX - headR + 1, headY - 1);
+    ctx.lineTo(headX - headR - 3, headY + 1);
+    ctx.lineTo(headX - headR + 1, headY + 3);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#2a2318';
+    ctx.beginPath(); ctx.arc(headX-headR*0.35, headY-1, 1.1, 0, Math.PI*2); ctx.fill();
+  }
+
+  function drawHead(x,y,r, hairFacingLeft){
+    ctx.fillStyle = skinGrad(x,y-r,x,y+r*0.6);
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.22)'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.stroke();
+    // hair cap
+    ctx.fillStyle = '#4a3624';
+    ctx.beginPath();
+    ctx.arc(x, y-r*0.28, r*0.98, Math.PI*0.98, Math.PI*2.02);
+    ctx.closePath(); ctx.fill();
+    // cheek highlight
+    ctx.fillStyle = 'rgba(255,255,255,0.28)';
+    ctx.beginPath(); ctx.ellipse(x+r*0.3, y-r*0.15, r*0.28, r*0.2, 0, 0, Math.PI*2); ctx.fill();
+    drawFace(x, y, r);
+  }
+
+  function outlineShape(fn, color, width){
+    ctx.strokeStyle = color || 'rgba(0,0,0,0.3)';
+    ctx.lineWidth = width || 1.3;
+    fn();
+    ctx.stroke();
+  }
+
+  function drawSpinBlur(){
+    // faint motion-blur arcs behind a fast tucked spin
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    for (var k=1;k<=3;k++){
+      ctx.globalAlpha = 0.16 - k*0.03;
+      ctx.beginPath();
+      ctx.arc(0,-2, 15+k*2, Math.PI*0.15, Math.PI*1.05);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawCharacter(){
+    // ground shadow that tracks height while airborne
+    var groundSx = char.x - game.cameraX;
+    var heightAbove = Math.max(0, GROUND_Y - char.y);
+    var shadowScale = Math.max(0.22, 1 - heightAbove/260);
+    var sh = ctx.createRadialGradient(groundSx,GROUND_Y+3,1, groundSx,GROUND_Y+3,15*shadowScale);
+    sh.addColorStop(0, 'rgba(20,16,10,'+(0.32*shadowScale).toFixed(2)+')');
+    sh.addColorStop(1, 'rgba(20,16,10,0)');
+    ctx.fillStyle = sh;
+    ctx.beginPath();
+    ctx.ellipse(groundSx, GROUND_Y+3, 15*shadowScale, 4.8*shadowScale, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    var sx = char.x - game.cameraX;
+    var sy = char.y;
+    ctx.save();
+    // keep the foot/rotation anchor at the same ground-relative spot while
+    // drawing the figure noticeably larger (CHAR_SCALE) than its old size
+    ctx.translate(sx, sy - (CHAR_H/2)*CHAR_SCALE);
+    ctx.rotate(char.rotation * Math.PI/180);
+    ctx.scale(CHAR_SCALE, CHAR_SCALE);
+
+    var pose = 'stand';
+    if (game.state === 'flight') pose = game.holding ? 'tuck' : 'extend';
+    var crouch = (game.state === 'charging') ? game.power : 0;
+    if (game.state === 'splash'){ pose = game.splashPose; crouch = game.splashCrouch; }
+
+    if (pose === 'tuck') drawSpinBlur();
+
+    if (pose === 'stand'){
+      var headY = -22 + crouch*15;
+      var shoulderY = -12 + crouch*11;
+      var hipY = 4 + crouch*10;
+      var kneeY = 14 + crouch*2;
+      var footY = 24;
+      var kneeX = -3 - crouch*9;
+      var handBackX = 3 + crouch*11, handBackY = shoulderY + 9 + crouch*5;
+      var handFrontX = -6 - crouch*4, handFrontY = shoulderY + 7 + crouch*8;
+
+      drawLimb(2,hipY, kneeX+5,kneeY, 4,footY, 6, jeansGrad(0,hipY,0,footY));
+      drawLimb(3,shoulderY, handBackX,handBackY-4, handBackX+2,handBackY, 4, skinGrad(0,shoulderY,0,handBackY));
+
+      ctx.fillStyle = shirtGrad(-8, shoulderY, hipY-shoulderY+6);
+      roundRectCtx(-8, shoulderY, 15, hipY-shoulderY+6, 3); ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,0.18)';
+      ctx.fillRect(-8, shoulderY, 3, hipY-shoulderY+6);
+      ctx.fillStyle = 'rgba(255,255,255,0.18)';
+      roundRectCtx(-6, shoulderY+2, 4, 3, 1.5); ctx.fill();
+      outlineShape(function(){ roundRectCtx(-8, shoulderY, 15, hipY-shoulderY+6, 3); });
+
+      drawLimb(-2,hipY, kneeX,kneeY, -5,footY, 6.5, jeansGrad(0,hipY,0,footY));
+      ctx.fillStyle = 'rgba(0,0,0,0.28)';
+      ctx.fillRect(kneeX-2, kneeY-1, 3, footY-kneeY+1);
+
+      drawLimb(-4,shoulderY, handFrontX,handFrontY-4, handFrontX,handFrontY, 4.5, skinGrad(0,shoulderY,0,handFrontY));
+
+      ctx.fillStyle = '#faf7ee';
+      roundRectCtx(1,footY-3,7,6,2); ctx.fill();
+      roundRectCtx(kneeX-9,footY-3,9,6,2); ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,0.18)';
+      roundRectCtx(1,footY+1,7,2,1); ctx.fill();
+      roundRectCtx(kneeX-9,footY+1,9,2,1); ctx.fill();
+
+      drawHead(-1, headY, 7);
+
+    } else if (pose === 'extend'){
+      ctx.strokeStyle = skinGrad(-11,-30,-6,-20);
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(-6,-20); ctx.lineTo(-11,-30); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(6,-20); ctx.lineTo(9,-29); ctx.stroke();
+
+      ctx.fillStyle = shirtGrad(-7,-19,20);
+      roundRectCtx(-7,-19,14,20,4); ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,0.18)';
+      ctx.fillRect(-7,-19,3,20);
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      roundRectCtx(-5,-17,3,4,1.5); ctx.fill();
+      outlineShape(function(){ roundRectCtx(-7,-19,14,20,4); });
+
+      ctx.fillStyle = jeansGrad(0,1,0,20);
+      roundRectCtx(-6,1,5,19,2); ctx.fill();
+      roundRectCtx(1,1,5,19,2); ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.fillRect(-6,1,2,19);
+      ctx.fillRect(1,1,2,19);
+
+      ctx.fillStyle = '#faf7ee';
+      roundRectCtx(-7,19,8,6,2); ctx.fill();
+      roundRectCtx(0,19,8,6,2); ctx.fill();
+
+      drawHead(-1,-26,7);
+
+    } else {
+      ctx.fillStyle = jeansGrad(0,0,0,12);
+      roundRectCtx(-9,0,18,12,5); ctx.fill();
+      ctx.fillStyle = shirtGrad(-9,-11,13);
+      roundRectCtx(-9,-11,18,13,4); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.16)';
+      roundRectCtx(-7,-9,5,4,2); ctx.fill();
+      outlineShape(function(){ roundRectCtx(-9,-11,18,23,4); });
+      drawHead(-3,-15,6.5);
+      ctx.fillStyle = '#faf7ee';
+      roundRectCtx(-9,9,8,5,2); ctx.fill();
+      roundRectCtx(1,9,8,5,2); ctx.fill();
+      ctx.strokeStyle = skinGrad(-11,-6,-8,4);
+      ctx.lineWidth = 3.5;
+      ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(-8,-6); ctx.lineTo(-11,4); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(8,-6); ctx.lineTo(11,4); ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  function drawParticles(){
+    for (var i=0;i<particles.length;i++){
+      var p = particles[i];
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.fillStyle = p.col;
+      var sx = p.x - game.cameraX;
+      ctx.beginPath();
+      ctx.arc(sx, p.y, p.r, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    ctx.save();
+    // zoom the whole scene in, anchored at the ground line, so the action
+    // fills the frame instead of floating in empty sky/road
+    ctx.translate(W/2, GROUND_Y);
+    ctx.scale(ZOOM, ZOOM);
+    ctx.translate(-W/2, -GROUND_Y);
+
+    drawBackground();
+    drawGround();
+    drawBenchDecoration();
+    drawTargetCircle();
+    drawVehicle();
+    drawCharacter();
+    drawParticles();
+    ctx.restore();
+
+    var flipsNow = Math.floor(Math.abs(char.rotation) / 360);
+    document.getElementById('hud-flips').textContent = flipsNow + (flipsNow===1 ? ' vuelta' : ' vueltas');
+  }
+
+  // ---------- boot ----------
+  function boot(state){
+    resize();
+    if (state && state.best) { best = state.best; }
+    resetGame();
+    updateHud();
+    startSplash();
+    requestAnimationFrame(step);
+  }
+
+  if (window.claude && window.claude.hot){
+    window.claude.hot.snapshot(function(){
+      return { best: best };
+    });
+    if (window.claude.hot.ready){
+      window.claude.hot.ready(function(data){ boot(data || {}); });
+    } else {
+      boot(window.claude.hot.data || {});
+    }
+  } else {
+    boot({});
+  }
+})();
+</script>
+
+</body></html>
