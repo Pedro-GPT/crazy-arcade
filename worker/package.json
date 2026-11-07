@@ -1,0 +1,13 @@
+{
+  "name": "crazy-arcade-visitas",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler d1 execute crazy-arcade-visitas --local --file=schema.sql && wrangler dev --local --port 8787",
+    "test": "node --test test.mjs"
+  },
+  "devDependencies": {
+    "miniflare": "4.20260730.0",
+    "wrangler": "^4.158.0"
+  }
+}

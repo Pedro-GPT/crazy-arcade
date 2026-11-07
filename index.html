@@ -136,6 +136,10 @@ body.playing .shell{grid-template-columns:minmax(0,1fr)}
   .bar .txt{display:none}
 }
 .tile.playing{outline:3px solid var(--accent);outline-offset:2px}
+.visitas{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:8px 0 0;font-size:13px;color:var(--dim)}
+.visitas button{font:inherit;font-weight:700;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:99px;padding:6px 12px;cursor:pointer}
+.visitas button:hover{border-color:var(--accent)}
+body.playing .visitas{display:none}
 </style>
 
 <header class="top">
@@ -255,6 +259,7 @@ body.playing .shell{grid-template-columns:minmax(0,1fr)}
         <div class="info"><h2>La Jaula</h2><span>Lucha 2D en una jaula de MMA</span><b class="play">Jugar</b></div>
       </a>
     </div>
+    <p class="visitas" id="visitas" hidden><span id="visitas-t"></span><button type="button" id="visitas-b"></button></p>
   </main>
 </div>
 
@@ -280,6 +285,70 @@ body.playing .shell{grid-template-columns:minmax(0,1fr)}
     links.forEach(function(x){x.classList.toggle('on',x===a);});
     apply();
   });});
+})();
+
+// Cuenta visitas y tiempo de juego. Sin nombres: solo un código aleatorio guardado en este navegador.
+var Visitas=(function(){
+  var API=location.hostname==='localhost'?'http://localhost:8787':'https://crazy-arcade-visitas.crazy-arcade-visitas.workers.dev';
+  var CLAVE_ID='ca_persona',CLAVE_NO='ca_no_contar',CADA_MS=60000;
+  var sesion=null,juego=null,persona=null,acumulado=0,desde=0,enviado=-1;
+  function leer(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+  function escribir(k,v){try{if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v);return true;}catch(e){return false;}}
+  function codigo(){
+    if(crypto.randomUUID)return crypto.randomUUID();
+    return [].map.call(crypto.getRandomValues(new Uint8Array(16)),function(b){return ('0'+b.toString(16)).slice(-2);}).join('');
+  }
+  // Sin localStorage cada visita parecería una persona nueva: en ese caso no se cuenta.
+  function obtenerPersona(){
+    var p=leer(CLAVE_ID);
+    if(p)return p;
+    p=codigo();
+    return escribir(CLAVE_ID,p)?p:null;
+  }
+  function pausar(){if(desde){acumulado+=performance.now()-desde;desde=0;}}
+  function seguir(){if(sesion&&!desde&&!document.hidden)desde=performance.now();}
+  function segundos(){return Math.round((acumulado+(desde?performance.now()-desde:0))/1000);}
+  function enviar(){
+    if(!sesion)return;
+    var seg=segundos();
+    if(seg===enviado)return;
+    enviado=seg;
+    var cuerpo=JSON.stringify({s:sesion,p:persona,j:juego,seg:seg});
+    try{if(navigator.sendBeacon&&navigator.sendBeacon(API+'/evento',cuerpo))return;}catch(e){}
+    try{fetch(API+'/evento',{method:'POST',body:cuerpo,keepalive:true}).catch(function(){});}catch(e){}
+  }
+  function terminar(){pausar();enviar();sesion=null;juego=null;}
+  function empezar(k){
+    terminar();
+    if(!API||leer(CLAVE_NO)==='1')return;
+    persona=obtenerPersona();
+    if(!persona)return;
+    sesion=codigo();juego=k;acumulado=0;desde=0;enviado=-1;
+    seguir();
+    enviar();
+  }
+  setInterval(function(){if(!document.hidden)enviar();},CADA_MS);
+  // Al ocultar la pestaña se envía lo acumulado: en móvil es el último momento seguro.
+  document.addEventListener('visibilitychange',function(){if(document.hidden){pausar();enviar();}else seguir();});
+  window.addEventListener('pagehide',function(){pausar();enviar();});
+  window.addEventListener('pageshow',seguir);
+  function pintarAviso(){
+    var no=leer(CLAVE_NO)==='1';
+    document.getElementById('visitas-t').textContent=no
+      ?'Tus visitas no se están contando.'
+      :'Contamos las visitas y el tiempo de juego con un código anónimo guardado en este navegador, sin nombre ni IP.';
+    document.getElementById('visitas-b').textContent=no?'Volver a contar':'No contar mis visitas';
+  }
+  if(API){
+    document.getElementById('visitas').hidden=false;
+    document.getElementById('visitas-b').addEventListener('click',function(){
+      if(leer(CLAVE_NO)==='1')escribir(CLAVE_NO,null);
+      else{terminar();escribir(CLAVE_NO,'1');escribir(CLAVE_ID,null);}
+      pintarAviso();
+    });
+    pintarAviso();
+  }
+  return {empezar:empezar,terminar:terminar};
 })();
 
 (function(){
@@ -330,6 +399,7 @@ body.playing .shell{grid-template-columns:minmax(0,1fr)}
     stage.classList.add('open');
     buildSide();
     load();
+    Visitas.empezar(k);
     try{
       if(swap&&pushed)history.replaceState({crazyGame:k},'');
       else{history.pushState({crazyGame:k},'');pushed=true;}
@@ -338,6 +408,7 @@ body.playing .shell{grid-template-columns:minmax(0,1fr)}
   }
   // vuelve a la página principal
   function closeGame(){
+    Visitas.terminar();
     exitFs();
     stage.classList.remove('open');frame.innerHTML='';cur=null;
     document.body.classList.remove('playing');

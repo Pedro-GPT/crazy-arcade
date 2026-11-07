@@ -1,0 +1,11 @@
+name = "crazy-arcade-visitas"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+[vars]
+ALLOWED_ORIGINS = "https://pedro-gpt.github.io"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "crazy-arcade-visitas"
+database_id = "c2db5554-7be2-49da-a5c7-9e6a1e2b3277"
