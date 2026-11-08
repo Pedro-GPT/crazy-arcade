@@ -419,7 +419,10 @@ function ahorroJuego(C){
   }catch(e){}
   // 4) Silencio desde el portal y sonido parado del todo con la pestaña oculta.
   try{
-    var AC=window.AudioContext||window.webkitAudioContext,PA=AC.prototype,de=Object.getOwnPropertyDescriptor(PA,'destination');
+    // "destination" está en BaseAudioContext, no en AudioContext: hay que buscarlo subiendo por la cadena.
+    var AC=window.AudioContext||window.webkitAudioContext,PA=AC.prototype,de=null;
+    for(var pr=PA;pr&&!de;pr=Object.getPrototypeOf(pr))de=Object.getOwnPropertyDescriptor(pr,'destination');
+    if(!de||!de.get)throw 0;
     var gains=new WeakMap(),ctxs=[],parados=[];window.__mute=false;
     Object.defineProperty(PA,'destination',{configurable:true,get:function(){
       var c=this;
