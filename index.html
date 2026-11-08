@@ -177,6 +177,7 @@ body.playing .visitas{display:none}
         <span class="gname" id="gname"></span>
         <button type="button" id="b-reload" title="Reiniciar"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg><span class="txt">Reiniciar</span></button>
         <button type="button" id="b-mute" title="Silenciar"><svg viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4z"/><path id="mute-x" d="M16 9l5 6M21 9l-5 6" style="display:none"/><path id="mute-w" d="M16 9a4 4 0 0 1 0 6"/></svg><span class="txt" id="mute-t">Sonido</span></button>
+        <button type="button" id="b-ahorro" title="Ahorro de batería"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="17" height="10" rx="2"/><path d="M22 11v2"/><path id="ahorro-fill" d="M6 10v4M9 10v4"/></svg><span class="txt" id="ahorro-t">Ahorro: auto</span></button>
         <a id="b-new" href="#" target="_blank" rel="noopener" title="Abrir en pestaña nueva"><span class="txt">Pestaña nueva</span><svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/></svg></a>
         <button type="button" id="b-full2" title="Pantalla completa" aria-label="Pantalla completa"><svg viewBox="0 0 24 24"><path d="M10 10 4 4M14 10l6-6M10 14l-6 6M14 14l6 6M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span class="txt">Pantalla completa</span></button>
       </div>
@@ -384,6 +385,55 @@ var Visitas=(function(){
   return {empezar:empezar,terminar:terminar};
 })();
 
+// Ahorro de batería. Esta función no se ejecuta aquí: se copia al principio de cada juego al abrirlo.
+// C (cambiable en marcha desde el portal): fps máximo, dpr máximo y sombras difuminadas sí/no.
+function ahorroJuego(C){
+  window.__CA=C;
+  // 1) Como mucho C.fps imágenes por segundo (en pantallas de 120 Hz o más, la mitad de trabajo).
+  try{
+    var raf=window.requestAnimationFrame.bind(window),caf=window.cancelAnimationFrame.bind(window);
+    var n=0,ids=new Map(),next=0,ok=-1;
+    window.requestAnimationFrame=function(cb){
+      var id=++n;
+      function tick(t){
+        var paso=1000/C.fps;
+        if(t!==ok){
+          if(t<next-1){ids.set(id,raf(tick));return;}
+          next=t-next>paso?t+paso:next+paso;ok=t;
+        }
+        ids.delete(id);cb(t);
+      }
+      ids.set(id,raf(tick));return id;
+    };
+    window.cancelAnimationFrame=function(id){var r=ids.get(id);if(r!==undefined){caf(r);ids.delete(id);}};
+  }catch(e){}
+  // 2) Resolución del dibujo limitada (los juegos leen devicePixelRatio para el tamaño del lienzo).
+  try{
+    var dd=Object.getOwnPropertyDescriptor(window,'devicePixelRatio')||Object.getOwnPropertyDescriptor(Window.prototype,'devicePixelRatio');
+    if(dd&&dd.get)Object.defineProperty(window,'devicePixelRatio',{configurable:true,get:function(){return Math.min(dd.get.call(window)||1,C.dpr);}});
+  }catch(e){}
+  // 3) Sin sombras difuminadas cuando se pide (son de lo más caro de dibujar en 2D).
+  try{
+    var P2=CanvasRenderingContext2D.prototype,sb=Object.getOwnPropertyDescriptor(P2,'shadowBlur');
+    Object.defineProperty(P2,'shadowBlur',{configurable:true,get:sb.get,set:function(v){sb.set.call(this,C.sombras?v:0);}});
+  }catch(e){}
+  // 4) Silencio desde el portal y sonido parado del todo con la pestaña oculta.
+  try{
+    var AC=window.AudioContext||window.webkitAudioContext,PA=AC.prototype,de=Object.getOwnPropertyDescriptor(PA,'destination');
+    var gains=new WeakMap(),ctxs=[],parados=[];window.__mute=false;
+    Object.defineProperty(PA,'destination',{configurable:true,get:function(){
+      var c=this;
+      if(!gains.has(c)){var g=c.createGain();g.connect(de.get.call(c));g.gain.value=window.__mute?0:1;gains.set(c,g);ctxs.push(c);}
+      return gains.get(c);
+    }});
+    window.__setMute=function(v){window.__mute=v;ctxs.forEach(function(c){gains.get(c).gain.value=v?0:1;});};
+    document.addEventListener('visibilitychange',function(){
+      if(document.hidden){parados=ctxs.filter(function(c){return c.state==='running';});parados.forEach(function(c){c.suspend();});}
+      else{parados.forEach(function(c){c.resume();});parados=[];}
+    });
+  }catch(e){}
+}
+
 (function(){
   var GAMES=JSON.parse(document.getElementById('gdata').textContent);
   var stage=document.getElementById('stage'),frame=document.getElementById('frame'),fbox=document.getElementById('fbox');
@@ -393,13 +443,48 @@ var Visitas=(function(){
   function setMuteUI(){document.getElementById('mute-x').style.display=muted?'':'none';document.getElementById('mute-w').style.display=muted?'none':'';document.getElementById('mute-t').textContent=muted?'Silenciado':'Sonido';}
   function applyMute(){try{var w=frame.firstChild.contentWindow;if(w&&w.__setMute)w.__setMute(muted);}catch(e){}}
   function focusGame(){try{frame.firstChild.contentWindow.focus();}catch(e){}}
+  // Modo ahorro: "auto" se activa al ir sin cargador (si el navegador lo sabe); "si" y "no" lo fuerzan.
+  var IS_CROS=/\bCrOS\b/.test(navigator.userAgent),MODOS=['auto','si','no'],sinCargador=false;
+  var modo=(function(){try{return localStorage.getItem('ca_ahorro');}catch(e){return null;}})();
+  if(MODOS.indexOf(modo)<0)modo='auto';
+  function ahorroActivo(){return modo==='si'||(modo==='auto'&&sinCargador);}
+  // Skill War avanza "por imagen": a 30 imágenes/s iría a cámara lenta, así que se queda en 60.
+  function cfgAhorro(k){
+    var a=ahorroActivo();
+    return {fps:a&&k!=='skillwar'?30:60, dpr:a||IS_CROS?1:2, sombras:!a};
+  }
+  function pintarAhorro(){
+    var a=ahorroActivo();
+    document.getElementById('ahorro-t').textContent='Ahorro: '+(modo==='auto'?'auto'+(a?' (sí)':''):modo==='si'?'sí':'no');
+    document.getElementById('ahorro-fill').style.display=a?'none':'';
+    document.getElementById('b-ahorro').title=a?'Ahorro de batería activado: 30 imágenes/s, resolución 1× y sin sombras difuminadas':'Ahorro de batería';
+  }
+  function aplicarAhorro(){
+    pintarAhorro();
+    try{
+      var w=frame.firstChild.contentWindow,c=cfgAhorro(cur);
+      if(w&&w.__CA){var cambiaDpr=w.__CA.dpr!==c.dpr;w.__CA.fps=c.fps;w.__CA.dpr=c.dpr;w.__CA.sombras=c.sombras;if(cambiaDpr)w.dispatchEvent(new Event('resize'));}
+    }catch(e){}
+  }
+  try{navigator.getBattery().then(function(b){
+    function ver(){sinCargador=!b.charging;aplicarAhorro();}
+    b.addEventListener('chargingchange',ver);ver();
+  }).catch(function(){});}catch(e){}
+  // Mete ahorroJuego() al principio del juego, dentro de <head> si lo hay, para no cambiar su modo de dibujo.
+  function conAhorro(h,k){
+    var s='<script>('+ahorroJuego.toString()+')('+JSON.stringify(cfgAhorro(k))+');<\/script>';
+    var m=/<head(\s[^>]*)?>/i.exec(h)||/^\s*<!doctype[^>]*>/i.exec(h);
+    if(!m)return s+h;
+    var i=m.index+m[0].length;
+    return h.slice(0,i)+s+h.slice(i);
+  }
   function load(){
     frame.innerHTML='';
     var f=document.createElement('iframe');
     f.setAttribute('sandbox','allow-scripts allow-same-origin allow-pointer-lock allow-forms');
     f.setAttribute('allow','fullscreen; autoplay');
     f.setAttribute('title',GAMES[cur].n);
-    f.srcdoc=GAMES[cur].h;
+    f.srcdoc=conAhorro(GAMES[cur].h,cur);
     f.addEventListener('load',function(){applyMute();focusGame();});
     frame.appendChild(f);
   }
@@ -460,6 +545,12 @@ var Visitas=(function(){
   window.addEventListener('popstate',function(){pushed=false;if(cur)closeGame();});
   document.getElementById('b-reload').addEventListener('click',function(){if(cur)load();});
   document.getElementById('b-mute').addEventListener('click',function(){muted=!muted;setMuteUI();applyMute();});
+  document.getElementById('b-ahorro').addEventListener('click',function(){
+    modo=MODOS[(MODOS.indexOf(modo)+1)%MODOS.length];
+    try{localStorage.setItem('ca_ahorro',modo);}catch(e){}
+    aplicarAhorro();focusGame();
+  });
+  pintarAhorro();
   // pantalla completa: solo el juego (sin la lista ni los botones)
   function isFs(){return document.fullscreenElement===fbox||pseudo;}
   function syncFs(){
