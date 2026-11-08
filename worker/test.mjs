@@ -99,6 +99,18 @@ test('rechaza datos no válidos, otras webs y cuerpos grandes', async () => {
   assert.equal((await sesiones()).length, 0);
 });
 
+test('guarda el nombre, lo limpia y permite cambiarlo', async () => {
+  await limpiar();
+  await evento({ s: 'sesion-nombre-1', p: 'persona-uno', j: 'salto', seg: 0, n: '  Ana \n María ' });
+  await evento({ s: 'sesion-nombre-2', p: 'persona-dos', j: 'salto', seg: 0 });
+  await evento({ s: 'sesion-nombre-3', p: 'persona-tres', j: 'salto', seg: 0, n: 'x'.repeat(31) });
+  await evento({ s: 'sesion-nombre-1', p: 'persona-uno', j: 'salto', seg: 1 });
+  let f = await sesiones();
+  assert.deepEqual(f.map(x => x.nombre), ['Ana María', null, null]);
+  await evento({ s: 'sesion-nombre-1', p: 'persona-uno', j: 'salto', seg: 2, n: 'Ana' });
+  assert.equal((await sesiones())[0].nombre, 'Ana');
+});
+
 test('los datos solo se entregan con la clave correcta', async () => {
   assert.equal((await datos('clave-mala')).status, 401);
   const sinClave = await mf.dispatchFetch(`${URL_BASE}/datos`, { headers: { Origin: ORIGEN } });

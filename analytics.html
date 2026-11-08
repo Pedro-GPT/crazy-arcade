@@ -132,7 +132,7 @@
   </div>
 
   <div class="kpis">
-    <div class="kpi"><div class="lbl">Personas</div><div class="val" id="v-p">—</div><div class="note">Dispositivos diferentes</div></div>
+    <div class="kpi"><div class="lbl">Personas</div><div class="val" id="v-p">—</div><div class="note">Nombres diferentes</div></div>
     <div class="kpi"><div class="lbl">Veces totales</div><div class="val" id="v-v">—</div><div class="note">Entre todos</div></div>
     <div class="kpi"><div class="lbl">Juego más jugado</div><div class="val" id="v-j">—</div><div class="note" id="v-jn">—</div></div>
     <div class="kpi"><div class="lbl">Horas totales</div><div class="val" id="v-h">—</div><div class="note">Entre todos</div></div>
@@ -199,13 +199,15 @@
     return true;
   }
 
-  // Convierte las filas del servidor. Las personas se muestran como "Dispositivo 1, 2, 3…".
+  // Convierte las filas del servidor. Cada dispositivo se muestra con el último nombre que escribió
+  // (dos dispositivos con el mismo nombre cuentan como una persona); sin nombre, "Dispositivo 1, 2, 3…".
   function prepararSesiones(filas) {
-    const numeros = new Map();
+    const numeros = new Map(), nombres = new Map();
+    for (const s of filas) if (s.nombre) nombres.set(s.persona, s.nombre);
     return filas.filter(cuentaComoVisita).map(s => {
       if (!numeros.has(s.persona)) numeros.set(s.persona, numeros.size + 1);
       return {
-        persona: `Dispositivo ${numeros.get(s.persona)}`,
+        persona: nombres.get(s.persona) || `Dispositivo ${numeros.get(s.persona)}`,
         juego: s.juego,
         inicio: s.inicio,
         fin: s.ultimo,

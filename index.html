@@ -140,6 +140,14 @@ body.playing .shell{grid-template-columns:minmax(0,1fr)}
 .visitas button{font:inherit;font-weight:700;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:99px;padding:6px 12px;cursor:pointer}
 .visitas button:hover{border-color:var(--accent)}
 body.playing .visitas{display:none}
+.nombre-fondo{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(5,3,12,.75)}
+.nombre-fondo[hidden]{display:none}
+.nombre-caja{width:100%;max-width:340px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:12px}
+.nombre-caja h2{margin:0;font-size:20px}
+.nombre-caja input{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.nombre-caja input:focus{outline:none;border-color:var(--accent)}
+.nombre-caja button{font:inherit;font-weight:800;color:#fff;background:var(--accent);border:0;border-radius:99px;padding:10px 18px;cursor:pointer}
+.nombre-caja button:disabled{opacity:.4;cursor:default}
 </style>
 
 <header class="top">
@@ -259,7 +267,12 @@ body.playing .visitas{display:none}
         <div class="info"><h2>La Jaula</h2><span>Lucha 2D en una jaula de MMA</span><b class="play">Jugar</b></div>
       </a>
     </div>
-    <p class="visitas" id="visitas" hidden><span id="visitas-t"></span><button type="button" id="visitas-b"></button></p>
+    <p class="visitas" id="visitas" hidden><span id="visitas-t"></span><button type="button" id="visitas-c">Cambiar nombre</button><button type="button" id="visitas-b"></button></p>
+    <div class="nombre-fondo" id="nombre" hidden><form class="nombre-caja" id="nombre-f">
+      <h2>¿Cómo te llamas?</h2>
+      <input id="nombre-i" maxlength="30" autocomplete="off" aria-label="Tu nombre">
+      <button type="submit" id="nombre-ok" disabled>Entrar</button>
+    </form></div>
   </main>
 </div>
 
@@ -287,10 +300,10 @@ body.playing .visitas{display:none}
   });});
 })();
 
-// Cuenta visitas y tiempo de juego. Sin nombres: solo un código aleatorio guardado en este navegador.
+// Cuenta visitas y tiempo de juego con un código aleatorio y el nombre que se pide la primera vez (ambos en este navegador).
 var Visitas=(function(){
   var API=location.hostname==='localhost'?'http://localhost:8787':'https://crazy-arcade-visitas.crazy-arcade-visitas.workers.dev';
-  var CLAVE_ID='ca_persona',CLAVE_NO='ca_no_contar',CADA_MS=60000;
+  var CLAVE_ID='ca_persona',CLAVE_NOMBRE='ca_nombre',CLAVE_NO='ca_no_contar',CADA_MS=60000;
   var sesion=null,juego=null,persona=null,acumulado=0,desde=0,enviado=-1;
   function leer(k){try{return localStorage.getItem(k);}catch(e){return null;}}
   function escribir(k,v){try{if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v);return true;}catch(e){return false;}}
@@ -313,7 +326,9 @@ var Visitas=(function(){
     var seg=segundos();
     if(seg===enviado)return;
     enviado=seg;
-    var cuerpo=JSON.stringify({s:sesion,p:persona,j:juego,seg:seg});
+    var e={s:sesion,p:persona,j:juego,seg:seg},n=leer(CLAVE_NOMBRE);
+    if(n)e.n=n;
+    var cuerpo=JSON.stringify(e);
     try{if(navigator.sendBeacon&&navigator.sendBeacon(API+'/evento',cuerpo))return;}catch(e){}
     try{fetch(API+'/evento',{method:'POST',body:cuerpo,keepalive:true}).catch(function(){});}catch(e){}
   }
@@ -333,20 +348,38 @@ var Visitas=(function(){
   window.addEventListener('pagehide',function(){pausar();enviar();});
   window.addEventListener('pageshow',seguir);
   function pintarAviso(){
-    var no=leer(CLAVE_NO)==='1';
+    var no=leer(CLAVE_NO)==='1',n=leer(CLAVE_NOMBRE);
     document.getElementById('visitas-t').textContent=no
       ?'Tus visitas no se están contando.'
-      :'Contamos las visitas y el tiempo de juego con un código anónimo guardado en este navegador, sin nombre ni IP.';
+      :'Se guardan tu nombre'+(n?' ('+n+')':'')+', tus visitas y el tiempo de juego.';
     document.getElementById('visitas-b').textContent=no?'Volver a contar':'No contar mis visitas';
+    document.getElementById('visitas-c').hidden=no;
   }
+  var caja=document.getElementById('nombre'),campo=document.getElementById('nombre-i'),ok=document.getElementById('nombre-ok');
+  function limpio(){return campo.value.replace(/\s+/g,' ').trim();}
+  function pedirNombre(){
+    campo.value=leer(CLAVE_NOMBRE)||'';ok.disabled=!limpio();
+    caja.hidden=false;campo.focus();
+  }
+  campo.addEventListener('input',function(){ok.disabled=!limpio();});
+  document.getElementById('nombre-f').addEventListener('submit',function(ev){
+    ev.preventDefault();
+    if(!limpio())return;
+    escribir(CLAVE_NOMBRE,limpio());
+    caja.hidden=true;
+    pintarAviso();
+    enviado=-1;enviar();
+  });
   if(API){
     document.getElementById('visitas').hidden=false;
     document.getElementById('visitas-b').addEventListener('click',function(){
-      if(leer(CLAVE_NO)==='1')escribir(CLAVE_NO,null);
-      else{terminar();escribir(CLAVE_NO,'1');escribir(CLAVE_ID,null);}
+      if(leer(CLAVE_NO)==='1'){escribir(CLAVE_NO,null);if(!leer(CLAVE_NOMBRE))pedirNombre();}
+      else{terminar();escribir(CLAVE_NO,'1');escribir(CLAVE_ID,null);escribir(CLAVE_NOMBRE,null);}
       pintarAviso();
     });
+    document.getElementById('visitas-c').addEventListener('click',pedirNombre);
     pintarAviso();
+    if(leer(CLAVE_NO)!=='1'&&!leer(CLAVE_NOMBRE))pedirNombre();
   }
   return {empezar:empezar,terminar:terminar};
 })();
