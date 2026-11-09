@@ -1,6 +1,6 @@
 # Crazy Arcade
 
-Portal de videojuegos para navegador con nueve juegos que se juegan en la propia página.
+Portal de videojuegos para navegador con diez juegos que se juegan en la propia página.
 
 Es un único archivo, `index.html`, sin instalación. Necesita internet para las fuentes y para three.js, que usa Fast and Fuñius.
 
