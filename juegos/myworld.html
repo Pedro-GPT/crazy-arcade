@@ -590,7 +590,8 @@ function markVillage(v){for(const i of [v.center,...v.houses,...v.farms,...v.wal
 
 /* ════════════ Territorios ════════════ */
 let terBest=null;
-function villageRadius(v){return Math.min(26,5+v.stage*3+Math.sqrt(v.houses.length+v.farms.length)*1.6+(v.wallR?0:0))}
+const expanding=n=>!!(n&&n.expandUntil>tick);
+function villageRadius(v){return Math.min(30,5+v.stage*3+Math.sqrt(v.houses.length+v.farms.length)*1.6+(expanding(nat(v))?5:0))}
 function updateTerritory(){
   if(!terBest||terBest.length!==N)terBest=new Float32Array(N);
   terBest.fill(9);terOwn.fill(0);
@@ -1148,11 +1149,12 @@ function daily(){
         v.pop+=born;
       }
     }
-    if(S.colonies&&!v.policy.closed&&!(nat(v)&&nat(v).noColonies)&&v.stage>=1&&people.length<S.maxPop){
+    const exp=expanding(nat(v));
+    if(S.colonies&&!v.policy.closed&&!(nat(v)&&nat(v).noColonies)&&(v.stage>=1||exp)&&people.length<S.maxPop){
       const tr=TRAITS[v.trait];
-      const min=v.trait==='curioso'?18:24;
+      const min=exp?10:v.trait==='curioso'?18:24;
       if(v.pop>=min){
-        const p=(0.07+Math.max(0,(v.pop-min)/180)+(v.noSite?0.35:0))*tr.colony;
+        const p=exp?0.5:(0.07+Math.max(0,(v.pop-min)/180)+(v.noSite?0.35:0))*tr.colony;
         if(rnd()<p)tryColony(v);
         else if(v.port>=0&&rnd()<0.04*tr.colony)trySeaColony(v);
       }
@@ -1243,6 +1245,18 @@ function dailyTrade(){
     }
   }
 }
+function payExpansion(n){
+  if(n.gold<20){toast('Hace falta al menos 20 de oro para pagar la expansión.');return}
+  const amt=Math.floor(n.gold/2);n.gold-=amt;
+  const vs=nationVillages(n).sort((a,b)=>b.pop-a.pop);
+  for(const v of vs){v.wood+=Math.floor(amt*0.5/vs.length);v.food+=Math.floor(amt*0.8/vs.length)}
+  n.expandUntil=tick+DAY*12;
+  census();
+  let k=0;const want=Math.min(vs.length,1+Math.floor(amt/150));
+  for(const v of vs){if(k>=want)break;if(v.adults>=4&&tryColony(v))k++}
+  addLog(`${n.name} reparte ${amt} de oro entre su gente para que se expanda${k?`: ${k} grupo${k===1?' sale':'s salen'} ya a fundar pueblos nuevos`:''}. Durante unos 3 años fundarán pueblos más a menudo y reclamarán más territorio.`);
+  updateTerritory();
+}
 function tryColony(v){
   let best=-1,bs=-1;
   for(let k=0;k<300;k++){
@@ -1253,19 +1267,21 @@ function tryColony(v){
     if(!ok)continue;
     const sc=spotScore(x,y);if(sc>bs){bs=sc;best=y*W+x}
   }
-  const path=best>=0&&bs>=120?bfs(v.center,i=>i===best,9000):null;
+  const exp=expanding(nat(v));
+  const path=best>=0&&bs>=(exp?60:120)?bfs(v.center,i=>i===best,9000):null;
   if(!path){trySeaColony(v);return}
-  const size=Math.min(12,5+Math.floor(v.pop/20));
+  const size=exp?Math.max(3,Math.min(8,Math.floor(v.adults/3))):Math.min(12,5+Math.floor(v.pop/20));
   const busyWar=anyWar(nat(v));
   const group=v.members.filter(p=>!isKid(p)&&!p.leader&&!p.attack&&(!busyWar||!p.soldier)).slice(0,size);
-  if(group.length<4)return;
-  const nv=foundVillage(best,v);if(!nv)return;
+  if(group.length<(exp?3:4))return false;
+  const nv=foundVillage(best,v);if(!nv)return false;
   nv.food=Math.min(15,v.food);v.food-=nv.food;nv.wood=Math.min(15,v.wood);v.wood-=nv.wood;
   for(const p of group){abortJob(p);p.vid=nv.id;p.path=null;p.state='idle';p.wait=0}
   for(const p of v.members){if(isKid(p)&&rnd()<0.2)p.vid=nv.id}
   v.noSite=false;
   addLog(`Un grupo de ${group.length} habitantes de ${v.name} se marcha a fundar ${nv.name}.`);
   updateTerritory();
+  return true;
 }
 
 function trySeaColony(v){
@@ -2620,7 +2636,7 @@ cardCtl.addEventListener('input',e=>{if(e.target.id==='atkRange'){atkCount=+e.ta
 function renderCtl(v,n){
   const others=n?[...nations.values()].filter(o=>o!==n):[];
   const targets=attackTargets(v);
-  const sig=[buySel,n&&buySel!=null&&nations.get(buySel)?devListOf(nations.get(buySel)).map(it=>(ownsItem(n,it)?'o':'')+(n.gold>=itemPrice(n,it,nations.get(buySel))?'y':'n')).join(''):'',n?DEV.filter(d=>n.tech[d[0]]).length+'/'+n.tech.arms:'',v.id,v.focus,n&&n.path,n&&n.allies.join(','),n?nationPop(n)>=200:0,[...nations.keys()].join(','),v.trait,v.policy.walls,v.policy.closed,n&&n.id,n&&n.noColonies,n&&n.noIndep,n?nationSoldiers(n):v.soldiers,n?nationVillages(n).reduce((a2,o)=>a2+o.adults,0):0,n?[...missions.values()].filter(ms=>ms.nid===n.id).map(ms=>ms.key+ms.phase+missionAlive(ms)).join('/'):'',n?nationOnMission(n):0,atkSel,aim&&aim.vid,v.squad&&v.squad.manual?v.squad.target+v.squad.phase:'',targets.map(t=>t.id+'.'+t.nid).join(','),n?Object.keys(n.wars).join(','):'',pickWar,S.warMode,others.map(o=>o.id).join(',')].join('|');
+  const sig=[n?(expanding(n)?'e'+Math.ceil((n.expandUntil-tick)/DAY):'g'+Math.floor(n.gold/2)):'',buySel,n&&buySel!=null&&nations.get(buySel)?devListOf(nations.get(buySel)).map(it=>(ownsItem(n,it)?'o':'')+(n.gold>=itemPrice(n,it,nations.get(buySel))?'y':'n')).join(''):'',n?DEV.filter(d=>n.tech[d[0]]).length+'/'+n.tech.arms:'',v.id,v.focus,n&&n.path,n&&n.allies.join(','),n?nationPop(n)>=200:0,[...nations.keys()].join(','),v.trait,v.policy.walls,v.policy.closed,n&&n.id,n&&n.noColonies,n&&n.noIndep,n?nationSoldiers(n):v.soldiers,n?nationVillages(n).reduce((a2,o)=>a2+o.adults,0):0,n?[...missions.values()].filter(ms=>ms.nid===n.id).map(ms=>ms.key+ms.phase+missionAlive(ms)).join('/'):'',n?nationOnMission(n):0,atkSel,aim&&aim.vid,v.squad&&v.squad.manual?v.squad.target+v.squad.phase:'',targets.map(t=>t.id+'.'+t.nid).join(','),n?Object.keys(n.wars).join(','):'',pickWar,S.warMode,others.map(o=>o.id).join(',')].join('|');
   if(sig===ctlSig){cardCtl.hidden=false;return}
   ctlSig=sig;cardCtl.hidden=false;
   let h=`<div class="lbl">Carácter de ${esc(v.name)}</div><div class="seg">`;
@@ -2656,6 +2672,8 @@ function renderCtl(v,n){
   }
   h+=`<button class="px wide${v.policy.closed?' on':''}" type="button" data-act="walls">${v.policy.closed?'Quitar la orden: que vuelvan a crecer':'Construir murallas y dejar de crecer'}</button>`;
   if(n){
+    h+=expanding(n)?`<button class="px wide on" type="button" disabled>Expansión pagada en marcha: quedan ${Math.ceil((n.expandUntil-tick)/DAY)} días</button>`
+      :`<button class="px wide" type="button" data-act="expand"${n.gold<20?' disabled':''}>Pagar a la gente la mitad del oro (${Math.floor(n.gold/2)}) para que se expanda</button>`;
     h+=`<div class="lbl">Reglas para toda la nación ${esc(n.name)}</div>`;
     h+=`<button class="px wide${n.noColonies?' on':''}" type="button" data-act="nocol">${n.noColonies?'No funda poblados nuevos (toca para permitirlo)':'Puede fundar poblados nuevos (toca para prohibirlo)'}</button>`;
     h+=`<button class="px wide${n.noIndep?' on':''}" type="button" data-act="noind">${n.noIndep?'No se puede dividir (toca para permitirlo)':'Sus poblados pueden independizarse (toca para prohibirlo)'}</button>`;
@@ -2677,6 +2695,7 @@ cardCtl.addEventListener('click',e=>{
   const v=selected.ref,n=nat(v);
   if(b.dataset.focus){v.focus=b.dataset.focus;v.rockT=-1e9;addLog(`Por orden divina, ${v.name} se dedicará a ser un poblado ${FOCUS[v.focus].name.toLowerCase()}.`)}
   else if(b.dataset.path&&n){choosePath(n,b.dataset.path);n.asked200=true}
+  else if(b.dataset.act==='expand'&&n){payExpansion(n)}
   else if(b.dataset.seller){buySel=buySel===+b.dataset.seller?null:+b.dataset.seller}
   else if(b.dataset.item!=null&&n){const so=nations.get(buySel);const it=so&&devListOf(so)[+b.dataset.item];if(it&&!buyItem(n,it,so))toast(`No hay oro suficiente: necesitas ${itemPrice(n,it,so)}.`)}
   else if(b.dataset.ally&&n){const o=nations.get(+b.dataset.ally);if(o){if(atWar(n,o))toast('Primero firma la paz.');else makeAlliance(n,o)}}
@@ -2792,7 +2811,7 @@ function snapshotWorld(){
   const afloat=[];for(const b of boats)for(const p of b.crew)afloat.push({...p,dead:false,x:b.target%W+.5,y:((b.target/W)|0)+.5});
   const pf=['id','name','fem','x','y','home','vid','ageT','hunger','thirst','energy','hp','cf','cw','cs','soldier','leader','sick','immune','charisma','parents','shirt','skin','hair','lastWater','attack','tank'];
   const json={v:2,S:{...S},W,tick,nextId,nextAid,nextVid,nextNid,milestone,cam:{x:cam.x,y:cam.y,z:cam.z},
-    nations:[...nations.values()].map(n=>({id:n.id,name:n.name,color:n.color,capital:n.capital,wars:n.wars,founded:n.founded,noColonies:!!n.noColonies,noIndep:!!n.noIndep,tech:n.tech,rp:n.rp,dp:n.dp,gold:n.gold,allies:n.allies,mods:n.mods,path:n.path,goal:n.goal,asked200:n.asked200,nextQ:n.nextQ,done:n.done,nextPathAsk:n.nextPathAsk})),
+    nations:[...nations.values()].map(n=>({id:n.id,name:n.name,color:n.color,capital:n.capital,wars:n.wars,founded:n.founded,noColonies:!!n.noColonies,noIndep:!!n.noIndep,tech:n.tech,rp:n.rp,dp:n.dp,gold:n.gold,allies:n.allies,mods:n.mods,path:n.path,goal:n.goal,asked200:n.asked200,nextQ:n.nextQ,done:n.done,nextPathAsk:n.nextPathAsk,expandUntil:n.expandUntil||0})),
     villages:[...villages.values()].map(v=>({id:v.id,name:v.name,nid:v.nid,center:v.center,cx:v.cx,cy:v.cy,stage:v.stage,trait:v.trait,food:v.food,wood:v.wood,stone:v.stone,
       houses:v.houses,farms:v.farms,walls:v.walls,barracks:v.barracks,training:v.training,port:v.port,focus:v.focus,ore:v.ore||0,mines:v.mines,forge:v.forge,market:v.market,factory:v.factory,firstTower:!!v.firstTower,leader:v.leader?v.leader.id:0,hadLeader:v.hadLeader,founded:v.founded,births:v.births,
       noStone:Math.max(-1e6,v.noStone),parent:v.parent,policy:v.policy,wallPlan:v.wallPlan,wallR:v.wallR,wallsDone:!!v.wallsDone,squad:v.squad})),
@@ -2953,7 +2972,7 @@ resize();renderTabs();renderTools();generate();
 requestAnimationFrame(frame);
 openMenu();
 
-window.__mw={S,get people(){return people},get animals(){return animals},get villages(){return villages},get nations(){return nations},get tick(){return tick},step,generate,log,cam,view,CATS,applyPower,declareWar,makePeace,planWalls,encodeWorld,decodeWorld,saveNow,Store,newNation,devListOf,buyItem,itemPrice,techOffers,buyTech,payPeace,orderClaim,get missions(){return missions},showAsk,councilQuestions,choosePath,markVillage,updateTerritory,orderAttack,get W(){return W},regionAt,setTerrain,spawnGroup,adoptOrphans,placeBuilding,get boats(){return boats},get cur(){return cur},set cur(v){cur=v},Save};
+window.__mw={S,get people(){return people},get animals(){return animals},get villages(){return villages},get nations(){return nations},get tick(){return tick},step,generate,log,cam,view,CATS,applyPower,declareWar,makePeace,planWalls,encodeWorld,decodeWorld,saveNow,Store,newNation,payExpansion,devListOf,buyItem,itemPrice,techOffers,buyTech,payPeace,orderClaim,get missions(){return missions},showAsk,councilQuestions,choosePath,markVillage,updateTerritory,orderAttack,get W(){return W},regionAt,setTerrain,spawnGroup,adoptOrphans,placeBuilding,get boats(){return boats},get cur(){return cur},set cur(v){cur=v},Save};
 })();
 </script>
 </body></html>
