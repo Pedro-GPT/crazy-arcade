@@ -1006,14 +1006,25 @@ function rallyPoint(tv,sol){
   let f=-1;inR(tv.cx,tv.cy,10,(j,d)=>{if(f<0&&d>4&&walkable(j)&&!bld[j]&&regionAt(j)===tr)f=j});
   return f>=0?f:tv.center;
 }
+function fighters(n,ok){
+  const mine=new Set(nationVillages(n).map(o=>o.id)),sol=[],civ=[];
+  for(const p of people){if(p.dead||p.attack||!mine.has(p.vid)||isKid(p)||p.leader)continue;if(ok&&!ok(p))continue;(p.soldier?sol:civ).push(p)}
+  return{sol,civ};
+}
+function pickFighters(n,count,tx,ty,ok){
+  const {sol,civ}=fighters(n,ok),d=p=>Math.hypot(p.x-tx,p.y-ty);
+  sol.sort((a,b)=>d(a)-d(b));civ.sort((a,b)=>d(a)-d(b));
+  const out=sol.slice(0,count);
+  for(const p of civ){if(out.length>=count)break;abortJob(p);p.soldier=true;p.hp=Math.max(p.hp,soldierHp(villages.get(p.vid),p));out.push(p)}
+  return out;
+}
 function orderClaim(v,count,tile){
   const n=nat(v);if(!n)return false;
   census();
   const mine=new Set(nationVillages(n).map(o=>o.id));
   const tr=regionAt(tile),pr=natPortRegions(n),coastOk=landingFor(tile)>=0;
-  const sol=people.filter(p=>{if(p.dead||!p.soldier||p.attack||!mine.has(p.vid))return false;const r=regionAt(tileOf(p));return r===tr||(coastOk&&pr.has(r))})
-    .sort((a,b)=>Math.hypot(a.x-tile%W,a.y-tile/W)-Math.hypot(b.x-tile%W,b.y-tile/W)).slice(0,count);
-  if(!sol.length){toast('Ningún soldado libre puede llegar: puede que estén todos en misiones, o que haga falta un puerto para cruzar el agua.');return false}
+  void mine;const sol=pickFighters(n,count,tile%W,tile/W,p=>{const r=regionAt(tileOf(p));return r===tr||(coastOk&&pr.has(r))});
+  if(!sol.length){toast('Nadie libre puede llegar: puede que estén todos en misiones, o que haga falta un puerto para cruzar el agua.');return false}
   const sq=newMission({nid:n.id,src:v.id,target:null,claim:true,phase:'rally',until:tick+DAY*4,size:sol.length,banner:tile,rally:tile});
   for(const p of sol){p.attack=sq.key;p.atBanner=false;p.path=null;p.target=null;p.state='idle';p.wait=0}
   addLog(`Por orden divina, ${sol.length} soldado${sol.length===1?'':'s'} de ${n.name} marchan a conquistar nuevas tierras.`);
@@ -1057,10 +1068,13 @@ function updateMissions(){
   }
 }
 function orderAttack(v,tv,count,banner){
-  const n=nat(v);let tn=nat(tv);if(!n||!tn)return false;
+  let n=nat(v),tn=nat(tv);if(!n||!tn)return false;
   if(S.warMode==='off'){toast('Las guerras están prohibidas en Ajustes. Solo puedes mandarlos a tierras vacías.');return false}
-  if(tn===n){
-    if(n.capital===tv.id){toast('No puedes atacar la capital de tu propia nación.');return false}
+  if(tn===n&&n.capital===tv.id){
+    if(v===tv){toast('Toca otro poblado para atacarlo.');return false}
+    const old=n;n=newNation(v);v.nid=n.id;markVillage(v);updateTerritory();
+    addLog(`${v.name} se rebela contra ${old.name} y forma su propia nación para atacar su capital.`);
+  }else if(tn===n){
     const nn=newNation(tv);tv.nid=nn.id;markVillage(tv);tn=nn;updateTerritory();
     addLog(`${tv.name} se rebela contra ${n.name} y forma su propia nación.`);
   }
@@ -1070,11 +1084,11 @@ function orderAttack(v,tv,count,banner){
   census();
   const mine=new Set(nationVillages(n).map(o=>o.id));
   const tr=vRegion(tv),pr=natPortRegions(n),coastOk=landingFor(tv.center)>=0;
-  const sol=people.filter(p=>{if(p.dead||!p.soldier||p.attack||!mine.has(p.vid))return false;const r=regionAt(tileOf(p));return r===tr||(coastOk&&pr.has(r))}).sort((a,b)=>Math.hypot(a.x-tv.cx,a.y-tv.cy)-Math.hypot(b.x-tv.cx,b.y-tv.cy)).slice(0,count);
-  if(!sol.length){toast('Ningún soldado libre puede llegar: puede que estén todos en misiones, o que haga falta un puerto para cruzar el agua.');return false}
+  void mine;const sol=pickFighters(n,count,tv.cx,tv.cy,p=>{const r=regionAt(tileOf(p));return r===tr||(coastOk&&pr.has(r))});
+  if(!sol.length){toast('Nadie libre puede llegar: puede que estén todos en misiones, o que haga falta un puerto para cruzar el agua.');return false}
   const sq=newMission({nid:n.id,src:v.id,target:tv.id,phase:'rally',until:tick+DAY*4,size:sol.length,banner:banner??tv.center,rally:rallyPoint(tv,sol)});
   for(const p of sol){p.attack=sq.key;p.atBanner=false;p.path=null;p.target=null;p.state='idle';p.wait=0}
-  addLog(`Por orden divina, ${sol.length} soldado${sol.length===1?'':'s'} de ${n.name} marchan a conquistar ${tv.name}.`);
+  addLog(`Por orden divina, ${sol.length} ${sol.length===1?'persona':'personas'} de ${n.name} marchan a conquistar ${tv.name}.`);
   return true;
 }
 function nearestEnemyVillage(v,enemyNid){
@@ -1457,7 +1471,7 @@ function findEnemy(p,r){
   let best=null,bd=r*r;const pr=regionAt(tileOf(p));
   query(gridA,p.x,p.y,r,a=>{if(a.type==='lobo'&&regionAt(tileOf(a))===pr){const d=(a.x-p.x)**2+(a.y-p.y)**2;if(d<bd){bd=d;best=a}}});
   const n=nat(villages.get(p.vid));
-  if(n&&n.war)query(gridP,p.x,p.y,r,q=>{if(isEnemyOf(p,q)&&regionAt(tileOf(q))===pr){const d=(q.x-p.x)**2+(q.y-p.y)**2;if(d<bd){bd=d;best=q}}});
+  if(n&&n.war)query(gridP,p.x,p.y,r,q=>{if(!isKid(q)&&isEnemyOf(p,q)&&regionAt(tileOf(q))===pr){const d=(q.x-p.x)**2+(q.y-p.y)**2;if(d<bd){bd=d;best=q}}});
   return best;
 }
 function conquer(an,tv){
@@ -2185,7 +2199,7 @@ function tapAt(sx,sy){
     if(!inMap)return;
     let tv=null,bd=16;
     const own=terOwn[ty*W+tx];
-    for(const o of villages.values()){if(o===v||o.center<0)continue;let d=Math.hypot(o.cx-tx,o.cy-ty);if(o.nid===v.nid&&d>=5)continue;if(own&&o.nid===own)d-=3;if(d<bd){bd=d;tv=o}}
+    for(const o of villages.values()){if(o===v||o.center<0)continue;let d=Math.hypot(o.cx-tx,o.cy-ty);if(o.nid===v.nid&&d>=9)continue;if(own&&o.nid===own)d-=3;if(d<bd){bd=d;tv=o}}
     if(!tv){
       let ct=ty*W+tx;if(!walkable(ct)||(bld[ct]&&bld[ct]!==B.RUIN)){let f=-1;inR(tx,ty,3,j=>{if(f<0&&walkable(j)&&(!bld[j]||bld[j]===B.RUIN))f=j});ct=f}
       if(ct<0){toast('Ahí no se puede fundar nada: toca tierra firme.');return}
@@ -2514,22 +2528,22 @@ function attackHtml(v,n,targets){
   let h='<div class="atk">';
   const nvs=n?nationVillages(n):[v];
   const total=nvs.reduce((s2,o)=>s2+o.soldiers,0)+(n?boats.reduce((s2,b)=>s2+(b.troop&&b.sq&&b.sq.nid===n.id?b.crew.length:0),0):0);
-  const busy=n?nationOnMission(n):0,avail=Math.max(0,total-busy);
+  const busy=n?nationOnMission(n):0,fr=n?fighters(n):{sol:[],civ:[]},avail=fr.sol.length+fr.civ.length;
   const mine=n?[...missions.values()].filter(ms=>ms.nid===n.id):[];
   for(const ms of mine){
     const k=missionAlive(ms),tv=villages.get(ms.target);
     const what=ms.claim?'van a conquistar nuevas tierras':ms.phase==='rally'?`se reúnen para atacar ${tv?esc(tv.name):'al enemigo'}`:`atacan ${tv?esc(tv.name):'al enemigo'}`;
     h+=`<div class="mis"><span><b>${k}</b> soldado${k===1?'':'s'} ${what}</span><button class="px" type="button" data-ret="${ms.key}">Retirar</button></div>`;
   }
-  h+=`<div class="lbl">${avail} soldado${avail===1?'':'s'} libre${avail===1?'':'s'} de ${total}${busy?` · ${busy} en misiones`:''}</div>`;
-  if(!avail){h+=`<div class="lbl">${total?'Todos los soldados están en misiones.':'La nación no tiene soldados.'}</div></div>`;return h}
+  h+=`<div class="lbl">Pueden luchar ${avail}: ${fr.sol.length} soldado${fr.sol.length===1?'':'s'} libre${fr.sol.length===1?'':'s'} y ${fr.civ.length} adulto${fr.civ.length===1?'':'s'} más${busy?` · ${busy} ya en misiones`:''}</div>`;
+  if(!avail){h+=`<div class="lbl">${busy?'Todos están ya en misiones.':'La nación no tiene adultos que puedan luchar.'}</div></div>`;return h}
   if(aim&&aim.vid===v.id){
     h+=`<div><b>Toca en el mapa</b> un poblado para conquistarlo, o tierra vacía para fundar uno nuevo. Allí se clavará el estandarte de ${esc(n?n.name:v.name)}.</div><button class="px" type="button" data-act="aimcancel">Cancelar</button>`;
   }else if(!atkSel){
     h+=`<button class="px wide warn" type="button" data-act="atk">${mine.length?'Mandar otra misión…':'Mandar soldados a conquistar…'}</button>`;
   }else{
     atkCount=clamp(atkCount,1,avail);
-    h+=`<div>¿Cuántos de los ${avail} soldados libres mandas?</div>
+    h+=`<div>¿Cuántos mandas? Primero salen los soldados; si no bastan, van también adultos que se convierten en soldados.</div>
       <div><span class="num" id="atkOut">${atkCount}</span> de ${avail}</div>
       <input type="range" id="atkRange" min="1" max="${avail}" step="1" value="${atkCount}" aria-label="Soldados a enviar">
       <div class="lbl">Luchan hasta ganar o morir. Solo se retiran si tú lo ordenas.</div>
@@ -2541,7 +2555,7 @@ cardCtl.addEventListener('input',e=>{if(e.target.id==='atkRange'){atkCount=+e.ta
 function renderCtl(v,n){
   const others=n?[...nations.values()].filter(o=>o!==n):[];
   const targets=attackTargets(v);
-  const sig=[v.id,v.focus,n&&n.path,n&&n.allies.join(','),n?nationPop(n)>=200:0,[...nations.keys()].join(','),v.trait,v.policy.walls,v.policy.closed,n&&n.id,n&&n.noColonies,n&&n.noIndep,n?nationSoldiers(n):v.soldiers,n?[...missions.values()].filter(ms=>ms.nid===n.id).map(ms=>ms.key+ms.phase+missionAlive(ms)).join('/'):'',n?nationOnMission(n):0,atkSel,aim&&aim.vid,v.squad&&v.squad.manual?v.squad.target+v.squad.phase:'',targets.map(t=>t.id+'.'+t.nid).join(','),n&&n.war&&n.war.enemy,pickWar,S.warMode,others.map(o=>o.id+':'+(o.war?1:0)).join(',')].join('|');
+  const sig=[v.id,v.focus,n&&n.path,n&&n.allies.join(','),n?nationPop(n)>=200:0,[...nations.keys()].join(','),v.trait,v.policy.walls,v.policy.closed,n&&n.id,n&&n.noColonies,n&&n.noIndep,n?nationSoldiers(n):v.soldiers,n?nationVillages(n).reduce((a2,o)=>a2+o.adults,0):0,n?[...missions.values()].filter(ms=>ms.nid===n.id).map(ms=>ms.key+ms.phase+missionAlive(ms)).join('/'):'',n?nationOnMission(n):0,atkSel,aim&&aim.vid,v.squad&&v.squad.manual?v.squad.target+v.squad.phase:'',targets.map(t=>t.id+'.'+t.nid).join(','),n&&n.war&&n.war.enemy,pickWar,S.warMode,others.map(o=>o.id+':'+(o.war?1:0)).join(',')].join('|');
   if(sig===ctlSig){cardCtl.hidden=false;return}
   ctlSig=sig;cardCtl.hidden=false;
   let h=`<div class="lbl">Carácter de ${esc(v.name)}</div><div class="seg">`;
@@ -2587,7 +2601,7 @@ cardCtl.addEventListener('click',e=>{
   else if(b.dataset.ally&&n){const o=nations.get(+b.dataset.ally);if(o){if(n.war&&n.war.enemy===o.id)toast('Primero firma la paz.');else makeAlliance(n,o)}}
   else if(b.dataset.unally&&n){const o=nations.get(+b.dataset.unally);if(o)breakAlliance(n,o)}
   else if(b.dataset.ret){const ms=missions.get(+b.dataset.ret);if(ms)endMission(ms,`${n?n.name:v.name} retira una tropa.`)}
-  else if(b.dataset.act==='atk'){atkSel=true;const av=n?Math.max(1,nationSoldiers(n)-nationOnMission(n)):v.soldiers;atkCount=Math.max(1,Math.ceil(av/2))}
+  else if(b.dataset.act==='atk'){atkSel=true;const f=n?fighters(n):{sol:[],civ:[]};atkCount=Math.max(1,f.sol.length||Math.ceil(f.civ.length/2))}
   else if(b.dataset.act==='atkcancel')atkSel=null;
   else if(b.dataset.act==='aim'){aim={vid:v.id,count:atkCount};atkSel=null}
   else if(b.dataset.act==='aimcancel'){aim=null}
