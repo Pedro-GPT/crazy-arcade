@@ -303,7 +303,7 @@ const FOCUS_ORDER=['equilibrado','militar','agricola','comercial'];
 const ARMS=[{name:'Lanzas',dmg:1.4,range:0.95},{name:'Espadas de hierro',dmg:2,range:0.95},{name:'Arcos',dmg:1.7,range:3.5},{name:'Pistolas',dmg:3,range:5},{name:'Coches de guerra',dmg:3,range:5}];
 const PATHS={guerra:{name:'Guerra',desc:'Armas, coches de guerra y soldados mejor entrenados.'},comercio:{name:'Comercio',desc:'Oro, mercados, comprar y vender a otros países.'},desarrollo:{name:'Desarrollo',desc:'Fábricas, tren, aviones, hospitales, escuelas y alianzas.'}};
 const LAW_BIRTHS=22;
-const GOALS={none:{name:'Ninguno',desc:'La nación reparte sus esfuerzos.'},births:{name:'Más nacimientos',desc:'Una ley obliga a las familias a tener muchos hijos: en unos 5 años la población puede multiplicarse por 7. Mientras dure, la nación no avanza nada: ni armas, ni oro, ni avances, ni preguntas del Consejo.'},arms:{name:'Desarrollo de armas',desc:'Herrerías en todos los poblados y avances de armas mucho más rápidos.'},economy:{name:'Desarrollo económico',desc:'Mercados en todos los poblados y mucho más oro.'}};
+const GOALS={none:{name:'Ninguno',desc:'La nación reparte sus esfuerzos.'},births:{name:'Más nacimientos',desc:'Una ley obliga a las familias a tener muchos hijos: en unos 5 años la población puede multiplicarse por 7. Mientras dure, la nación no avanza nada: ni armas ni avances, ni preguntas del Consejo, y solo cobra la mitad de los impuestos.'},arms:{name:'Desarrollo de armas',desc:'Herrerías en todos los poblados y avances de armas mucho más rápidos.'},economy:{name:'Desarrollo económico',desc:'Mercados en todos los poblados y mucho más oro.'}};
 const TECH0={arms:0,train:0,walls:false,roads:false,rail:false,air:false,cloth:false,foodf:false,hosp:false,school:false};
 const DEV=[['roads','Carreteras',40,40],['rail','Ferrocarril',120,120],['cloth','Fábrica de tela',170,100],['foodf','Fábrica de comida',220,100],['hosp','Hospitales',280,150],['school','Escuelas',340,150],['air','Aviones',440,250]];
 const DEV_NAME=Object.fromEntries(DEV.map(d=>[d[0],d[1]]));
@@ -968,14 +968,21 @@ function nationTick(){
 function periodic(){
   adoptOrphans();census();
   const rm=S.regen/100;
+  for(const n of nations.values())n.incNow=0;
   for(const v of villages.values()){
     if(v.center>=0&&!bld[v.center])relocateCenter(v);
     const fcap=150+v.pop*12;if(v.food>fcap)v.food=fcap;if(v.wood>200+v.pop*6)v.wood=200+v.pop*6;if(v.stone>150+v.pop*4)v.stone=150+v.pop*4;if((v.ore||0)>100+v.pop*4)v.ore=100+v.pop*4;
     const nn=nat(v),agri=v.focus==='agricola';
     for(const f of v.farms){if(food[f]<(agri?9:6)&&rnd()<0.7*Math.max(0.2,rm)*(agri?1.5:1)*(nn?nn.mods.farm:1)){food[f]++;mark(f)}}
     for(const m of [...v.mines])mineTick(v,m);
+    if(nn){
+      const law=nn.goal==='births';
+      let inc=v.pop*0.02*({comercial:2.5,militar:0.6,agricola:0.9}[v.focus]||1);
+      if(!law)inc+=(v.market>=0?2:0)+(v.factory>=0?4:0)+(v.port>=0?1:0)+(v.forge>=0?0.5:0)+v.mines.length*0.5+v.houses.reduce((a,h)=>a+(bld[h]===B.TOWER?0.3:0),0);
+      inc*=nn.mods.tax*nn.mods.trade*(nn.tech.school?1.2:1)*(nn.goal==='economy'?2.5:1)*(law?0.5:1);
+      nn.gold+=inc;nn.incNow+=inc;
+    }
     if(nn&&nn.goal!=='births'){
-      nn.gold+=(v.focus==='comercial'?0.05:v.focus==='equilibrado'?0.015:0.006)*v.adults*(v.market>=0?1.6:1)*nn.mods.tax*nn.mods.trade*(nn.tech.school?1.2:1)*(nn.goal==='economy'?2.5:1);
       nn.dp+=v.adults*0.02*(v.focus==='comercial'?2.5:1)*(nn.path==='desarrollo'?2:1)*({none:1,arms:0.4,economy:1.5}[nn.goal]||1)*(nn.tech.school?1.5:1);
       if(nn.goal==='arms')nn.rp+=1;
       if(v.forge>=0&&bld[v.forge]===B.FORGE)nn.rp+=(nn.goal==='arms'?2:1)*(v.focus==='militar'?2:1)*(nn.path==='guerra'?2:1)*(nn.tech.school?1.5:1);
@@ -1002,6 +1009,7 @@ function periodic(){
       }else if(v.squad.phase==='rally'&&tick>=v.squad.until){v.squad.phase='march'}
     }else if(v.squad){endSquad(v,null)}
   }
+  for(const n of nations.values())n.incPer=n.incNow||0;
   updateMissions();
   nationTick();
   if(tick%60===0)updateTerritory();
@@ -2589,7 +2597,7 @@ function renderCard(){
         <span>Almacén</span><span>${v.food} comida · ${v.wood} madera · ${v.stone} piedra · ${v.ore||0} mineral</span>
         <span>Dedicación</span><span>${FOCUS[v.focus||'equilibrado'].name}</span>
         <span>Minas</span><span>${v.mines.length}${v.forge>=0?' · herrería':''}${v.market>=0?' · mercado':''}</span>
-        ${n?`<span>Oro</span><span>${Math.floor(n.gold)} (de la nación)</span>
+        ${n?`<span>Oro</span><span>${Math.floor(n.gold)} de la nación · gana unos ${Math.round((n.incPer||0)*DAY/30*YEAR)} al año</span>
         <span>Armas</span><span>${ARMS[n.tech.arms].name}${n.tech.train?` · entrenamiento ${n.tech.train}`:''}${n.tech.arms<4?` · próximas: ${ARMS[n.tech.arms+1].name.toLowerCase()}`:''}</span>
         <span>Camino</span><span>${n.path?PATHS[n.path].name:(nationPop(n)>=200?'Sin elegir':`Se elige con 200 habitantes (tiene ${nationPop(n)})`)}</span>
         <span>Avances</span><span>${DEV.filter(d=>n.tech[d[0]]).map(d=>d[1].toLowerCase()).join(', ')||'Ninguno'}${n.goal==='births'?' · parados por la ley de nacimientos':nextDev(n)?` · próximo: ${nextDev(n)[1].toLowerCase()} (${Math.min(99,Math.floor(n.dp/nextDev(n)[2]*100))} %)`:''}</span>
