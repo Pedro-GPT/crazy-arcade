@@ -364,7 +364,7 @@ let nextId=1,nextAid=1,nextVid=1,nextNid=1,tick=0,speed=1;
 let selected=null,follow=false,pickWar=false;
 let capF=[],capW=[];
 let tornados=[],effects=[],lavaMap=new Map(),fireSet=new Set(),droughts=[],shakeT=0,boats=[];
-let buySel=null,milestone=0,atkSel=null,atkCount=1,aim=null,fishers=[],missions=new Map(),nextMid=1000000;
+let postSel=false,postCount=10,buySel=null,milestone=0,atkSel=null,atkCount=1,aim=null,fishers=[],missions=new Map(),nextMid=1000000;
 const portJobs=new Set();
 const log=[];
 let cur=null; // mundo guardado actual {id,name}
@@ -1252,6 +1252,31 @@ function dailyTrade(){
       }
     }
   }
+}
+const postPrice=k=>80+15*k;
+function placePost(v,count,i){
+  const n=nat(v);if(!n)return false;
+  const pr=postPrice(count);
+  if(n.gold<pr){toast(`No hay oro suficiente: hacen falta ${pr}.`);return false}
+  let t=i;
+  if(!walkable(t)||(bld[t]&&bld[t]!==B.RUIN)){let f=-1;inR(i%W,(i/W)|0,3,j=>{if(f<0&&walkable(j)&&(!bld[j]||bld[j]===B.RUIN))f=j});t=f}
+  if(t<0){toast('Ahí no se puede: toca tierra firme.');return false}
+  const tx=t%W,ty=(t/W)|0;
+  for(const o of villages.values())if(o.center>=0&&Math.hypot(o.cx-tx,o.cy-ty)<8){toast(`Está demasiado cerca de ${o.name}. Elige un sitio más apartado.`);return false}
+  n.gold-=pr;
+  if(bld[t]===B.RUIN)bld[t]=0;
+  const nv=foundVillage(t,{name:v.name,nid:n.id,trait:v.trait,focus:'militar',quiet:true});if(!nv){n.gold+=pr;return false}
+  nv.food=20+count*3;nv.wood=20+count;
+  let k=0;
+  for(let tries=0;tries<count*30&&k<count;tries++){
+    const x=tx+Math.round((rnd()*2-1)*2),y=ty+Math.round((rnd()*2-1)*2);
+    if(x<0||y<0||x>=W||y>=H||!walkable(y*W+x)||regionAt(y*W+x)!==regionAt(t))continue;
+    const p=makePerson(x,y,18+rnd()*12);p.vid=nv.id;p.soldier=true;p.hp=soldierHp(nv,p);people.push(p);k++;
+  }
+  census();updateTerritory();
+  effects.push({type:'ring',x:tx+.5,y:ty+.5,r:4,t:0,max:30,col:n.color.join(',')});
+  addLog(`${n.name} paga ${pr} de oro y funda ${nv.name} con ${k} soldado${k===1?'':'s'}.`);
+  return true;
 }
 function payExpansion(n){
   if(n.gold<20){toast('Hace falta al menos 20 de oro para pagar la expansión.');return}
@@ -2282,6 +2307,13 @@ function paintLine(tx,ty){
 function tapAt(sx,sy){
   const w=screenToWorld(sx,sy),tx=Math.floor(w.x/T),ty=Math.floor(w.y/T);
   const inMap=tx>=0&&ty>=0&&tx<W&&ty<H;
+  if(aim&&aim.kind==='post'){
+    const v=villages.get(aim.vid);
+    if(!v){aim=null;ctlSig='';renderCard();return}
+    if(!inMap)return;
+    if(placePost(v,aim.count,ty*W+tx)){aim=null;selected=null;ctlSig='';renderCard()}
+    return;
+  }
   if(aim){
     const v=villages.get(aim.vid);
     if(!v){aim=null;ctlSig='';renderCard();return}
@@ -2554,7 +2586,7 @@ $('#cardGoal').addEventListener('click',e=>{
 });
 function renderCard(){
   $('#aimBar').hidden=!aim;
-  if(aim){const v=villages.get(aim.vid);$('#aimText').textContent=`Toca un poblado para conquistarlo o tierra vacía para fundar uno nuevo (${aim.count} soldado${aim.count===1?'':'s'}).`;cardEl.hidden=true;return}
+  if(aim){const v=villages.get(aim.vid);$('#aimText').textContent=aim.kind==='post'?`Toca dónde quieres el poblado nuevo con ${aim.count} soldado${aim.count===1?'':'s'} (${postPrice(aim.count)} de oro).`:`Toca un poblado para conquistarlo o tierra vacía para fundar uno nuevo (${aim.count} soldado${aim.count===1?'':'s'}).`;cardEl.hidden=true;return}
   if(!selected){cardEl.hidden=true;cardCtl.hidden=true;$('#cardGoal').hidden=true;ctlSig='';goalSig='';return}
   if(selected.kind!=='village'){$('#cardGoal').hidden=true;goalSig=''}
   cardEl.hidden=false;
@@ -2640,17 +2672,34 @@ function attackHtml(v,n,targets){
   }
   return h+'</div>';
 }
-cardCtl.addEventListener('input',e=>{if(e.target.id==='atkRange'){atkCount=+e.target.value;const o=$('#atkOut');if(o)o.textContent=atkCount}});
+function postHtml(v,n){
+  if(!n)return'';
+  let h='<div class="atk" style="border-color:var(--gold)">';
+  if(aim&&aim.kind==='post'&&aim.vid===v.id){h+=`<div><b>Toca en el mapa</b> dónde quieres el poblado nuevo.</div><button class="px" type="button" data-act="aimcancel">Cancelar</button></div>`;return h}
+  if(!postSel){h+=`<button class="px wide" type="button" data-act="post">Comprar un poblado con soldados donde quieras…</button></div>`;return h}
+  postCount=clamp(postCount,1,40);const pr=postPrice(postCount);
+  h+=`<div>¿Cuántos soldados nuevos quieres en el poblado?</div>
+    <div><span class="num" id="postOut">${postCount}</span> soldados · <span id="postPrice">${pr}</span> de oro (tienes ${Math.floor(n.gold)})</div>
+    <input type="range" id="postRange" min="1" max="40" step="1" value="${postCount}" aria-label="Soldados del poblado nuevo">
+    <div class="lbl">Se funda un poblado militar de ${esc(n.name)} con esos soldados, comida y madera. Tiene que estar a 8 casillas o más de otro poblado.</div>
+    <div class="row2"><button class="px gold" type="button" data-act="postaim">Elegir en el mapa dónde ponerlo</button><button class="px" type="button" data-act="postcancel">Cancelar</button></div>`;
+  return h+'</div>';
+}
+cardCtl.addEventListener('input',e=>{
+  if(e.target.id==='atkRange'){atkCount=+e.target.value;const o=$('#atkOut');if(o)o.textContent=atkCount}
+  if(e.target.id==='postRange'){postCount=+e.target.value;const o=$('#postOut');if(o)o.textContent=postCount;const q=$('#postPrice');if(q)q.textContent=postPrice(postCount)}
+});
 function renderCtl(v,n){
   const others=n?[...nations.values()].filter(o=>o!==n):[];
   const targets=attackTargets(v);
-  const sig=[n?(expanding(n)?'e'+Math.ceil((n.expandUntil-tick)/DAY):'g'+Math.floor(n.gold/2)):'',buySel,n&&buySel!=null&&nations.get(buySel)?devListOf(nations.get(buySel)).map(it=>(ownsItem(n,it)?'o':'')+(n.gold>=itemPrice(n,it,nations.get(buySel))?'y':'n')).join(''):'',n?DEV.filter(d=>n.tech[d[0]]).length+'/'+n.tech.arms:'',v.id,v.focus,n&&n.path,n&&n.allies.join(','),n?nationPop(n)>=200:0,[...nations.keys()].join(','),v.trait,v.policy.walls,v.policy.closed,n&&n.id,n&&n.noColonies,n&&n.noIndep,n?nationSoldiers(n):v.soldiers,n?nationVillages(n).reduce((a2,o)=>a2+o.adults,0):0,n?[...missions.values()].filter(ms=>ms.nid===n.id).map(ms=>ms.key+ms.phase+missionAlive(ms)).join('/'):'',n?nationOnMission(n):0,atkSel,aim&&aim.vid,v.squad&&v.squad.manual?v.squad.target+v.squad.phase:'',targets.map(t=>t.id+'.'+t.nid).join(','),n?Object.keys(n.wars).join(','):'',pickWar,S.warMode,others.map(o=>o.id).join(',')].join('|');
+  const sig=[postSel,aim&&aim.kind,n?(expanding(n)?'e'+Math.ceil((n.expandUntil-tick)/DAY):'g'+Math.floor(n.gold/2)):'',buySel,n&&buySel!=null&&nations.get(buySel)?devListOf(nations.get(buySel)).map(it=>(ownsItem(n,it)?'o':'')+(n.gold>=itemPrice(n,it,nations.get(buySel))?'y':'n')).join(''):'',n?DEV.filter(d=>n.tech[d[0]]).length+'/'+n.tech.arms:'',v.id,v.focus,n&&n.path,n&&n.allies.join(','),n?nationPop(n)>=200:0,[...nations.keys()].join(','),v.trait,v.policy.walls,v.policy.closed,n&&n.id,n&&n.noColonies,n&&n.noIndep,n?nationSoldiers(n):v.soldiers,n?nationVillages(n).reduce((a2,o)=>a2+o.adults,0):0,n?[...missions.values()].filter(ms=>ms.nid===n.id).map(ms=>ms.key+ms.phase+missionAlive(ms)).join('/'):'',n?nationOnMission(n):0,atkSel,aim&&aim.vid,v.squad&&v.squad.manual?v.squad.target+v.squad.phase:'',targets.map(t=>t.id+'.'+t.nid).join(','),n?Object.keys(n.wars).join(','):'',pickWar,S.warMode,others.map(o=>o.id).join(',')].join('|');
   if(sig===ctlSig){cardCtl.hidden=false;return}
   ctlSig=sig;cardCtl.hidden=false;
   let h=`<div class="lbl">Carácter de ${esc(v.name)}</div><div class="seg">`;
   for(const k of TRAIT_ORDER)h+=`<button class="px${v.trait===k?' on':''}" type="button" data-trait="${k}">${TRAITS[k].name}</button>`;
   h+='</div>';
   h+=attackHtml(v,n,targets);
+  h+=postHtml(v,n);
   h+=`<div class="lbl">Dedicación de ${esc(v.name)}</div><div class="seg">`;
   for(const k of FOCUS_ORDER)h+=`<button class="px${(v.focus||'equilibrado')===k?' on':''}" type="button" data-focus="${k}">${FOCUS[k].name}</button>`;
   h+=`</div><div class="lbl">${FOCUS[v.focus||'equilibrado'].desc}</div>`;
@@ -2713,6 +2762,9 @@ cardCtl.addEventListener('click',e=>{
   else if(b.dataset.act==='atkcancel')atkSel=null;
   else if(b.dataset.act==='aim'){aim={vid:v.id,count:atkCount};atkSel=null}
   else if(b.dataset.act==='aimcancel'){aim=null}
+  else if(b.dataset.act==='post'){postSel=true}
+  else if(b.dataset.act==='postcancel'){postSel=false}
+  else if(b.dataset.act==='postaim'){if(n&&n.gold<postPrice(postCount))toast(`No hay oro suficiente: hacen falta ${postPrice(postCount)}.`);else{aim={vid:v.id,count:postCount,kind:'post'};postSel=false}}
   else if(b.dataset.trait){v.trait=b.dataset.trait;addLog(`Por orden divina, ${v.name} tendrá una cultura ${TRAITS[v.trait].name.toLowerCase()}.`)}
   else if(b.dataset.war){const e2=nations.get(+b.dataset.war);if(n&&e2&&declareWar(n,e2,true)){pickWar=false;census();periodic()}}
   else if(b.dataset.act==='pick')pickWar=true;
@@ -2980,7 +3032,7 @@ resize();renderTabs();renderTools();generate();
 requestAnimationFrame(frame);
 openMenu();
 
-window.__mw={S,get people(){return people},get animals(){return animals},get villages(){return villages},get nations(){return nations},get tick(){return tick},step,generate,log,cam,view,CATS,applyPower,declareWar,makePeace,planWalls,encodeWorld,decodeWorld,saveNow,Store,newNation,payExpansion,devListOf,buyItem,itemPrice,techOffers,buyTech,payPeace,orderClaim,get missions(){return missions},showAsk,councilQuestions,choosePath,markVillage,updateTerritory,orderAttack,get W(){return W},regionAt,setTerrain,spawnGroup,adoptOrphans,placeBuilding,get boats(){return boats},get cur(){return cur},set cur(v){cur=v},Save};
+window.__mw={S,get people(){return people},get animals(){return animals},get villages(){return villages},get nations(){return nations},get tick(){return tick},step,generate,log,cam,view,CATS,applyPower,declareWar,makePeace,planWalls,encodeWorld,decodeWorld,saveNow,Store,newNation,placePost,payExpansion,devListOf,buyItem,itemPrice,techOffers,buyTech,payPeace,orderClaim,get missions(){return missions},showAsk,councilQuestions,choosePath,markVillage,updateTerritory,orderAttack,get W(){return W},regionAt,setTerrain,spawnGroup,adoptOrphans,placeBuilding,get boats(){return boats},get cur(){return cur},set cur(v){cur=v},Save};
 })();
 </script>
 </body></html>
