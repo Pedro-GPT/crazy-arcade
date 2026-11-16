@@ -117,6 +117,11 @@ header h1{font-family:Bungee,Impact,sans-serif;font-size:20px;letter-spacing:1px
 .item button{flex:0 0 auto;font-weight:900;padding:8px 12px;border-radius:10px;background:var(--oro);color:#2a1a00;min-width:96px}
 .item button:disabled{filter:grayscale(1) brightness(.6);cursor:not-allowed}
 .item button.hecho{background:#2e7d4f;color:#dfffe9;filter:none}
+#tienda h3{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--mut);margin:12px 0 2px}
+#tienda h3 select{font:inherit;font-weight:900;color:var(--oro);background:#2a2633;border:1px solid var(--oro);border-radius:8px;padding:3px 6px;text-transform:none;letter-spacing:0}
+#tienda p.nota{font-size:12px;color:var(--mut);margin-bottom:4px}
+.cuenta{display:inline-block;min-width:20px;padding:0 6px;border-radius:999px;background:var(--oro);color:#2a1a00;font-size:12px;font-weight:900;text-align:center}
+.listos{font-size:12px;color:var(--mut);align-self:center}
 #tienda .ayuda{font-size:12px;color:var(--mut);margin-top:12px;line-height:1.5}
 #tienda .ayuda b{color:var(--txt)}
 
@@ -330,9 +335,9 @@ header h1{font-family:Bungee,Impact,sans-serif;font-size:20px;letter-spacing:1px
   </div>
   <div class="zonaBoton">
     <div id="efectos"></div>
-    <div id="poderes"></div>
     <div id="decision"></div>
     <button id="btnGirar">GIRAR · 30 €</button>
+    <div id="poderes"></div>
     <div id="aviso"></div>
   </div>
 </section>
@@ -348,9 +353,10 @@ header h1{font-family:Bungee,Impact,sans-serif;font-size:20px;letter-spacing:1px
   <div class="cab"><h2>🛒 TIENDA</h2><span>Tienes <b id="tiendaDinero"></b></span><button id="btnCerrarTienda" title="Cerrar">✕</button></div>
   <div id="tiendaLista"></div>
   <div class="ayuda">
-    <b>Poderes de cada tirada</b> (se marcan encima del botón GIRAR y solo valen para esa tirada):
-    🛡 Escudo, ×2 y ⛔ Tapar. Su precio cambia según la ruleta y el dinero que llevas.<br>
-    <b>Al parar la ruleta</b>: 🔁 Repetir o ◀ ▶ Imán (mueve la flecha una casilla). Cuestan un porcentaje de la tirada.<br>
+    <b>Cómo se usan los poderes:</b> lo que compres sale en botones debajo de GIRAR (en esa ruleta).
+    Pulsa los que quieras usar y luego GIRAR; se gasta uno de cada.
+    🔁 Repetir y 🧲 Imán se ofrecen al parar la ruleta.<br>
+    El precio de 🛡 Escudo, ×2 y ⛔ Tapar cambia según la ruleta y el dinero que llevas. Máximo 3 de cada uno.<br>
     Todo lo de la tienda se pierde al volver a empezar.
   </div>
 </div></div>
@@ -488,6 +494,7 @@ const SIN_EFECTOS = ()=>({mult:1, gratis:0, escudo:0});
 let efectos  = (E && E.efectos) || SIN_EFECTOS();   // lo que espera a la siguiente tirada
 const SIN_MEJORAS = ()=>({seguro:0, descuento:0, banco:0, llaves:{}});
 let mejoras  = Object.assign(SIN_MEJORAS(), (E && E.mejoras) || {});   // compras de la tienda (toda la partida)
+let inventario = (E && E.inventario) || {};                         // poderes comprados: {ruleta:{poder:n}}
 let preparados = {escudo:false, x2:false, tapar:false};            // poderes marcados para la próxima tirada
 let jugada   = null;                                               // tirada en curso
 let record   = cargar('rds_record', SALDO_INICIAL);
@@ -508,7 +515,7 @@ function etiqueta(g){
     case 'half': return '÷2 TODO';
     case 'mul':  return '×'+g.v+' TODO';
     case 'bote': return 'BOTE '+corto(g.v);
-    case 'fut':  return { mul:'×'+g.v+' PREMIO', gratis:'GRATIS', combo:'GRATIS ×'+g.v, escudo:'ESCUDO', mitad:'½ PREMIO' }[g.ef];
+    case 'fut':  return { mul:'×'+g.v+' SIG.', gratis:'GRATIS', combo:'GRATIS ×'+g.v, escudo:'ESCUDO', mitad:'½ SIG.' }[g.ef];
   }
 }
 function corto(v){
@@ -662,23 +669,31 @@ function seleccionar(R){
 
 /* =====================================================================
    PODERES Y TIENDA
-   - Antes de tirar (se marcan y se pagan junto a la tirada, solo valen para ella):
-       escudo · ×2 · tapar «pierdes todo».
-     Su precio se calcula en cada momento: lo que valen de media en ESA ruleta
-     con TU dinero, por FACTOR_PRECIO (un poco por debajo, para que compense).
-   - Al parar la ruleta (viendo lo que ha salido): repetir e imán.
-     Cuestan un porcentaje fijo del precio de la ruleta.
+   - Los poderes se COMPRAN en la tienda para una ruleta concreta y se guardan
+     (inventario[ruleta][poder], máximo MAX_PODER de cada uno):
+       escudo · ×2 · tapar «pierdes todo» → botones bajo GIRAR; se activan antes de tirar.
+       repetir · imán                      → se ofrecen al parar la ruleta.
+     Precio de escudo/×2/tapar: lo que valen de media en ESA ruleta con TU dinero,
+     por FACTOR_PRECIO. Repetir e imán: un porcentaje fijo de la tirada.
    - Mejoras de la tienda (para toda la partida): seguro de ruina, descuento,
      banco y llaves de las ruletas de arriba. Precio fijo.
    ===================================================================== */
 const FACTOR_PRECIO = .9;
 const PRECIO_REPETIR = .5, PRECIO_IMAN = .35;          // × precio de la tirada
 const ESPERA_DECIDIR = 6000;                            // ms antes de aceptar solo
-const PODERES = {
+const MAX_PODER = 3;
+const PODERES = {          // se activan antes de tirar
   escudo:{ nombre:'🛡 Escudo', desc:'si sale mal, no pierdes nada' },
-  x2:    { nombre:'×2',        desc:'si ganas, ganas el doble' },
+  x2:    { nombre:'×2',        desc:'lo que salga, por 2 (también lo negativo)' },
   tapar: { nombre:'⛔ Tapar',   desc:'tapa el «pierdes todo»' },
 };
+const PODERES_PARAR = {    // se usan al parar la ruleta
+  repetir:{ nombre:'🔁 Repetir', desc:'al parar, vuelve a girar' },
+  iman:   { nombre:'🧲 Imán',    desc:'al parar, mueve la flecha una casilla' },
+};
+const inv = (R,t) => ((inventario[R.id]||{})[t])||0;
+function sumarInv(R,t,n){ const o=inventario[R.id]=inventario[R.id]||{}; o[t]=(o[t]||0)+n; }
+function precioCompra(t,R){ return PODERES[t] ? precioPoder(t,R) : t==='repetir' ? precioRepetir(R) : precioIman(R); }
 const MEJORAS = [
   { id:'seguro',    nombre:'🛟 Seguro de ruina', precio:150,
     desc:'Si te arruinas, te devuelve 100 € una vez. Se puede volver a comprar.' },
@@ -711,15 +726,12 @@ function precioPoder(tipo,R){
   }
   return redondea(v*FACTOR_PRECIO);                     // 0 = no sirve en esta ruleta
 }
-function poderesMarcados(R){
-  return Object.keys(PODERES).filter(t=>preparados[t]).map(t=>({tipo:t,precio:precioPoder(t,R)})).filter(p=>p.precio>0);
-}
+function poderesMarcados(R){ return Object.keys(PODERES).filter(t=>preparados[t] && inv(R,t)>0); }
 function costeTirada(R){
-  const gratis=efectos.gratis>0;
-  const extra=poderesMarcados(R).reduce((s,p)=>s+p.precio,0);
-  return { tirada: gratis?0:precioTirada(R), extra, total:(gratis?0:precioTirada(R))+extra };
+  const t = efectos.gratis>0 ? 0 : precioTirada(R);
+  return { tirada:t, extra:0, total:t };
 }
-const guardarEstado = ()=>guardar('rds_estado',{dinero,tiradas,historial,efectos,mejoras});
+const guardarEstado = ()=>guardar('rds_estado',{dinero,tiradas,historial,efectos,mejoras,inventario});
 
 /* ---------- Marcador y botón ---------- */
 function refrescar(){
@@ -735,20 +747,24 @@ function refrescar(){
     b.textContent='GIRAR · '+(c.tirada? fmt(c.tirada) : 'GRATIS')+(c.extra? ' + '+fmt(c.extra) : '');
     b.disabled = girando || !puede;
   }
-  // Poderes para esta tirada
+  // Poderes comprados para esta ruleta
   const P=$('poderes'); P.innerHTML='';
-  if(!decidiendo) for(const t in PODERES){
-    const pr=precioPoder(t,R); if(!pr) continue;
-    const e=document.createElement('button');
-    e.className='poder'+(preparados[t]?' on':''); e.disabled=girando;
-    e.innerHTML=`${PODERES[t].nombre} · ${fmt(pr)}<small>${PODERES[t].desc}</small>`;
-    e.onclick=()=>{ preparados[t]=!preparados[t]; refrescar(); };
-    P.appendChild(e);
+  if(!decidiendo){
+    for(const t in PODERES){
+      const n=inv(R,t); if(!n) continue;
+      const e=document.createElement('button');
+      e.className='poder'+(preparados[t]?' on':''); e.disabled=girando;
+      e.innerHTML=`${PODERES[t].nombre} <span class="cuenta">${n}</span><small>${preparados[t]?'✔ se usará en esta tirada':PODERES[t].desc}</small>`;
+      e.onclick=()=>{ preparados[t]=!preparados[t]; refrescar(); };
+      P.appendChild(e);
+    }
+    const parar=Object.keys(PODERES_PARAR).filter(t=>inv(R,t)).map(t=>`${PODERES_PARAR[t].nombre} ${inv(R,t)}`);
+    if(parar.length) P.insertAdjacentHTML('beforeend',`<span class="listos">Al parar: ${parar.join(' · ')}</span>`);
   }
   // Efectos guardados
   const chips=[];
-  if(efectos.mult>1)  chips.push(`<span class="chip bueno">Próximo premio ×${efectos.mult.toLocaleString('es-ES')}</span>`);
-  if(efectos.mult<1)  chips.push(`<span class="chip malo">Próximo premio ×${efectos.mult.toLocaleString('es-ES')}</span>`);
+  if(efectos.mult>1)  chips.push(`<span class="chip bueno">Siguiente tirada ×${efectos.mult.toLocaleString('es-ES')}</span>`);
+  if(efectos.mult<1)  chips.push(`<span class="chip malo">Siguiente tirada ×${efectos.mult.toLocaleString('es-ES')}</span>`);
   if(efectos.gratis)  chips.push(`<span class="chip bueno">Gratis${efectos.gratis>1?' ×'+efectos.gratis:''}</span>`);
   if(efectos.escudo)  chips.push(`<span class="chip escudo">Escudo</span>`);
   if(mejoras.seguro)  chips.push(`<span class="chip escudo">🛟 Seguro</span>`);
@@ -757,7 +773,7 @@ function refrescar(){
   if(!girando){
     if(!llave){ av.textContent=`Compra la llave en la TIENDA (${fmt(LLAVES[R.id])}).`; av.className='mal'; }
     else if(!puede){ av.textContent='Te faltan '+fmt(c.total-dinero)+' para esta tirada.'; av.className='mal'; }
-    else { av.textContent='Marca poderes si quieres y pulsa GIRAR.'; av.className=''; }
+    else { av.textContent = P.childElementCount ? 'Pulsa los poderes que quieras usar y luego GIRAR.' : 'Pulsa GIRAR. Compra poderes en la 🛒 TIENDA.'; av.className=''; }
   }
   document.querySelectorAll('.carta').forEach(e=>{
     const r=RULETAS.find(x=>x.id===e.dataset.id);
@@ -841,9 +857,10 @@ function girar(){
   audio();
   girando=true;
   const marcados=poderesMarcados(R);
-  jugada={ R, fase:'girando', antes:dinero, pagado:c.tirada, gastos:c.extra,
-           escudo:marcados.some(p=>p.tipo==='escudo'), x2:marcados.some(p=>p.tipo==='x2'),
-           tapar:marcados.some(p=>p.tipo==='tapar'), usados:marcados.map(p=>PODERES[p.tipo].nombre) };
+  marcados.forEach(t=>sumarInv(R,t,-1));
+  jugada={ R, fase:'girando', antes:dinero, pagado:c.tirada, gastos:0,
+           escudo:marcados.includes('escudo'), x2:marcados.includes('x2'),
+           tapar:marcados.includes('tapar'), usados:marcados.map(t=>PODERES[t].nombre) };
   if(efectos.gratis>0) efectos.gratis--;
   dinero-=c.total; if(c.total) animarDinero('baja');
   preparados={escudo:false,x2:false,tapar:false};
@@ -862,16 +879,16 @@ function girar(){
 let reloj=null;
 function trasParar(g){
   const j=jugada; j.g=g;
-  if(dinero < Math.min(precioRepetir(j.R),precioIman(j.R))) return resolver();
+  const nr=inv(j.R,'repetir'), ni=inv(j.R,'iman');
+  if(!nr && !ni) return resolver();
   j.fase='decidir';
   const c=calcular(j,g);
   const d=$('decision');
-  const pr=precioRepetir(j.R), pi=precioIman(j.R);
   d.innerHTML=`<div class="txt">Ha salido <b>${etiqueta(g)}</b> → te quedarías con <b>${fmt(c.nuevo)}</b></div>
     <div class="btns">
-      <button class="poder" data-a="izq" ${dinero<pi?'disabled':''}>◀ Imán · ${fmt(pi)}<small>casilla de la izquierda</small></button>
-      <button class="poder" data-a="rep" ${dinero<pr?'disabled':''}>🔁 Repetir · ${fmt(pr)}<small>vuelve a girar</small></button>
-      <button class="poder" data-a="der" ${dinero<pi?'disabled':''}>Imán ▶ · ${fmt(pi)}<small>casilla de la derecha</small></button>
+      ${ni?`<button class="poder" data-a="izq">◀ Imán <span class="cuenta">${ni}</span><small>casilla de la izquierda</small></button>`:''}
+      ${nr?`<button class="poder" data-a="rep">🔁 Repetir <span class="cuenta">${nr}</span><small>vuelve a girar</small></button>`:''}
+      ${ni?`<button class="poder" data-a="der">Imán ▶ <span class="cuenta">${ni}</span><small>casilla de la derecha</small></button>`:''}
     </div><div class="barra"><i></i></div>`;
   d.querySelectorAll('button').forEach(b=>b.onclick=()=>{ const a=b.dataset.a; a==='rep'?repetir():iman(a==='izq'?-1:1); });
   d.classList.add('ver');
@@ -888,20 +905,20 @@ function aceptar(){
 }
 function repetir(){
   const j=jugada; if(!j||j.fase!=='decidir') return;
-  const p=precioRepetir(j.R); if(dinero<p) return;
-  cerrarDecision(); dinero-=p; j.gastos+=p; j.usados.push('🔁 Repetir'); j.fase='girando';
-  SFX.compra(); animarDinero('baja'); refrescar();
+  if(!inv(j.R,'repetir')) return;
+  cerrarDecision(); sumarInv(j.R,'repetir',-1); j.usados.push('🔁 Repetir'); j.fase='girando';
+  SFX.compra(); refrescar();
   lanzar(j.R, elegirCasilla(j.R,j.tapar), true);
 }
 function iman(dir){                    // -1 = izquierda, +1 = derecha
   const j=jugada; if(!j||j.fase!=='decidir') return;
-  const p=precioIman(j.R); if(dinero<p) return;
+  if(!inv(j.R,'iman')) return;
   const S=j.R.segs, n=S.length;
   let i=S.indexOf(j.g);
   do { i=(i+dir+n)%n; } while(j.tapar && S[i].k==='all');
   const g=S[i];
-  cerrarDecision(); dinero-=p; j.gastos+=p; j.usados.push(dir<0?'◀ Imán':'Imán ▶'); j.fase='girando';
-  SFX.iman(); animarDinero('baja'); refrescar();
+  cerrarDecision(); sumarInv(j.R,'iman',-1); j.usados.push(dir<0?'◀ Imán':'Imán ▶'); j.fase='girando';
+  SFX.iman(); refrescar();
   const destino=-Math.PI/2-(g.a0+g.a1)/2, ini=rot[j.R.id];
   // izquierda: la rueda gira en sentido horario (ángulo positivo); derecha, al revés
   const delta = dir<0 ? ((destino-ini)%TAU+TAU)%TAU : -(((ini-destino)%TAU+TAU)%TAU);
@@ -916,11 +933,11 @@ function calcular(j,g){
   if(g.k==='fut'){
     nuevo = ref;                       // casilla de efecto: ni ganas ni pierdes ahora
     switch(g.ef){
-      case 'mul':    ef.mult*=g.v; nota='tu próximo premio irá ×'+g.v; break;
+      case 'mul':    ef.mult*=g.v; nota='tu siguiente tirada irá ×'+g.v+' (salga bien o mal)'; break;
       case 'gratis': ef.gratis++;  nota='tu siguiente tirada es gratis'; break;
-      case 'combo':  ef.gratis++; ef.mult*=g.v; nota='siguiente gratis y próximo premio ×'+g.v; break;
+      case 'combo':  ef.gratis++; ef.mult*=g.v; nota='siguiente tirada gratis y ×'+g.v; break;
       case 'escudo': ef.escudo=1;  nota='si la siguiente sale mal, no pierdes nada'; break;
-      case 'mitad':  ef.mult*=.5;  nota='tu próximo premio se queda en la mitad'; break;
+      case 'mitad':  ef.mult*=.5;  nota='tu siguiente tirada se queda en la mitad (lo que ganes o pierdas)'; break;
     }
     titulo = etiqueta(g);
   } else {
@@ -928,14 +945,16 @@ function calcular(j,g){
     if(g.k==='half') nuevo=Math.floor(ref/2);
     titulo = g.k==='all' ? '¡PIERDES TODO!' : g.k==='bote' ? '¡¡BOTE!!' : g.k==='half' ? '÷2 TODO' : g.k==='mul' ? '×'+g.v+' TODO!' : etiqueta(g)+' €';
     let premio = nuevo-ref;
-    // Multiplicadores: el guardado (espera a que ganes algo) y el ×2 comprado (solo esta tirada).
+    // Multiplicadores (el que salió en la ruleta y el ×2 comprado): valen para esta tirada,
+    // tanto si ganas como si pierdes. Nunca puedes perder más de lo que tienes.
     const m = ef.mult * (j.x2?2:1);
-    if(premio>0 && m!==1){
-      const p2=Math.round(premio*m);
+    if(premio!==0 && m!==1){
+      nuevo = Math.max(0, ref+Math.round(premio*m));
       titulo = `${conSigno(premio)} ×${m.toLocaleString('es-ES')}`;
-      nota = '= '+conSigno(p2);
-      premio=p2; nuevo=ref+premio; ef.mult=1;
+      nota = '= '+conSigno(nuevo-ref);
+      premio = nuevo-ref;
     }
+    ef.mult=1;
     // Escudo (guardado o comprado): si sale mal, te quedas como estabas.
     if(ef.escudo || j.escudo){
       if(nuevo<ref){ nuevo=ref; nota='¡el escudo te salva!'; }
@@ -995,6 +1014,22 @@ function comprobarRuina(){
 /* ---------- Tienda ---------- */
 function pintarTienda(){
   const T=$('tiendaLista'); T.innerHTML='';
+  const R=sel;
+  T.insertAdjacentHTML('beforeend',`<h3>Poderes para <select id="tiendaRuleta">${RULETAS.map(r=>`<option value="${r.id}"${r===R?' selected':''}>${r.nombre}</option>`).join('')}</select></h3><p class="nota">Solo sirven en la ruleta que elijas aquí.</p>`);
+  $('tiendaRuleta').onchange=e=>seleccionar(RULETAS.find(r=>r.id===e.target.value));
+  const todos={...PODERES,...PODERES_PARAR};
+  let alguno=false;
+  for(const t in todos){
+    const pr=precioCompra(t,R); if(!pr) continue; alguno=true;
+    const n=inv(R,t), d=document.createElement('div'); d.className='item';
+    d.innerHTML=`<div><b>${todos[t].nombre} <span class="cuenta">${n}</span></b><small>${todos[t].desc}</small></div>`;
+    const b=document.createElement('button');
+    if(n>=MAX_PODER){ b.textContent='Máx. '+MAX_PODER; b.disabled=true; }
+    else { b.textContent=fmt(pr); b.disabled=dinero<pr||girando; b.onclick=()=>{ if(dinero<pr) return; dinero-=pr; sumarInv(R,t,1); SFX.compra(); animarDinero('baja'); guardarEstado(); refrescar(); }; }
+    d.appendChild(b); T.appendChild(d);
+  }
+  if(!alguno) T.insertAdjacentHTML('beforeend','<p class="nota">Esta ruleta no tiene poderes.</p>');
+  T.insertAdjacentHTML('beforeend','<h3>Mejoras para toda la partida</h3>');
   const fila=(nombre,desc,precio,estado,accion)=>{
     const d=document.createElement('div'); d.className='item';
     d.innerHTML=`<div><b>${nombre}</b><small>${desc}</small></div>`;
@@ -1029,7 +1064,7 @@ function finPartida(){
   $('fin').classList.add('ver');
 }
 function reiniciar(){
-  dinero=SALDO_INICIAL; tiradas=0; historial=[]; efectos=SIN_EFECTOS(); mejoras=SIN_MEJORAS();
+  dinero=SALDO_INICIAL; tiradas=0; historial=[]; efectos=SIN_EFECTOS(); mejoras=SIN_MEJORAS(); inventario={};
   preparados={escudo:false,x2:false,tapar:false}; jugada=null; girando=false;
   guardarEstado();
   $('fin').classList.remove('ver');
@@ -1060,7 +1095,7 @@ if(dinero<Math.min(...RULETAS.map(precioTirada)) && !efectos.gratis) finPartida(
 
 // para pruebas: forzar la casilla que sale
 window.__R={RULETAS,elegirCasilla, forzar:null, get dinero(){return dinero}, set dinero(v){dinero=v;refrescar()},
-  get efectos(){return efectos}, get mejoras(){return mejoras}, get jugada(){return jugada},
+  get efectos(){return efectos}, get mejoras(){return mejoras}, get jugada(){return jugada}, get inventario(){return inventario},
   precioPoder, aceptar, repetir, iman};
 })();
 </script>
