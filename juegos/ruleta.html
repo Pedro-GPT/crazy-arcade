@@ -316,6 +316,7 @@ header h1{font-family:Bungee,Impact,sans-serif;font-size:20px;letter-spacing:1px
   <div class="marcador">
     <div><div class="lbl">Dinero</div><div class="val" id="dinero">100 €</div></div>
     <div><div class="lbl">Récord</div><div class="val" id="record">100 €</div></div>
+    <div><div class="lbl">Ruinas</div><div class="val" id="ruinas">0</div></div>
     <button id="btnTienda" title="Tienda">🛒 TIENDA</button>
     <button id="btnSonido" title="Sonido">🔊</button>
   </div>
@@ -366,6 +367,7 @@ header h1{font-family:Bungee,Impact,sans-serif;font-size:20px;letter-spacing:1px
   <p>No te llega ni para la ruleta más barata.</p>
   <p>Récord: <b id="finRecord"></b></p>
   <p>Tiradas: <b id="finTiradas"></b></p>
+  <p>Veces arruinado: <b id="finRuinas"></b></p>
   <button id="btnReiniciar">Volver a empezar · 100 €</button>
 </div></div>
 
@@ -386,7 +388,7 @@ header h1{font-family:Bungee,Impact,sans-serif;font-size:20px;letter-spacing:1px
         ef:'mul' v   → tu PRÓXIMO PREMIO se multiplica por v (espera hasta que ganes algo)
         ef:'gratis'  → la siguiente tirada no cuesta nada
         ef:'combo' v → siguiente gratis Y próximo premio ×v
-        ef:'escudo'  → si la siguiente tirada sale mal, te quedas como estabas
+        ef:'escudo'  → (ya no está en ninguna ruleta: el escudo solo se compra en la tienda)
         ef:'mitad'   → tu PRÓXIMO PREMIO se queda en la mitad (espera hasta que ganes algo)
       Los multiplicadores se acumulan (×2 y luego ×3 = ×6).
    w = peso: cuanto mayor, más grande la casilla y más probable.
@@ -416,7 +418,7 @@ const RULETAS = [
   { id:'premium', nombre:'PREMIUM', precio:300, estrellas:3,
     desc:'Oro y luces. Llegan los efectos que guardas para después.',
     segs:[ {k:'add',v:200,w:4},{k:'all',w:.25},{k:'fut',ef:'mul',v:2,w:2},{k:'add',v:0,w:3},{k:'mul',v:2,w:1},
-           {k:'add',v:-200,w:2},{k:'fut',ef:'escudo',w:1},{k:'add',v:300,w:3},{k:'half',w:2},{k:'fut',ef:'mitad',w:1},
+           {k:'add',v:-200,w:2},{k:'add',v:300,w:3},{k:'half',w:2},{k:'fut',ef:'mitad',w:1},
            {k:'add',v:-300,w:2},{k:'add',v:1000,w:1} ],
     colores:['#6a2c91','#3d1460','#8e44ad','#4b1d6e'], texto:'#ffe9a8', borde:['#fff6c2','#ffcc33','#b8860b','#ffe27a','#a87400'],
     bordeAncho:.06, separador:'#ffcc33', bombillas:16, vueltas:5, dur:5200 },
@@ -432,7 +434,7 @@ const RULETAS = [
     desc:'Para valientes. Mucho que ganar, más que perder.',
     segs:[ {k:'add',v:1500,w:3},{k:'all',w:2},{k:'fut',ef:'mul',v:3,w:2},{k:'add',v:-1000,w:2},{k:'mul',v:3,w:1},
            {k:'fut',ef:'mitad',w:2},{k:'add',v:500,w:3},{k:'all',w:2},{k:'fut',ef:'mul',v:2,w:1},{k:'add',v:3000,w:2},
-           {k:'half',w:3},{k:'fut',ef:'escudo',w:1},{k:'add',v:-1000,w:2},{k:'mul',v:2,w:1},{k:'add',v:9000,w:1} ],
+           {k:'half',w:3},{k:'add',v:-1000,w:2},{k:'mul',v:2,w:1},{k:'add',v:9000,w:1} ],
     colores:['#1a0000','#5c0000','#2a0a0a','#8b0000'], texto:'#ffb3b3', borde:['#ffffff','#ff4d4d','#5c0000','#ff8080','#300000'],
     bordeAncho:.07, separador:'#ff2a2a', bombillas:24, vueltas:6, dur:6200 },
 
@@ -440,8 +442,7 @@ const RULETAS = [
     desc:'El bote de 200.000 € está ahí. Casi no se ve.',
     segs:[ {k:'add',v:10000,w:2},{k:'all',w:2},{k:'fut',ef:'mul',v:5,w:1},{k:'add',v:3000,w:2},{k:'half',w:2},
            {k:'fut',ef:'combo',v:2,w:1},{k:'mul',v:5,w:1},{k:'all',w:2},{k:'fut',ef:'mitad',w:2},{k:'add',v:25000,w:1},
-           {k:'add',v:-5000,w:2},{k:'fut',ef:'mul',v:3,w:1},{k:'bote',v:200000,w:.15},{k:'all',w:2},{k:'fut',ef:'escudo',w:1},
-           {k:'mul',v:3,w:1},{k:'add',v:-5000,w:2} ],
+           {k:'add',v:-5000,w:2},{k:'fut',ef:'mul',v:3,w:1},{k:'bote',v:200000,w:.15},{k:'all',w:2},{k:'mul',v:3,w:1},{k:'add',v:-5000,w:2} ],
     colores:['#ff5f6d','#ffc371','#7bff9e','#6ad7ff','#c58bff','#ff8fd8'], texto:'#1a0b2e',
     borde:['#fff6c2','#ffcc33','#8a5a00','#ffe27a','#ffffff','#b8860b','#ffcc33'], bordeAncho:.085,
     separador:'#fff7c2', bombillas:32, vueltas:7, dur:7500, persecucion:1, gemas:['#ff3b6b','#3bd1ff','#7bff9e'],
@@ -450,7 +451,7 @@ const RULETAS = [
   { id:'leyenda', nombre:'LEYENDA', precio:25000, estrellas:5, coronas:1,
     desc:'Diamante y platino. Bote de 1 millón.',
     segs:[ {k:'add',v:5000,w:3},{k:'all',w:2},{k:'fut',ef:'mul',v:3,w:1},{k:'add',v:-25000,w:2},{k:'add',v:25000,w:2},
-           {k:'half',w:2},{k:'fut',ef:'escudo',w:1},{k:'add',v:55000,w:1},{k:'fut',ef:'mitad',w:1},{k:'add',v:-10000,w:1},
+           {k:'half',w:2},{k:'add',v:55000,w:1},{k:'fut',ef:'mitad',w:1},{k:'add',v:-10000,w:1},
            {k:'bote',v:1000000,w:.12},{k:'mul',v:2,w:1},{k:'all',w:1},{k:'add',v:15000,w:2} ],
     colores:['#cfefff','#7cc7ef','#e8fbff','#4fa3d1','#a9dcf5'], texto:'#06263d',
     borde:['#ffffff','#bfe9ff','#5a8fb0','#ffffff','#d6f3ff','#7aa9c7'], bordeAncho:.085,
@@ -461,7 +462,7 @@ const RULETAS = [
     desc:'Fuera de este mundo. Bote de 5 millones.',
     segs:[ {k:'add',v:20000,w:3},{k:'all',w:3},{k:'fut',ef:'mul',v:5,w:1},{k:'add',v:-100000,w:2},{k:'add',v:100000,w:2},
            {k:'half',w:2},{k:'fut',ef:'combo',v:3,w:1},{k:'add',v:300000,w:1},{k:'fut',ef:'mitad',w:2},
-           {k:'bote',v:5000000,w:.1},{k:'mul',v:3,w:1},{k:'add',v:50000,w:2},{k:'fut',ef:'escudo',w:1} ],
+           {k:'bote',v:5000000,w:.1},{k:'mul',v:3,w:1},{k:'add',v:50000,w:2} ],
     colores:['#3a0d6b','#0d1f6b','#6b0d5a','#0d4d6b','#24104f'], texto:'#e6fffb',
     borde:['#ff2bd6','#8a5bff','#2b6bff','#00ffd5','#ff2bd6'], bordeAncho:.085,
     separador:'#00ffd5', bombillas:48, vueltas:9, dur:8500, persecucion:1.2, gemas:['#ff2bd6','#00ffd5','#ffffff'],
@@ -470,8 +471,7 @@ const RULETAS = [
   { id:'infinita', nombre:'∞ INFINITA ∞', precio:1000000, estrellas:5, coronas:3,
     desc:'La última. Bote de 100 millones.',
     segs:[ {k:'add',v:200000,w:3},{k:'all',w:5},{k:'fut',ef:'mul',v:10,w:.7},{k:'add',v:-1000000,w:2},{k:'add',v:1000000,w:2},
-           {k:'half',w:2},{k:'mul',v:5,w:1},{k:'fut',ef:'mitad',w:2},{k:'add',v:4000000,w:1},{k:'fut',ef:'escudo',w:1},
-           {k:'bote',v:100000000,w:.05},{k:'all',w:.5},{k:'add',v:500000,w:2} ],
+           {k:'half',w:2},{k:'mul',v:5,w:1},{k:'fut',ef:'mitad',w:2},{k:'add',v:4000000,w:1},{k:'bote',v:100000000,w:.05},{k:'all',w:.5},{k:'add',v:500000,w:2} ],
     colores:['#1a1200','#3d2a00','#000000','#5a3d00'], texto:'#ffe680',
     borde:['#fffbe0','#ffd700','#7a5200','#fff2a0','#ffd700','#a86f00','#fffbe0'], bordeAncho:.1,
     separador:'#ffd700', bombillas:60, vueltas:10, dur:9000, persecucion:.8, gemas:['#ffffff','#ffd700','#ff3b6b','#3bd1ff'],
@@ -498,6 +498,7 @@ let inventario = (E && E.inventario) || {};                         // poderes c
 let preparados = {escudo:false, x2:false, tapar:false};            // poderes marcados para la próxima tirada
 let jugada   = null;                                               // tirada en curso
 let record   = cargar('rds_record', SALDO_INICIAL);
+let ruinas   = cargar('rds_ruinas', 0);                            // veces arruinado (no se borra al volver a empezar)
 let sel      = RULETAS[0];
 let girando  = false;
 let sonido   = cargar('rds_sonido', true);
@@ -737,6 +738,7 @@ const guardarEstado = ()=>guardar('rds_estado',{dinero,tiradas,historial,efectos
 function refrescar(){
   $('dinero').textContent=fmt(dinero);
   $('record').textContent=fmt(record);
+  $('ruinas').textContent=ruinas;
   const R=sel, c=costeTirada(R), llave=tieneLlave(R);
   const decidiendo = jugada && jugada.fase==='decidir';
   const puede = llave && dinero>=c.total;
@@ -1008,6 +1010,7 @@ function comprobarRuina(){
     setTimeout(()=>{ SFX.efecto(); refrescar(); $('aviso').textContent='🛟 ¡El seguro te salva! Vuelves a tener '+fmt(SALDO_INICIAL)+'.'; $('aviso').className=''; },1200);
     return;
   }
+  ruinas++; guardar('rds_ruinas',ruinas); refrescar();
   setTimeout(finPartida,1400);
 }
 
@@ -1061,6 +1064,7 @@ function confeti(n){
 function finPartida(){
   $('finRecord').textContent=fmt(record);
   $('finTiradas').textContent=tiradas;
+  $('finRuinas').textContent=ruinas;
   $('fin').classList.add('ver');
 }
 function reiniciar(){
