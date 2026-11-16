@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Ruleta de la Suerte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Bungee+Shade&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#14121a; --panel:#1f1c27; --txt:#f2eee6; --mut:#9a93a8;
+  --ok:#3ddc84; --bad:#ff4d4d; --oro:#ffcc33;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  overflow-x:hidden;-webkit-tap-highlight-color:transparent;user-select:none}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+
+/* ---------- Barra superior ---------- */
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;
+  background:#0c0b10;border-bottom:1px solid #2a2633;flex-wrap:wrap}
+header h1{font-family:Bungee,Impact,sans-serif;font-size:20px;letter-spacing:1px;color:var(--oro)}
+.marcador{display:flex;gap:18px;align-items:baseline}
+.marcador .lbl{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:1px}
+.marcador .val{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
+#dinero.sube{color:var(--ok)} #dinero.baja{color:var(--bad)}
+#btnSonido{font-size:20px;padding:4px 8px;border-radius:8px;background:#221f2b}
+
+/* ---------- Escenario ---------- */
+#escenario{position:relative;display:flex;flex-direction:column;align-items:center;padding:14px 16px 18px;
+  min-height:calc(min(86vw,430px) + 200px);overflow:hidden;transition:background .5s}
+#rayos{position:absolute;inset:-50%;opacity:0;pointer-events:none;transition:opacity .5s}
+.cartel{position:relative;z-index:2;text-align:center;margin-bottom:10px;min-height:56px;display:flex;
+  flex-direction:column;align-items:center;justify-content:center}
+#cartelNombre{line-height:1}
+#cartelDesc{font-size:13px;color:var(--mut);margin-top:6px}
+
+.ruedaWrap{position:relative;width:min(86vw,430px);height:min(86vw,430px);z-index:2}
+#rueda{width:100%;height:100%;display:block;border-radius:50%}
+.puntero{position:absolute;left:50%;top:-6px;transform:translateX(-50%);z-index:4;width:0;height:0;
+  border-left:16px solid transparent;border-right:16px solid transparent;border-top:30px solid #ddd;
+  filter:drop-shadow(0 3px 3px rgba(0,0,0,.6))}
+#bombillas{position:absolute;inset:0;pointer-events:none;z-index:3}
+.bomb{position:absolute;left:50%;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%}
+#resultado{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.3);z-index:5;opacity:0;
+  pointer-events:none;text-align:center;font-family:Bungee,Impact,sans-serif;font-size:clamp(28px,9vw,54px);
+  text-shadow:0 4px 0 #000,0 0 20px rgba(0,0,0,.9);transition:transform .35s cubic-bezier(.2,1.6,.4,1),opacity .2s;
+  white-space:nowrap}
+#resultado.ver{opacity:1;transform:translate(-50%,-50%) scale(1)}
+#resultado small{display:block;font-size:.38em;font-family:system-ui,sans-serif;font-weight:800;margin-top:6px}
+
+.zonaBoton{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;margin-top:16px;gap:6px}
+#btnGirar{font-family:Bungee,Impact,sans-serif;font-size:24px;padding:12px 44px;border-radius:14px;
+  background:#e7e2d8;color:#222;box-shadow:0 5px 0 #8f887b;transition:transform .08s}
+#btnGirar:active:not(:disabled){transform:translateY(4px);box-shadow:0 1px 0 #8f887b}
+#btnGirar:disabled{filter:grayscale(1) brightness(.55);cursor:not-allowed}
+#aviso{font-size:14px;min-height:20px;color:var(--mut);text-align:center}
+#aviso.mal{color:var(--bad);font-weight:700}
+#efectos{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;align-items:center;min-height:26px}
+#efectos .lblEf{font-size:12px;color:#ddd;text-transform:uppercase;letter-spacing:1px;margin-right:2px}
+.chip{font-weight:800;font-size:13px;padding:4px 10px;border-radius:999px;animation:latido 1.2s ease-in-out infinite}
+.chip.bueno{background:#00c2a8;color:#00241f;box-shadow:0 0 12px #00e5ff88}
+.chip.malo{background:#5b4a66;color:#e9dcf3}
+.chip.escudo{background:#4aa3ff;color:#001a33;box-shadow:0 0 12px #4aa3ff88}
+@keyframes latido{50%{transform:scale(1.08)}}
+#resultado small{white-space:normal;max-width:84vw;margin-left:auto;margin-right:auto}
+#resultado small.nota{font-size:.3em;color:#fff;opacity:.9;margin-top:4px}
+
+/* ---------- Selector ---------- */
+#selector{display:flex;gap:10px;padding:14px 16px;overflow-x:auto;background:#0e0d13;border-top:1px solid #2a2633;
+  scroll-snap-type:x mandatory}
+.carta{flex:0 0 auto;width:132px;scroll-snap-align:start;border-radius:14px;padding:10px 8px 8px;text-align:center;
+  border:2px solid transparent;position:relative;transition:transform .15s,border-color .15s}
+.carta:hover{transform:translateY(-2px)}
+.carta canvas{width:84px;height:84px;display:block;margin:0 auto 6px;border-radius:50%}
+.carta .nom{font-weight:800;font-size:14px;line-height:1.1}
+.carta .pre{font-size:13px;margin-top:3px;font-variant-numeric:tabular-nums}
+.carta.sel{border-color:#fff;transform:translateY(-3px)}
+.carta.caro{opacity:.5}
+.carta.caro .pre::after{content:" · sin saldo";color:var(--bad)}
+.carta .estrellas{font-size:11px;letter-spacing:1px;margin-top:2px;opacity:.85}
+
+/* ---------- Historial ---------- */
+#historial{padding:10px 16px 24px;font-size:13px;color:var(--mut);max-width:640px;margin:0 auto}
+#historial h2{font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+#historial li{list-style:none;padding:4px 0;border-bottom:1px solid #221f2b;display:flex;justify-content:space-between;gap:8px}
+#historial .mas{color:var(--ok);font-weight:700} #historial .menos{color:var(--bad);font-weight:700}
+
+/* ---------- Fin de partida ---------- */
+#fin{position:fixed;inset:0;background:rgba(0,0,0,.86);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+#fin.ver{display:flex}
+#fin .caja{background:var(--panel);border-radius:18px;padding:28px 24px;text-align:center;max-width:360px;width:100%;
+  border:2px solid var(--bad)}
+#fin h2{font-family:Bungee,Impact,sans-serif;color:var(--bad);font-size:34px;margin-bottom:10px}
+#fin p{margin:6px 0;color:var(--mut)} #fin b{color:var(--txt)}
+#fin button{margin-top:18px;font-family:Bungee,Impact,sans-serif;font-size:18px;padding:10px 24px;border-radius:12px;
+  background:var(--oro);color:#222}
+
+/* ---------- Confeti ---------- */
+.confeti{position:fixed;top:-12px;width:9px;height:14px;z-index:40;pointer-events:none;animation:caer linear forwards}
+@keyframes caer{to{transform:translateY(110vh) rotate(720deg)}}
+
+/* =====================================================================
+   ESTILOS POR RULETA: cuanto mejor la ruleta, más espectáculo.
+   ===================================================================== */
+
+/* 1) POCO A POCO — cartón, nada de luces */
+.t-poco{background:#3a3833}
+.t-poco #cartelNombre{font-family:system-ui,sans-serif;font-weight:700;font-size:22px;color:#cfc8ba}
+.t-poco .puntero{border-top-color:#9b9384}
+.t-poco #btnGirar{background:#bdb5a6;box-shadow:0 5px 0 #6f685c;font-family:system-ui,sans-serif;font-weight:800}
+.carta.c-poco{background:#45423b;color:#d6cfc1}
+
+/* 2) NORMAL — colores planos, cartel sencillo */
+.t-normal{background:#1d2a3a}
+.t-normal #cartelNombre{font-family:Bungee,Impact,sans-serif;font-size:28px;color:#fff}
+.t-normal .puntero{border-top-color:#fff}
+.t-normal #btnGirar{background:#2f80ed;color:#fff;box-shadow:0 5px 0 #1b4f99}
+.carta.c-normal{background:#24364b}
+
+/* 3) PREMIUM — oro, bombillas cálidas */
+.t-premium{background:radial-gradient(circle at 50% 45%,#5a2a82 0%,#2a103f 60%,#16071f 100%)}
+.t-premium #cartelNombre{font-family:Bungee,Impact,sans-serif;font-size:36px;
+  background:linear-gradient(180deg,#fff6c2,#ffcc33 45%,#b8860b 55%,#ffe27a);-webkit-background-clip:text;background-clip:text;
+  color:transparent;filter:drop-shadow(0 3px 0 #5a3a00)}
+.t-premium .puntero{border-top-color:#ffcc33}
+.t-premium .bomb{background:#fff2b0;box-shadow:0 0 8px 3px #ffcc33;animation:parpadeo 1.2s infinite}
+.t-premium #btnGirar{background:linear-gradient(#ffe27a,#d9a21b);color:#3a2500;box-shadow:0 5px 0 #8a6100,0 0 18px #ffcc3388}
+.carta.c-premium{background:linear-gradient(160deg,#4a2270,#2a103f);border-color:#ffcc3355;color:#ffe9a8}
+
+/* 4) DIFÍCIL — negro y rojo, neón */
+.t-dificil{background:radial-gradient(circle at 50% 45%,#3a0000 0%,#120000 65%,#000 100%)}
+.t-dificil #cartelNombre{font-family:Bungee,Impact,sans-serif;font-size:42px;color:#ff3b3b;
+  text-shadow:0 0 6px #ff0000,0 0 18px #ff0000,0 0 40px #ff2a2a;animation:neon 3s infinite}
+.t-dificil .puntero{border-top-color:#ff2a2a;filter:drop-shadow(0 0 8px #ff0000)}
+.t-dificil .bomb{background:#ff6b6b;box-shadow:0 0 10px 4px #ff0000;animation:parpadeo .5s infinite}
+.t-dificil #btnGirar{background:linear-gradient(#ff4d4d,#a30000);color:#fff;box-shadow:0 5px 0 #4a0000,0 0 24px #ff000099}
+.carta.c-dificil{background:linear-gradient(160deg,#2b0000,#000);border-color:#ff2a2a66;color:#ff8a8a;
+  box-shadow:0 0 12px #ff000044}
+
+/* 5) IMPOSIBLE — todo: oro, arcoíris, rayos, mil bombillas */
+.t-imposible{background:#0b0614}
+.t-imposible #rayos{opacity:.55;background:repeating-conic-gradient(from 0deg,#ffcc3333 0 10deg,transparent 10deg 20deg);
+  animation:girarRayos 18s linear infinite}
+.t-imposible #cartelNombre{font-family:"Bungee Shade",Bungee,Impact,sans-serif;font-size:46px;
+  background:linear-gradient(90deg,#ff5f6d,#ffc371,#fff27a,#7bff9e,#6ad7ff,#c58bff,#ff5f6d);background-size:300% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;animation:arcoiris 3s linear infinite;
+  filter:drop-shadow(0 0 10px #ffcc33aa)}
+.t-imposible .puntero{border-left-width:20px;border-right-width:20px;border-top:38px solid #ffcc33;
+  filter:drop-shadow(0 0 10px #fff27a)}
+.t-imposible .bomb{animation:arcoBomb 1s linear infinite;width:14px;height:14px;margin:-7px 0 0 -7px}
+.t-imposible #btnGirar{font-size:28px;background:linear-gradient(90deg,#ff5f6d,#ffc371,#fff27a,#7bff9e,#6ad7ff,#c58bff);
+  background-size:300% 100%;animation:arcoiris 3s linear infinite;color:#1a0b2e;box-shadow:0 6px 0 #6b3fa0,0 0 30px #fff27a99}
+.carta.c-imposible{background:linear-gradient(160deg,#3b1d00,#1a0b2e 60%,#00213b);border-color:#ffcc33;color:#fff27a;
+  box-shadow:0 0 16px #ffcc3366}
+.chispa{position:absolute;z-index:3;color:#fff7c2;pointer-events:none;animation:chispa 1.6s ease-in-out infinite;
+  text-shadow:0 0 8px #ffcc33}
+
+/* TRÉBOL — sencilla, tapete verde, sin luces */
+.t-trebol{background:#1f3a24}
+.t-trebol #cartelNombre{font-family:system-ui,sans-serif;font-weight:800;font-size:24px;color:#b9e6b0}
+.t-trebol .puntero{border-top-color:#cfe8c8}
+.t-trebol #btnGirar{background:#5fae5a;color:#0d2a0f;box-shadow:0 5px 0 #2f6b2c;font-family:system-ui,sans-serif;font-weight:900}
+.carta.c-trebol{background:#29492e;color:#c9efc0}
+
+/* DOBLE O NADA — blanco y negro, plata, casino clásico */
+.t-doble{background:repeating-linear-gradient(45deg,#121212 0 22px,#1b1b1b 22px 44px)}
+.t-doble #cartelNombre{font-family:Bungee,Impact,sans-serif;font-size:38px;
+  background:linear-gradient(180deg,#ffffff,#c9c9c9 45%,#6d6d6d 55%,#f0f0f0);-webkit-background-clip:text;background-clip:text;
+  color:transparent;filter:drop-shadow(0 3px 0 #000)}
+.t-doble .puntero{border-top-color:#e6e6e6}
+.t-doble .bomb{background:#fff;box-shadow:0 0 8px 2px #fff;animation:parpadeo .8s steps(1) infinite}
+.t-doble #btnGirar{background:linear-gradient(#ffffff,#9a9a9a);color:#111;box-shadow:0 5px 0 #444,0 0 18px #ffffff55}
+.carta.c-doble{background:linear-gradient(135deg,#f2f2f2 0 50%,#111 50% 100%);border-color:#bbb;color:#fff}
+.carta.c-doble .nom,.carta.c-doble .pre{background:#000c;border-radius:6px;padding:1px 4px}
+
+/* LEYENDA — diamante y hielo, platino */
+.t-leyenda{background:radial-gradient(circle at 50% 40%,#2a6f9e 0%,#0b2440 55%,#020a14 100%)}
+.t-leyenda #rayos{opacity:.35;background:repeating-conic-gradient(from 0deg,#bff4ff33 0 6deg,transparent 6deg 15deg);
+  animation:girarRayos 30s linear infinite reverse}
+.t-leyenda #cartelNombre{font-family:"Bungee Shade",Bungee,Impact,sans-serif;font-size:50px;
+  background:linear-gradient(100deg,#ffffff 20%,#8fe9ff 40%,#ffffff 50%,#5ac8ff 60%,#ffffff 80%);background-size:250% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;animation:arcoiris 2.5s linear infinite;
+  filter:drop-shadow(0 0 12px #8fe9ff)}
+.t-leyenda .puntero{border-left-width:20px;border-right-width:20px;border-top:38px solid #e8fbff;filter:drop-shadow(0 0 12px #8fe9ff)}
+.t-leyenda .bomb{animation:hielo 1.4s linear infinite;width:14px;height:14px;margin:-7px 0 0 -7px}
+.t-leyenda #btnGirar{font-size:28px;background:linear-gradient(180deg,#ffffff,#9fe6ff 50%,#4fb6e8);color:#06263d;
+  box-shadow:0 6px 0 #1d5d85,0 0 30px #8fe9ffaa}
+.carta.c-leyenda{background:linear-gradient(160deg,#4fb6e8,#0b2440 70%);border-color:#e8fbff;color:#e8fbff;box-shadow:0 0 18px #8fe9ff77}
+
+/* GALÁCTICA — espacio, nebulosa, neón */
+.t-galactica{background:
+  radial-gradient(1px 1px at 10% 20%,#fff,transparent),radial-gradient(1px 1px at 30% 70%,#fff,transparent),
+  radial-gradient(2px 2px at 80% 30%,#fff,transparent),radial-gradient(1px 1px at 60% 85%,#fff,transparent),
+  radial-gradient(2px 2px at 90% 75%,#cfe,transparent),radial-gradient(1px 1px at 45% 10%,#fff,transparent),
+  radial-gradient(ellipse at 25% 40%,#ff2bd666 0%,transparent 45%),radial-gradient(ellipse at 75% 60%,#2b6bff77 0%,transparent 50%),
+  #05010f}
+.t-galactica #rayos{opacity:.6;background:conic-gradient(from 0deg,#ff2bd622,#2b6bff33,#00ffd522,#ff2bd622);
+  animation:girarRayos 12s linear infinite;filter:blur(30px)}
+.t-galactica #cartelNombre{font-family:"Bungee Shade",Bungee,Impact,sans-serif;font-size:50px;
+  background:linear-gradient(90deg,#ff2bd6,#8a5bff,#2b6bff,#00ffd5,#ff2bd6);background-size:300% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;animation:arcoiris 2s linear infinite;
+  filter:drop-shadow(0 0 14px #8a5bff)}
+.t-galactica .puntero{border-left-width:22px;border-right-width:22px;border-top:40px solid #00ffd5;filter:drop-shadow(0 0 14px #00ffd5)}
+.t-galactica .bomb{animation:galaBomb 1.2s linear infinite;width:14px;height:14px;margin:-7px 0 0 -7px}
+.t-galactica #btnGirar{font-size:28px;background:linear-gradient(90deg,#ff2bd6,#8a5bff,#2b6bff,#00ffd5);background-size:300% 100%;
+  animation:arcoiris 2s linear infinite;color:#fff;text-shadow:0 2px 0 #000;box-shadow:0 6px 0 #3a1a7a,0 0 36px #8a5bffcc}
+.t-galactica .ruedaWrap::before{content:"";position:absolute;inset:-9%;border-radius:50%;border:2px dashed #00ffd577;
+  animation:girarRayos 9s linear infinite;pointer-events:none}
+.carta.c-galactica{background:radial-gradient(circle at 30% 30%,#ff2bd655,transparent 50%),radial-gradient(circle at 70% 70%,#2b6bff66,transparent 50%),#05010f;
+  border-color:#00ffd5;color:#c9fff5;box-shadow:0 0 20px #8a5bffaa}
+
+/* INFINITA — oro puro y negro, halo giratorio, todo al máximo */
+.t-infinita{background:radial-gradient(circle at 50% 45%,#3d2a00 0%,#120c00 55%,#000 100%)}
+.t-infinita #rayos{opacity:.8;background:
+  repeating-conic-gradient(from 0deg,#ffd70044 0 4deg,transparent 4deg 12deg),
+  conic-gradient(from 0deg,#ff5f6d33,#ffc37133,#7bff9e33,#6ad7ff33,#c58bff33,#ff5f6d33);
+  animation:girarRayos 10s linear infinite}
+.t-infinita #cartelNombre{font-family:"Bungee Shade",Bungee,Impact,sans-serif;font-size:56px;
+  background:linear-gradient(180deg,#fffbe0,#ffd700 40%,#a86f00 52%,#ffe680 70%,#fff6c2);-webkit-background-clip:text;background-clip:text;
+  color:transparent;animation:pulsoOro 1.6s ease-in-out infinite}
+.t-infinita .puntero{border-left-width:24px;border-right-width:24px;border-top:44px solid #ffd700;filter:drop-shadow(0 0 16px #fff2a0)}
+.t-infinita .bomb{animation:oroBomb .8s linear infinite;width:15px;height:15px;margin:-7.5px 0 0 -7.5px}
+.t-infinita #btnGirar{font-size:30px;background:linear-gradient(180deg,#fffbe0,#ffd700 45%,#b07800);color:#2a1a00;
+  box-shadow:0 6px 0 #6b4800,0 0 40px #ffd700cc;animation:pulsoBoton 1.6s ease-in-out infinite}
+.t-infinita .ruedaWrap::before{content:"";position:absolute;inset:-10%;border-radius:50%;pointer-events:none;
+  background:conic-gradient(from 0deg,transparent,#ffd700aa,transparent 30%,#fff2a0aa,transparent 60%,#ffd700aa,transparent 90%);
+  -webkit-mask:radial-gradient(circle,transparent 62%,#000 63%,#000 70%,transparent 71%);
+  mask:radial-gradient(circle,transparent 62%,#000 63%,#000 70%,transparent 71%);animation:girarRayos 4s linear infinite}
+.carta.c-infinita{background:linear-gradient(160deg,#ffd700,#5a3d00 55%,#000);border-color:#fff2a0;color:#fffbe0;
+  box-shadow:0 0 24px #ffd700cc;animation:pulsoBoton 1.6s ease-in-out infinite}
+.t-leyenda .chispa{color:#e8fbff;text-shadow:0 0 8px #8fe9ff}
+.t-galactica .chispa{color:#fff;text-shadow:0 0 8px #00ffd5}
+.t-infinita .chispa{color:#fff2a0;text-shadow:0 0 10px #ffd700}
+.carta .coronas{font-size:12px;margin-top:2px}
+
+@keyframes hielo{0%{background:#ffffff;box-shadow:0 0 12px 5px #8fe9ff}50%{background:#3a8fc0;box-shadow:0 0 2px 1px #3a8fc0}100%{background:#ffffff;box-shadow:0 0 12px 5px #8fe9ff}}
+@keyframes galaBomb{0%{background:#ff2bd6;box-shadow:0 0 12px 5px #ff2bd6}33%{background:#00ffd5;box-shadow:0 0 12px 5px #00ffd5}
+  66%{background:#2b6bff;box-shadow:0 0 12px 5px #2b6bff}100%{background:#ff2bd6;box-shadow:0 0 12px 5px #ff2bd6}}
+@keyframes oroBomb{0%{background:#fffbe0;box-shadow:0 0 14px 6px #ffd700}50%{background:#6b4800;box-shadow:0 0 2px 1px #6b4800}100%{background:#fffbe0;box-shadow:0 0 14px 6px #ffd700}}
+@keyframes pulsoOro{0%,100%{filter:drop-shadow(0 0 8px #ffd700)}50%{filter:drop-shadow(0 0 26px #fff2a0)}}
+@keyframes pulsoBoton{0%,100%{box-shadow:0 6px 0 #6b4800,0 0 24px #ffd70088}50%{box-shadow:0 6px 0 #6b4800,0 0 50px #ffd700}}
+
+@keyframes parpadeo{0%,100%{opacity:1}50%{opacity:.25}}
+@keyframes neon{0%,18%,22%,62%,64%,100%{opacity:1}20%,63%{opacity:.35}}
+@keyframes arcoiris{to{background-position:300% 0}}
+@keyframes girarRayos{to{transform:rotate(360deg)}}
+@keyframes arcoBomb{0%{background:#ff5f6d;box-shadow:0 0 10px 4px #ff5f6d}33%{background:#fff27a;box-shadow:0 0 10px 4px #fff27a}
+  66%{background:#6ad7ff;box-shadow:0 0 10px 4px #6ad7ff}100%{background:#ff5f6d;box-shadow:0 0 10px 4px #ff5f6d}}
+@keyframes chispa{0%,100%{opacity:0;transform:scale(.4)}50%{opacity:1;transform:scale(1.2)}}
+
+@media (max-width:520px){
+  header h1{font-size:16px}
+  .marcador .val{font-size:18px}
+  .t-imposible #cartelNombre{font-size:34px}
+  .t-leyenda #cartelNombre,.t-galactica #cartelNombre{font-size:36px}
+  .t-infinita #cartelNombre{font-size:40px}
+  .t-doble #cartelNombre{font-size:30px}
+  .t-dificil #cartelNombre{font-size:34px}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>RULETA DE LA SUERTE</h1>
+  <div class="marcador">
+    <div><div class="lbl">Dinero</div><div class="val" id="dinero">100 €</div></div>
+    <div><div class="lbl">Récord</div><div class="val" id="record">100 €</div></div>
+    <button id="btnSonido" title="Sonido">🔊</button>
+  </div>
+</header>
+
+<section id="escenario" class="t-poco">
+  <div id="rayos"></div>
+  <div class="cartel">
+    <div id="cartelNombre">Poco a Poco</div>
+    <div id="cartelDesc"></div>
+  </div>
+  <div class="ruedaWrap" id="ruedaWrap">
+    <canvas id="rueda" width="860" height="860"></canvas>
+    <div id="bombillas"></div>
+    <div class="puntero"></div>
+    <div id="resultado"></div>
+  </div>
+  <div class="zonaBoton">
+    <div id="efectos"></div>
+    <button id="btnGirar">GIRAR · 30 €</button>
+    <div id="aviso"></div>
+  </div>
+</section>
+
+<nav id="selector"></nav>
+
+<section id="historial">
+  <h2>Últimas tiradas</h2>
+  <ul id="lista"></ul>
+</section>
+
+<div id="fin"><div class="caja">
+  <h2>ARRUINADO</h2>
+  <p>No te llega ni para la ruleta más barata.</p>
+  <p>Récord: <b id="finRecord"></b></p>
+  <p>Tiradas: <b id="finTiradas"></b></p>
+  <button id="btnReiniciar">Volver a empezar · 100 €</button>
+</div></div>
+
+<script>
+(()=>{
+'use strict';
+
+/* =====================================================================
+   RULETAS
+   Cada casilla (seg):
+     k:'add'  v  → lo que GANAS (o pierdes si es negativo) contando ya lo que costó la tirada.
+                   0 = te quedas exactamente como estabas.
+     k:'all'     → lo pierdes TODO
+     k:'half'    → te quedas con la mitad de todo
+     k:'mul'  v  → multiplica todo tu dinero (sin cobrarte la tirada)
+     k:'bote' v  → premio gordo (ganas v)
+     k:'fut'     → efecto para lo que venga después (en cualquier ruleta). Nunca cuesta dinero:
+        ef:'mul' v   → tu PRÓXIMO PREMIO se multiplica por v (espera hasta que ganes algo)
+        ef:'gratis'  → la siguiente tirada no cuesta nada
+        ef:'combo' v → siguiente gratis Y próximo premio ×v
+        ef:'escudo'  → si la siguiente tirada sale mal, te quedas como estabas
+        ef:'mitad'   → tu PRÓXIMO PREMIO se queda en la mitad (espera hasta que ganes algo)
+      Los multiplicadores se acumulan (×2 y luego ×3 = ×6).
+   w = peso: cuanto mayor, más grande la casilla y más probable.
+   Primero se paga el precio y luego se aplica la casilla.
+   ===================================================================== */
+const RULETAS = [
+  { id:'poco', nombre:'Poco a Poco', precio:30, estrellas:1,
+    desc:'Barata y segura: aquí nunca pierdes.',
+    segs:[ {k:'add',v:0,w:1},{k:'add',v:5,w:3},{k:'add',v:0,w:3},{k:'add',v:20,w:2},{k:'add',v:50,w:1} ],
+    colores:['#b9b09f','#a59c8a','#c7bfb0','#9d9482'], texto:'#3a352c', borde:'#6f6250', bordeAncho:.025,
+    separador:'#7d7465', bombillas:0, vueltas:3, dur:3200, simple:true },
+
+  { id:'trebol', nombre:'☘ Trébol', precio:60, estrellas:1,
+    desc:'Sencilla, con algo más de premio y una casilla de tirada gratis.',
+    segs:[ {k:'add',v:-30,w:1},{k:'add',v:0,w:3},{k:'add',v:20,w:3},{k:'fut',ef:'gratis',w:.6},{k:'add',v:40,w:2},
+           {k:'add',v:-10,w:1},{k:'add',v:100,w:1} ],
+    colores:['#2f7a34','#3f9445','#25602a','#4aa851'], texto:'#eaffe4', borde:'#1d4a21', bordeAncho:.03,
+    separador:'#173b1a', bombillas:0, vueltas:3, dur:3600, simple:true },
+
+  { id:'normal', nombre:'Normal', precio:100, estrellas:2,
+    desc:'Puedes ganar 300… o que te quiten 100.',
+    segs:[ {k:'add',v:100,w:2},{k:'add',v:-50,w:2},{k:'add',v:-20,w:3},{k:'add',v:-50,w:1},{k:'add',v:100,w:2},
+           {k:'fut',ef:'gratis',w:1.5},{k:'add',v:-100,w:2},{k:'add',v:50,w:3},{k:'add',v:300,w:1} ],
+    colores:['#e74c3c','#3498db','#2ecc71','#f1c40f','#9b59b6','#e67e22'], texto:'#fff', borde:'#f4f4f4', bordeAncho:.035,
+    separador:'#ffffff', bombillas:0, vueltas:4, dur:4200 },
+
+  { id:'premium', nombre:'PREMIUM', precio:300, estrellas:3,
+    desc:'Oro y luces. Llegan los efectos que guardas para después.',
+    segs:[ {k:'add',v:200,w:4},{k:'all',w:.25},{k:'fut',ef:'mul',v:2,w:2},{k:'add',v:0,w:3},{k:'mul',v:2,w:1},
+           {k:'add',v:-200,w:2},{k:'fut',ef:'escudo',w:1},{k:'add',v:300,w:3},{k:'half',w:2},{k:'fut',ef:'mitad',w:1},
+           {k:'add',v:-300,w:2},{k:'add',v:1000,w:1} ],
+    colores:['#6a2c91','#3d1460','#8e44ad','#4b1d6e'], texto:'#ffe9a8', borde:['#fff6c2','#ffcc33','#b8860b','#ffe27a','#a87400'],
+    bordeAncho:.06, separador:'#ffcc33', bombillas:16, vueltas:5, dur:5200 },
+
+  { id:'doble', nombre:'DOBLE O NADA', precio:500, estrellas:3,
+    desc:'Blanco o negro: ganas 500 o pierdes 500. Nunca todo.',
+    segs:[ {k:'add',v:500,w:1.2},{k:'add',v:-500,w:1.2},{k:'add',v:500,w:1.2},{k:'add',v:-500,w:1.2},{k:'fut',ef:'mul',v:2,w:.5},
+           {k:'add',v:500,w:1.2},{k:'add',v:-500,w:1.2},{k:'add',v:500,w:1.2},{k:'add',v:-500,w:1.2},{k:'add',v:1500,w:.3} ],
+    colores:['#f2f2f2','#111111'], texto:'#e33', borde:['#ffffff','#9a9a9a','#3a3a3a','#e6e6e6','#7a7a7a'],
+    bordeAncho:.06, separador:'#888888', bombillas:20, vueltas:5, dur:5000, alterna:.4 },
+
+  { id:'dificil', nombre:'DIFÍCIL', precio:1000, estrellas:4,
+    desc:'Para valientes. Mucho que ganar, más que perder.',
+    segs:[ {k:'add',v:1500,w:3},{k:'all',w:2},{k:'fut',ef:'mul',v:3,w:2},{k:'add',v:-1000,w:2},{k:'mul',v:3,w:1},
+           {k:'fut',ef:'mitad',w:2},{k:'add',v:500,w:3},{k:'all',w:2},{k:'fut',ef:'mul',v:2,w:1},{k:'add',v:3000,w:2},
+           {k:'half',w:3},{k:'fut',ef:'escudo',w:1},{k:'add',v:-1000,w:2},{k:'mul',v:2,w:1},{k:'add',v:9000,w:1} ],
+    colores:['#1a0000','#5c0000','#2a0a0a','#8b0000'], texto:'#ffb3b3', borde:['#ffffff','#ff4d4d','#5c0000','#ff8080','#300000'],
+    bordeAncho:.07, separador:'#ff2a2a', bombillas:24, vueltas:6, dur:6200 },
+
+  { id:'imposible', nombre:'IMPOSIBLE', precio:5000, estrellas:5,
+    desc:'El bote de 200.000 € está ahí. Casi no se ve.',
+    segs:[ {k:'add',v:10000,w:2},{k:'all',w:2},{k:'fut',ef:'mul',v:5,w:1},{k:'add',v:3000,w:2},{k:'half',w:2},
+           {k:'fut',ef:'combo',v:2,w:1},{k:'mul',v:5,w:1},{k:'all',w:2},{k:'fut',ef:'mitad',w:2},{k:'add',v:25000,w:1},
+           {k:'add',v:-5000,w:2},{k:'fut',ef:'mul',v:3,w:1},{k:'bote',v:200000,w:.15},{k:'all',w:2},{k:'fut',ef:'escudo',w:1},
+           {k:'mul',v:3,w:1},{k:'add',v:-5000,w:2} ],
+    colores:['#ff5f6d','#ffc371','#7bff9e','#6ad7ff','#c58bff','#ff8fd8'], texto:'#1a0b2e',
+    borde:['#fff6c2','#ffcc33','#8a5a00','#ffe27a','#ffffff','#b8860b','#ffcc33'], bordeAncho:.085,
+    separador:'#fff7c2', bombillas:32, vueltas:7, dur:7500, persecucion:1, gemas:['#ff3b6b','#3bd1ff','#7bff9e'],
+    chispas:{car:'✦',n:14} },
+
+  { id:'leyenda', nombre:'LEYENDA', precio:25000, estrellas:5, coronas:1,
+    desc:'Diamante y platino. Bote de 1 millón.',
+    segs:[ {k:'add',v:5000,w:3},{k:'all',w:2},{k:'fut',ef:'mul',v:3,w:1},{k:'add',v:-25000,w:2},{k:'add',v:25000,w:2},
+           {k:'half',w:2},{k:'fut',ef:'escudo',w:1},{k:'add',v:55000,w:1},{k:'fut',ef:'mitad',w:1},{k:'add',v:-10000,w:1},
+           {k:'bote',v:1000000,w:.12},{k:'mul',v:2,w:1},{k:'all',w:1},{k:'add',v:15000,w:2} ],
+    colores:['#cfefff','#7cc7ef','#e8fbff','#4fa3d1','#a9dcf5'], texto:'#06263d',
+    borde:['#ffffff','#bfe9ff','#5a8fb0','#ffffff','#d6f3ff','#7aa9c7'], bordeAncho:.085,
+    separador:'#ffffff', bombillas:40, vueltas:8, dur:8000, persecucion:1.4, gemas:['#ffffff','#bff4ff','#8fe9ff'],
+    chispas:{car:'✧',n:18} },
+
+  { id:'galactica', nombre:'GALÁCTICA', precio:100000, estrellas:5, coronas:2,
+    desc:'Fuera de este mundo. Bote de 5 millones.',
+    segs:[ {k:'add',v:20000,w:3},{k:'all',w:3},{k:'fut',ef:'mul',v:5,w:1},{k:'add',v:-100000,w:2},{k:'add',v:100000,w:2},
+           {k:'half',w:2},{k:'fut',ef:'combo',v:3,w:1},{k:'add',v:300000,w:1},{k:'fut',ef:'mitad',w:2},
+           {k:'bote',v:5000000,w:.1},{k:'mul',v:3,w:1},{k:'add',v:50000,w:2},{k:'fut',ef:'escudo',w:1} ],
+    colores:['#3a0d6b','#0d1f6b','#6b0d5a','#0d4d6b','#24104f'], texto:'#e6fffb',
+    borde:['#ff2bd6','#8a5bff','#2b6bff','#00ffd5','#ff2bd6'], bordeAncho:.085,
+    separador:'#00ffd5', bombillas:48, vueltas:9, dur:8500, persecucion:1.2, gemas:['#ff2bd6','#00ffd5','#ffffff'],
+    chispas:{car:'✶',n:26} },
+
+  { id:'infinita', nombre:'∞ INFINITA ∞', precio:1000000, estrellas:5, coronas:3,
+    desc:'La última. Bote de 100 millones.',
+    segs:[ {k:'add',v:200000,w:3},{k:'all',w:5},{k:'fut',ef:'mul',v:10,w:.7},{k:'add',v:-1000000,w:2},{k:'add',v:1000000,w:2},
+           {k:'half',w:2},{k:'mul',v:5,w:1},{k:'fut',ef:'mitad',w:2},{k:'add',v:4000000,w:1},{k:'fut',ef:'escudo',w:1},
+           {k:'bote',v:100000000,w:.05},{k:'all',w:.5},{k:'add',v:500000,w:2} ],
+    colores:['#1a1200','#3d2a00','#000000','#5a3d00'], texto:'#ffe680',
+    borde:['#fffbe0','#ffd700','#7a5200','#fff2a0','#ffd700','#a86f00','#fffbe0'], bordeAncho:.1,
+    separador:'#ffd700', bombillas:60, vueltas:10, dur:9000, persecucion:.8, gemas:['#ffffff','#ffd700','#ff3b6b','#3bd1ff'],
+    chispas:{car:'✦',n:30} },
+];
+
+const SALDO_INICIAL = 100;
+const TAU = Math.PI*2;
+const fmt = n => Math.round(n).toLocaleString('es-ES') + ' €';
+
+/* ---------- Guardado (si el navegador lo permite) ---------- */
+const guardar = (k,v)=>{ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} };
+const cargar  = (k,d)=>{ try{ const v=JSON.parse(localStorage.getItem(k)); return v==null?d:v; }catch(e){ return d; } };
+
+const E = cargar('rds_estado', null);
+let dinero   = E ? E.dinero   : SALDO_INICIAL;
+let tiradas  = E ? E.tiradas  : 0;
+let historial= E ? E.historial: [];
+const SIN_EFECTOS = ()=>({mult:1, gratis:0, escudo:0});
+let efectos  = (E && E.efectos) || SIN_EFECTOS();   // lo que espera a la siguiente tirada
+let record   = cargar('rds_record', SALDO_INICIAL);
+let sel      = RULETAS[0];
+let girando  = false;
+let sonido   = cargar('rds_sonido', true);
+const rot = {};                     // giro actual de cada ruleta (radianes)
+RULETAS.forEach(R=>{ rot[R.id]=0; R.W=R.segs.reduce((s,g)=>s+g.w,0); });
+
+const $ = id=>document.getElementById(id);
+const cv = $('rueda'), ctx = cv.getContext('2d');
+
+/* ---------- Texto y color de cada casilla ---------- */
+function etiqueta(g){
+  switch(g.k){
+    case 'add':  return g.v>0 ? '+'+corto(g.v) : g.v<0 ? '−'+corto(g.v) : '0';
+    case 'all':  return 'PIERDES TODO';
+    case 'half': return '÷2 TODO';
+    case 'mul':  return '×'+g.v+' TODO';
+    case 'bote': return 'BOTE '+corto(g.v);
+    case 'fut':  return { mul:'×'+g.v+' PREMIO', gratis:'GRATIS', combo:'GRATIS ×'+g.v, escudo:'ESCUDO', mitad:'½ PREMIO' }[g.ef];
+  }
+}
+function corto(v){
+  const a=Math.abs(v);
+  if(a>=1e6) return (a/1e6).toLocaleString('es-ES',{maximumFractionDigits:1})+'M';
+  if(a>=1e5) return (a/1e3).toLocaleString('es-ES',{maximumFractionDigits:0})+'K';
+  return a.toLocaleString('es-ES');
+}
+const conSigno = n => (n>0?'+':n<0?'−':'')+fmt(Math.abs(n));
+const COLOR_FUT = { mul:'#00c2a8', gratis:'#2ecc71', combo:'#00e5ff', escudo:'#4aa3ff', mitad:'#5b4a66' };
+function colorCasilla(R,g,i){
+  if(R.id==='poco') return R.colores[i%R.colores.length];
+  if(g.k==='all')  return '#0a0a0a';
+  if(g.k==='half') return '#555';
+  if(g.k==='mul')  return '#ffcc33';
+  if(g.k==='bote') return '#ffffff';
+  if(g.k==='fut')  return COLOR_FUT[g.ef];
+  return R.colores[i%R.colores.length];
+}
+function colorTexto(R,g,i){
+  if(R.id==='doble' && g.k==='add') return colorCasilla(R,g,i)==='#111111' ? '#ffffff' : '#d11';
+  if(g.k==='fut') return g.ef==='mitad' ? '#d9c9e6' : '#ffffff';
+  if(g.k==='all') return '#ff3b3b';
+  if(g.k==='mul'||g.k==='bote') return '#3a2500';
+  if(g.k==='half') return '#ddd';
+  return R.texto;
+}
+
+/* ---------- Dibujar ruleta en un canvas ---------- */
+function dibujar(c, R, conTexto=true){
+  const x=c.getContext('2d'), s=c.width, m=s/2;
+  const anchoBorde = s*R.bordeAncho, r = m-anchoBorde;
+  x.clearRect(0,0,s,s);
+
+  // aro exterior
+  if(Array.isArray(R.borde)){
+    const gr=x.createLinearGradient(0,0,s,s);
+    R.borde.forEach((col,i,a)=>gr.addColorStop(i/(a.length-1),col));
+    x.fillStyle=gr;
+  } else x.fillStyle=R.borde;
+  x.beginPath(); x.arc(m,m,m,0,TAU); x.fill();
+
+  // casillas (empiezan arriba, sentido horario)
+  let a=-Math.PI/2;
+  R.segs.forEach((g,i)=>{
+    const da=g.w/R.W*TAU;
+    g.a0=a; g.a1=a+da;
+    x.beginPath(); x.moveTo(m,m); x.arc(m,m,r,a,a+da); x.closePath();
+    if(g.k==='bote'){
+      const gr=x.createLinearGradient(m,m,m+Math.cos(a)*r,m+Math.sin(a)*r);
+      gr.addColorStop(0,'#fff'); gr.addColorStop(.5,'#ffcc33'); gr.addColorStop(1,'#ff5f6d');
+      x.fillStyle=gr;
+    } else x.fillStyle=colorCasilla(R,g,i);
+    x.fill();
+    x.lineWidth=Math.max(1,s*.004); x.strokeStyle=R.separador; x.stroke();
+
+    if(conTexto){
+      x.save(); x.translate(m,m); x.rotate(a+da/2);
+      const largo = g.k==='all'||g.k==='mul' ? .052 : .07;
+      const fs = Math.min(s*largo, da*r*0.55);
+      x.font = (R.simple ? '700 ' : '900 ') + fs + 'px ' + (R.simple ? 'system-ui,sans-serif' : 'Bungee,Impact,sans-serif');
+      x.textAlign='right'; x.textBaseline='middle'; x.fillStyle=colorTexto(R,g,i);
+      if(!R.simple){ x.shadowColor='rgba(0,0,0,.45)'; x.shadowBlur=s*.006; }
+      x.fillText(etiqueta(g), r-s*.03, 0);
+      x.restore();
+    }
+    a+=da;
+  });
+
+  // brillo para las caras
+  if(R.estrellas>=3){
+    const gr=x.createRadialGradient(m*.7,m*.6,0,m,m,r);
+    gr.addColorStop(0,'rgba(255,255,255,.18)'); gr.addColorStop(.6,'rgba(255,255,255,0)');
+    x.fillStyle=gr; x.beginPath(); x.arc(m,m,r,0,TAU); x.fill();
+  }
+
+  // centro
+  const hub = s*(R.simple?.06:.09);
+  if(R.simple){ x.fillStyle=R.borde; }
+  else {
+    const gr=x.createRadialGradient(m-hub*.3,m-hub*.3,0,m,m,hub);
+    const c1 = R.estrellas>=3 ? '#fff6c2' : '#ffffff', c2 = R.estrellas>=3 ? '#b8860b' : '#9aa5b1';
+    gr.addColorStop(0,c1); gr.addColorStop(1,c2); x.fillStyle=gr;
+  }
+  x.beginPath(); x.arc(m,m,hub,0,TAU); x.fill();
+  if(R.gemas){ // gemas en el aro
+    for(let i=0;i<12;i++){
+      const an=i/12*TAU, gx=m+Math.cos(an)*(m-anchoBorde/2), gy=m+Math.sin(an)*(m-anchoBorde/2);
+      x.fillStyle=R.gemas[i%R.gemas.length];
+      x.beginPath(); x.arc(gx,gy,anchoBorde*.28,0,TAU); x.fill();
+      x.fillStyle='rgba(255,255,255,.7)'; x.beginPath(); x.arc(gx-anchoBorde*.08,gy-anchoBorde*.08,anchoBorde*.08,0,TAU); x.fill();
+    }
+  }
+}
+
+/* ---------- Bombillas alrededor ---------- */
+function ponerBombillas(R){
+  const cont=$('bombillas'); cont.innerHTML='';
+  const n=R.bombillas; if(!n) return;
+  const radio = $('ruedaWrap').clientWidth/2 + 2;
+  for(let i=0;i<n;i++){
+    const b=document.createElement('div'); b.className='bomb';
+    const an=i/n*360;
+    b.style.transform=`rotate(${an}deg) translateY(-${radio}px)`;
+    b.style.animationDelay = (R.persecucion ? -(i/n)*R.persecucion : (i%2)*-(R.alterna||.6*(R.id==='dificil'?.42:1)))+'s';
+    cont.appendChild(b);
+  }
+}
+function ponerChispas(R){
+  document.querySelectorAll('.chispa').forEach(e=>e.remove());
+  if(!R.chispas) return;
+  const esc=$('escenario');
+  for(let i=0;i<R.chispas.n;i++){
+    const c=document.createElement('div'); c.className='chispa'; c.textContent=R.chispas.car;
+    c.style.left=(Math.random()*96)+'%'; c.style.top=(Math.random()*90)+'%';
+    c.style.fontSize=(10+Math.random()*16)+'px';
+    c.style.animationDelay=(-Math.random()*1.6)+'s';
+    esc.appendChild(c);
+  }
+}
+
+/* ---------- Selector inferior ---------- */
+function crearSelector(){
+  const nav=$('selector');
+  RULETAS.forEach(R=>{
+    const b=document.createElement('button'); b.className='carta c-'+R.id; b.dataset.id=R.id;
+    const c=document.createElement('canvas'); c.width=c.height=168;
+    dibujar(c,R,false);
+    b.appendChild(c);
+    b.insertAdjacentHTML('beforeend',
+      `<div class="nom">${R.nombre}</div><div class="pre">${fmt(R.precio)}</div><div class="estrellas">${'★'.repeat(R.estrellas)}${'☆'.repeat(5-R.estrellas)}</div>${R.coronas?`<div class="coronas">${'👑'.repeat(R.coronas)}</div>`:''}`);
+    b.onclick=()=>seleccionar(R);
+    nav.appendChild(b);
+  });
+}
+
+function seleccionar(R){
+  if(girando) return;
+  sel=R;
+  $('escenario').className='t-'+R.id;
+  $('cartelNombre').textContent=R.nombre;
+  $('cartelDesc').textContent=R.desc;
+  dibujar(cv,R,true);
+  cv.style.transform=`rotate(${rot[R.id]}rad)`;
+  ponerBombillas(R); ponerChispas(R);
+  $('resultado').classList.remove('ver');
+  document.querySelectorAll('.carta').forEach(c=>c.classList.toggle('sel',c.dataset.id===R.id));
+  refrescar();
+}
+
+/* ---------- Marcador y botón ---------- */
+function refrescar(){
+  $('dinero').textContent=fmt(dinero);
+  $('record').textContent=fmt(record);
+  const puede = dinero>=sel.precio || efectos.gratis>0;
+  $('btnGirar').textContent='GIRAR · '+(efectos.gratis>0 ? 'GRATIS' : fmt(sel.precio));
+  $('btnGirar').disabled = girando || !puede;
+  // Efectos que esperan a la siguiente tirada
+  const chips=[];
+  if(efectos.mult>1)  chips.push(`<span class="chip bueno">Próximo premio ×${efectos.mult.toLocaleString('es-ES')}</span>`);
+  if(efectos.mult<1)  chips.push(`<span class="chip malo">Próximo premio ×${efectos.mult.toLocaleString('es-ES')}</span>`);
+  if(efectos.gratis)  chips.push(`<span class="chip bueno">Gratis${efectos.gratis>1?' ×'+efectos.gratis:''}</span>`);
+  if(efectos.escudo)  chips.push(`<span class="chip escudo">Escudo</span>`);
+  $('efectos').innerHTML = chips.length ? '<span class="lblEf">Guardado:</span>'+chips.join('') : '';
+  const av=$('aviso');
+  if(!puede && !girando){ av.textContent='Te faltan '+fmt(sel.precio-dinero)+' para esta ruleta.'; av.className='mal'; }
+  else if(!girando){ av.textContent='Selecciona una ruleta y pulsa GIRAR.'; av.className=''; }
+  document.querySelectorAll('.carta').forEach(c=>{
+    const R=RULETAS.find(r=>r.id===c.dataset.id); c.classList.toggle('caro',dinero<R.precio);
+  });
+  $('btnSonido').textContent = sonido ? '🔊' : '🔇';
+  const L=$('lista'); L.innerHTML='';
+  historial.slice(0,10).forEach(h=>{
+    const li=document.createElement('li');
+    li.innerHTML=`<span>${h.ruleta}: ${h.casilla}</span><span class="${h.neto>=0?'mas':'menos'}">${h.neto>=0?'+':'−'}${fmt(Math.abs(h.neto))}</span>`;
+    L.appendChild(li);
+  });
+}
+function animarDinero(clase){
+  const d=$('dinero'); d.classList.remove('sube','baja'); void d.offsetWidth; d.classList.add(clase);
+  setTimeout(()=>d.classList.remove(clase),1500);
+}
+
+/* ---------- Sonido sintetizado ---------- */
+let AC=null;
+function audio(){ if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(AC&&AC.state==='suspended') AC.resume(); return AC; }
+function tono(f,t0,dur,tipo='square',vol=.12,f2){
+  if(!sonido||!AC) return;
+  const o=AC.createOscillator(), g=AC.createGain(), t=AC.currentTime+t0;
+  o.type=tipo; o.frequency.setValueAtTime(f,t); if(f2) o.frequency.exponentialRampToValueAtTime(f2,t+dur);
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  o.connect(g).connect(AC.destination); o.start(t); o.stop(t+dur+.02);
+}
+const SFX = {
+  tic(){ const f={poco:500,trebol:650,normal:900,premium:1200,doble:1000,dificil:700,imposible:1500,leyenda:1900,galactica:420,infinita:2200}[sel.id]||900; tono(f,0,.03,'square',.06); },
+  ganar(){ [523,659,784,1047].forEach((f,i)=>tono(f,i*.09,.18,'triangle',.15)); },
+  granPremio(){ [523,659,784,1047,784,1047,1319,1568].forEach((f,i)=>tono(f,i*.1,.25,'square',.1)); },
+  perder(){ [392,330,262].forEach((f,i)=>tono(f,i*.14,.22,'sawtooth',.08)); },
+  ruina(){ tono(180,0,1.1,'sawtooth',.15,40); tono(90,0,1.2,'square',.1,30); },
+  efecto(){ [660,880,1320,1760].forEach((f,i)=>tono(f,i*.06,.3,'sine',.14,f*1.5)); },
+};
+
+/* ---------- Girar ---------- */
+function elegirCasilla(R){
+  let x=Math.random()*R.W;
+  for(const g of R.segs){ if((x-=g.w)<0) return g; }
+  return R.segs[R.segs.length-1];
+}
+function casillaEn(R, ang){            // qué casilla queda bajo el puntero
+  let a = ((-Math.PI/2 - ang) % TAU + TAU) % TAU - Math.PI/2;
+  return R.segs.findIndex(g=>a>=g.a0 && a<g.a1);
+}
+
+function girar(){
+  const R=sel;
+  if(girando) return;
+  const gratis = efectos.gratis>0;
+  if(!gratis && dinero<R.precio){ refrescar(); return; }
+  audio();
+  girando=true;
+  const pagado = gratis ? 0 : R.precio;
+  if(gratis) efectos.gratis--; else { dinero-=pagado; animarDinero('baja'); }
+  $('resultado').classList.remove('ver');
+  refrescar();
+  $('aviso').textContent='Girando…'; $('aviso').className='';
+
+  const f=window.__R&&window.__R.forzar;
+  const g=(f&&R.segs.find(f))||elegirCasilla(R);
+  if(window.__R) window.__R.forzar=null;
+  const punto = g.a0 + (g.a1-g.a0)*(.15+.7*Math.random());
+  const ini = rot[R.id];
+  const destino = -Math.PI/2 - punto;
+  const delta = ((destino-ini)%TAU+TAU)%TAU + R.vueltas*TAU;
+  const t0=performance.now(); let ultima=casillaEn(R,ini);
+
+  (function paso(t){
+    const p=Math.min(1,(t-t0)/R.dur);
+    const e=1-Math.pow(1-p,4);                     // frena poco a poco
+    const ang=ini+delta*e;
+    cv.style.transform=`rotate(${ang}rad)`;
+    const c=casillaEn(R,ang); if(c!==ultima){ ultima=c; SFX.tic(); }
+    if(p<1) requestAnimationFrame(paso);
+    else { rot[R.id]=ang%TAU; resolver(R,g,pagado); }
+  })(t0);
+}
+
+function resolver(R,g,pagado){
+  const antes = dinero + pagado;      // lo que tenías antes de tirar
+  const ref   = antes;                // las casillas dicen cuánto cambia tu dinero, con la tirada ya incluida
+  let nuevo, nota='', titulo;
+
+  if(g.k==='fut'){
+    // Casilla de efecto: no gana ni pierde nada ahora (te devuelve lo pagado).
+    nuevo = ref;
+    switch(g.ef){
+      case 'mul':    efectos.mult*=g.v; nota='tu próximo premio irá ×'+g.v; break;
+      case 'gratis': efectos.gratis++;  nota='tu siguiente tirada es gratis'; break;
+      case 'combo':  efectos.gratis++; efectos.mult*=g.v; nota='siguiente gratis y próximo premio ×'+g.v; break;
+      case 'escudo': efectos.escudo=1;  nota='si la siguiente sale mal, no pierdes nada'; break;
+      case 'mitad':  efectos.mult*=.5;  nota='tu próximo premio se queda en la mitad'; break;
+    }
+    titulo = etiqueta(g);
+  } else {
+    switch(g.k){
+      case 'add': case 'bote': nuevo=Math.max(0,ref+g.v); break;
+      case 'all':  nuevo=0; break;
+      case 'half': nuevo=Math.floor(ref/2); break;
+      case 'mul':  nuevo=ref*g.v; break;
+    }
+    titulo = g.k==='all' ? '¡PIERDES TODO!' : g.k==='bote' ? '¡¡BOTE!!' : g.k==='half' ? '÷2 TODO' : g.k==='mul' ? '×'+g.v+' TODO!' : etiqueta(g)+' €';
+    let premio = nuevo-ref;
+    // El multiplicador guardado espera a que ganes algo; entonces se aplica y se gasta.
+    if(premio>0 && efectos.mult!==1){
+      const m=efectos.mult, p2=Math.round(premio*m);
+      titulo = `${conSigno(premio)} ×${m.toLocaleString('es-ES')}`;
+      nota = '= '+conSigno(p2);
+      premio=p2; nuevo=ref+premio; efectos.mult=1;
+    }
+    // El escudo vale solo para esta tirada: si sale mal, te quedas como estabas.
+    if(efectos.escudo){
+      if(nuevo<antes){ nuevo=antes; nota='¡el escudo te salva!'; }
+      efectos.escudo=0;
+    }
+    // Tirada gratis: si sale mal, no pierdes nada.
+    if(!pagado && nuevo<antes){ nuevo=antes; nota='tirada gratis: no pierdes nada'; }
+  }
+  dinero = nuevo;
+
+  const neto = dinero-antes;
+  tiradas++;
+  if(dinero>record){ record=dinero; guardar('rds_record',record); }
+  historial.unshift({ruleta:R.nombre, casilla:etiqueta(g)+(pagado?'':' (gratis)'), neto});
+  historial=historial.slice(0,30);
+  guardar('rds_estado',{dinero,tiradas,historial,efectos});
+
+  const res=$('resultado');
+  const linea = nota || (['all','half','mul','bote'].includes(g.k) ? conSigno(neto) : '');
+  res.innerHTML = `${titulo}${linea?`<small>${linea}</small>`:''}<small class="nota">Tenías ${fmt(antes)} → ahora ${fmt(dinero)}</small>`;
+  res.style.color = g.k==='fut' ? (g.ef==='mitad' ? '#c9a8e6' : '#00e5ff') : neto>0 ? '#3ddc84' : neto<0 ? '#ff4d4d' : '#ffffff';
+  res.classList.add('ver');
+
+  if(g.k==='fut'){ g.ef==='mitad' ? SFX.perder() : SFX.efecto(); }
+  else if(g.k==='all' || dinero===0){ SFX.ruina(); }
+  else if(g.k==='bote' || neto>=R.precio*2){ SFX.granPremio(); confeti(g.k==='bote'?160:70); }
+  else if(neto>0) SFX.ganar(); else SFX.perder();
+  animarDinero(neto>=0?'sube':'baja');
+
+  girando=false;
+  refrescar();
+  const minimo=Math.min(...RULETAS.map(r=>r.precio));
+  if(dinero<minimo && !efectos.gratis) setTimeout(finPartida,1400);
+}
+
+function confeti(n){
+  const cols=['#ff5f6d','#ffc371','#fff27a','#7bff9e','#6ad7ff','#c58bff'];
+  for(let i=0;i<n;i++){
+    const d=document.createElement('div'); d.className='confeti';
+    d.style.left=Math.random()*100+'vw'; d.style.background=cols[i%cols.length];
+    d.style.animationDuration=(1.8+Math.random()*1.8)+'s'; d.style.animationDelay=(Math.random()*.6)+'s';
+    document.body.appendChild(d); setTimeout(()=>d.remove(),4200);
+  }
+}
+
+function finPartida(){
+  $('finRecord').textContent=fmt(record);
+  $('finTiradas').textContent=tiradas;
+  $('fin').classList.add('ver');
+}
+function reiniciar(){
+  dinero=SALDO_INICIAL; tiradas=0; historial=[]; efectos=SIN_EFECTOS();
+  guardar('rds_estado',{dinero,tiradas,historial,efectos});
+  $('fin').classList.remove('ver');
+  seleccionar(RULETAS[0]);
+}
+
+/* ---------- Arranque ---------- */
+$('btnGirar').onclick=girar;
+$('btnReiniciar').onclick=reiniciar;
+$('btnSonido').onclick=()=>{ sonido=!sonido; guardar('rds_sonido',sonido); refrescar(); };
+document.addEventListener('keydown',e=>{ if(e.code==='Space'||e.code==='Enter'){ e.preventDefault(); girar(); } });
+window.addEventListener('resize',()=>ponerBombillas(sel));
+crearSelector();
+seleccionar(RULETAS[0]);
+if(document.fonts) document.fonts.ready.then(()=>{ dibujar(cv,sel,true); });
+if(dinero<Math.min(...RULETAS.map(r=>r.precio)) && !efectos.gratis) finPartida();
+
+// para pruebas: forzar la casilla que sale
+window.__R={RULETAS,elegirCasilla, forzar:null, get dinero(){return dinero}, set dinero(v){dinero=v;refrescar()},
+  get efectos(){return efectos}};
+})();
+</script>
+</body>
+</html>
