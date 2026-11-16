@@ -953,7 +953,8 @@
     keys[e.key.toLowerCase()] = false;
     if (e.key === ' ') mouse.down = false;
   });
-  canvas.addEventListener('mousemove', function(e){
+  window.addEventListener('mousemove', function(e){
+    if (touchUI) return;
     var r = canvas.getBoundingClientRect();
     mouse.x = e.clientX - r.left;
     mouse.y = e.clientY - r.top;
@@ -983,15 +984,35 @@
     document.body.classList.toggle('is-portrait', !landscape);
   }
 
-  if (isTouchDevice){
-    touchControlsEl.classList.add('active');
-    document.body.classList.add('is-mobile');
-    document.getElementById('footer-note-desktop').hidden = true;
-    document.getElementById('footer-note-touch').hidden = false;
+  // Controles táctiles según cómo se juega, no según el aparato: un Chromebook tiene
+  // pantalla táctil también con teclado y ratón. Y el diseño compacto, solo en pantallas de móvil.
+  var touchUI = false;
+  function isPhoneScreen(){ return Math.min(window.innerWidth, window.innerHeight) < 500; }
+  function updateLayout(){
     updateOrientationClass();
-    window.addEventListener('resize', updateOrientationClass);
-    window.addEventListener('orientationchange', updateOrientationClass);
+    document.body.classList.toggle('is-mobile', touchUI && isPhoneScreen());
   }
+  function setTouchUI(on){
+    if (on === touchUI) return;
+    touchUI = on;
+    touchControlsEl.classList.toggle('active', on);
+    document.getElementById('footer-note-desktop').hidden = on;
+    document.getElementById('footer-note-touch').hidden = !on;
+    mouse.down = false;
+    touchMove.x = 0; touchMove.y = 0; touchMove.active = false;
+    updateLayout();
+  }
+  window.addEventListener('resize', updateLayout);
+  window.addEventListener('orientationchange', updateLayout);
+  // Al cargar: táctil solo si no hay ratón ni panel táctil (móvil, tablet o Chromebook plegado).
+  var touchOnly = window.matchMedia('(pointer: coarse) and (hover: none)');
+  setTouchUI(isTouchDevice && touchOnly.matches);
+  updateLayout();
+  if (touchOnly.addEventListener) touchOnly.addEventListener('change', function(e){ setTouchUI(e.matches); });
+  // Durante la partida manda lo último que se ha usado: el dedo los enseña; teclas o ratón los quitan.
+  window.addEventListener('pointerdown', function(e){ if (e.pointerType === 'touch') setTouchUI(true); }, true);
+  window.addEventListener('pointermove', function(e){ if (e.pointerType === 'mouse' && (e.movementX || e.movementY)) setTouchUI(false); }, true);
+  window.addEventListener('keydown', function(e){ if (/^(w|a|s|d|p| |escape|arrow(up|left|right|down))$/.test(e.key.toLowerCase())) setTouchUI(false); }, true);
 
   var moveTouchId = null, moveOrigin = { x: 0, y: 0 };
   var aimTouchId = null;
