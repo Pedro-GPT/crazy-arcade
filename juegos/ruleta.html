@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Ruleta de la Suerte</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Bungee+Shade&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Bungee+Shade&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#14121a; --panel:#1f1c27; --txt:#f2eee6; --mut:#9a93a8;
@@ -124,6 +124,108 @@ header h1{font-family:Bungee,Impact,sans-serif;font-size:20px;letter-spacing:1px
 .listos{font-size:12px;color:var(--mut);align-self:center}
 #tienda .ayuda{font-size:12px;color:var(--mut);margin-top:12px;line-height:1.5}
 #tienda .ayuda b{color:var(--txt)}
+
+/* ---------- Pestañas de juegos ---------- */
+#juegos{display:flex;gap:6px;justify-content:center;padding:8px 12px;background:#0c0b10;border-bottom:1px solid #2a2633;flex-wrap:wrap}
+#juegos{align-items:center;gap:14px}
+#btnSala{font-weight:900;font-size:15px;padding:8px 16px;border-radius:999px;background:#221f2b;color:#fff;border:1px solid #34303f}
+#btnSala:disabled{opacity:.35;cursor:not-allowed}
+#nombreJuego{font-family:Bungee,Impact,sans-serif;color:var(--oro);font-size:16px}
+#zonaSala{position:relative;overflow:hidden;background:#000}
+#sala{display:block;image-rendering:pixelated;image-rendering:crisp-edges;touch-action:none;cursor:pointer}
+#salaAyuda{position:absolute;top:10px;left:50%;transform:translateX(-50%);font:10px "Press Start 2P",monospace;color:#fff;
+  background:#000b;padding:7px 10px;border-radius:6px;pointer-events:none;white-space:nowrap;transition:opacity 1.5s;line-height:1.4}
+#salaPista{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:none;align-items:center;gap:12px;
+  background:#000d;border:2px solid var(--oro);border-radius:12px;padding:8px 8px 8px 14px;white-space:nowrap}
+#salaPista.ver{display:flex}
+#salaTxt{font:10px "Press Start 2P",monospace;color:#fff;line-height:1.4}
+#salaPista .btnJuego{font-size:16px;padding:8px 16px}
+.oculto{display:none!important}
+#btnMusica{font-size:20px;padding:4px 8px;border-radius:8px;background:#221f2b}
+#btnMusica.off{opacity:.35;text-decoration:line-through}
+.aviso{font-size:14px;min-height:20px;color:var(--mut);text-align:center}
+.aviso.mal{color:var(--bad);font-weight:700}
+.btnJuego{font-family:Bungee,Impact,sans-serif;font-size:22px;padding:12px 30px;border-radius:14px;
+  background:linear-gradient(180deg,#fff2a0,#ffcc33 50%,#d99a00);color:#2a1a00;box-shadow:0 5px 0 #7a5200,0 0 20px #ffcc3355;transition:transform .08s}
+.btnJuego:active:not(:disabled){transform:translateY(4px);box-shadow:0 1px 0 #7a5200}
+.btnJuego:disabled{filter:grayscale(1) brightness(.55);cursor:not-allowed}
+.btnJuego small{font-family:system-ui,sans-serif;font-size:12px;opacity:.6}
+.apuestas{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:min(94vw,600px)}
+.chipAp{width:56px;height:56px;border-radius:50%;font-weight:900;font-size:14px;color:#fff;background:var(--c);
+  border:4px dashed #ffffffaa;box-shadow:0 3px 0 #0008,inset 0 0 0 3px #0003;text-shadow:0 1px 2px #000;transition:transform .1s}
+.chipAp.on{outline:3px solid #fff;outline-offset:2px;transform:translateY(-4px) scale(1.08)}
+.chipAp:disabled{opacity:.25;cursor:not-allowed}
+#historial .mas,.pagos .mas{color:var(--ok);font-weight:700}
+
+/* ---------- Tragaperras ---------- */
+#zonaTraga{position:relative;display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px 16px 22px;
+  background:radial-gradient(circle at 50% 25%,#5a1038 0%,#22071d 55%,#0a0209 100%)}
+.maquina{--h:min(84px,19vw);position:relative;width:min(92vw,430px);border-radius:28px 28px 16px 16px;padding:10px 40px 12px 14px;
+  background:linear-gradient(180deg,#e0283a,#8c0f1a);border:4px solid #ffcc33;box-shadow:0 0 34px #ff2b5577,inset 0 0 0 4px #5a0610}
+.luces{height:12px;margin:2px 0;background:radial-gradient(circle,#fff27a 0 3.5px,transparent 4.5px) 0 0/20px 12px repeat-x;
+  animation:lucesMov .5s steps(1) infinite}
+@keyframes lucesMov{50%{background-position:10px 0}}
+.marquesina{font-family:"Bungee Shade",Bungee,Impact,sans-serif;text-align:center;font-size:clamp(22px,7vw,32px);color:#fff6c2;
+  text-shadow:0 0 12px #ffcc33,0 3px 0 #5a0610;margin:4px 0 8px}
+.ventana{position:relative;display:flex;gap:6px;background:#1a0606;border-radius:12px;padding:6px;border:3px solid #ffcc33}
+.carrete{flex:1;height:calc(var(--h)*3);overflow:hidden;border-radius:8px;position:relative;
+  background:linear-gradient(180deg,#9a9a9a,#fff 28%,#fff 72%,#9a9a9a)}
+.carrete::after{content:"";position:absolute;inset:0;background:linear-gradient(#0007,transparent 30%,transparent 70%,#0007);pointer-events:none}
+.tira{will-change:transform}
+.tira div{height:var(--h);display:flex;align-items:center;justify-content:center;font-size:calc(var(--h)*.6);line-height:1}
+.ventana .linea{position:absolute;left:3px;right:3px;top:50%;height:3px;margin-top:-1.5px;background:#ff2b55aa;box-shadow:0 0 8px #ff2b55;pointer-events:none}
+.ventana.premio .linea{background:#fff27a;box-shadow:0 0 16px 4px #ffd700;animation:parpadeo .3s steps(1) infinite}
+.ventana.premio{box-shadow:0 0 30px #ffd700}
+#tragaRes{min-height:50px;text-align:center;font-family:Bungee,Impact,sans-serif;font-size:clamp(18px,5.5vw,26px);margin-top:8px;
+  text-shadow:0 3px 0 #000}
+#tragaRes small,#bjRes small{display:block;font-family:system-ui,sans-serif;font-weight:700;font-size:13px;color:#fff;opacity:.85;margin-top:2px}
+#palanca{position:absolute;right:6px;top:34%;width:24px;height:130px}
+#palanca::before{content:"";position:absolute;left:9px;top:14px;bottom:0;width:6px;border-radius:3px;background:linear-gradient(90deg,#aaa,#fff,#888);
+  transform-origin:bottom}
+#palanca i{position:absolute;left:0;top:0;width:24px;height:24px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ff8a8a,#c80018 60%,#5a0008);
+  box-shadow:0 2px 4px #0008}
+#palanca.baja::before{animation:paloBaja .5s ease-in-out}
+#palanca.baja i{animation:bolaBaja .5s ease-in-out}
+@keyframes paloBaja{45%{transform:scaleY(.1)}}
+@keyframes bolaBaja{45%{transform:translateY(104px)}}
+.pagos{width:min(92vw,430px);background:#0006;border:1px solid #ffffff22;border-radius:12px;padding:8px 12px}
+.pagos h3{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--mut);margin-bottom:4px;text-align:center}
+#tragaPagos{display:grid;grid-template-columns:1fr 1fr;column-gap:16px}
+#tragaPagos div{display:flex;justify-content:space-between;gap:6px;font-size:14px;padding:2px 0;border-bottom:1px solid #ffffff10}
+#tragaPagos b{font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* ---------- Blackjack ---------- */
+#zonaBJ{position:relative;display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px 16px 22px;
+  background:radial-gradient(circle at 50% 20%,#1b3a2a 0%,#0b1a12 60%,#050b08 100%)}
+.mesa{--cw:min(70px,15vw);width:min(94vw,620px);border-radius:24px 24px 50% 50% / 24px 24px 34% 34%;padding:14px 12px 30px;
+  background:radial-gradient(ellipse at 50% 35%,#21a057,#0f6633 65%,#0a4a25);border:12px solid #6b3b1a;
+  box-shadow:inset 0 0 40px #0008,0 8px 0 #3d200c,0 0 40px #000;display:flex;flex-direction:column;align-items:center;gap:6px}
+.rotulo{font-family:Bungee,Impact,sans-serif;font-size:clamp(11px,3vw,14px);color:#ffd56b;opacity:.85;text-align:center;letter-spacing:1px}
+.rotulo.chico{font-family:system-ui,sans-serif;font-weight:700;font-size:12px;opacity:.6;letter-spacing:0}
+.mano{display:flex;justify-content:center;min-height:calc(var(--cw)*1.4);padding-left:calc(var(--cw)*.4)}
+.puntos{font-weight:900;font-size:15px;background:#0008;border-radius:999px;padding:2px 12px;min-height:24px}
+.puntos:empty{visibility:hidden}
+.naipe{width:var(--cw);height:calc(var(--cw)*1.4);margin-left:calc(var(--cw)*-.4);border-radius:8px;background:#fdfdf8;color:#111;
+  position:relative;box-shadow:-2px 3px 8px #0009;animation:repartir .3s ease-out;transition:background .2s}
+.naipe.rojo{color:#d0021b}
+.naipe .esq{position:absolute;top:4px;left:5px;font-weight:900;font-size:calc(var(--cw)*.24);line-height:.95;text-align:center}
+.naipe .esq.abajo{top:auto;left:auto;bottom:4px;right:5px;transform:rotate(180deg)}
+.naipe .cen{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:calc(var(--cw)*.55)}
+.naipe.dorso{background:repeating-linear-gradient(45deg,#b3122a 0 5px,#8c0d20 5px 10px);border:3px solid #fdfdf8}
+.naipe.dorso>*{visibility:hidden}
+@keyframes repartir{from{transform:translate(30vw,-25vh) rotate(-25deg);opacity:0}to{transform:none;opacity:1}}
+#bjRes{min-height:48px;text-align:center;font-family:Bungee,Impact,sans-serif;font-size:clamp(18px,5.5vw,28px);text-shadow:0 3px 0 #000}
+.fichaMesa{font-size:13px;font-weight:800;color:#fff6c2;min-height:18px}
+.bjBotones{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.bjBotones .btnJuego{font-size:18px;padding:10px 18px}
+@media (max-width:520px){
+  .chipAp{width:48px;height:48px;font-size:12px;border-width:3px}
+  .btnJuego{font-size:18px;padding:10px 20px}
+  .bjBotones .btnJuego{font-size:15px;padding:9px 12px}
+  #btnSala{font-size:13px;padding:7px 11px}
+  #tragaPagos{grid-template-columns:1fr}
+}
+@media (hover:none){ .btnJuego small{display:none} }
 
 /* ---------- Fin de partida ---------- */
 #fin{position:fixed;inset:0;background:rgba(0,0,0,.86);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
@@ -318,9 +420,23 @@ header h1{font-family:Bungee,Impact,sans-serif;font-size:20px;letter-spacing:1px
     <div><div class="lbl">Récord</div><div class="val" id="record">100 €</div></div>
     <div><div class="lbl">Ruinas</div><div class="val" id="ruinas">0</div></div>
     <button id="btnTienda" title="Tienda">🛒 TIENDA</button>
+    <button id="btnMusica" title="Música">🎵</button>
     <button id="btnSonido" title="Sonido">🔊</button>
   </div>
 </header>
+
+<nav id="juegos" class="oculto">
+  <button id="btnSala">🚪 Volver a la sala</button>
+  <span id="nombreJuego"></span>
+</nav>
+
+<section id="zonaSala">
+  <canvas id="sala"></canvas>
+  <div id="salaAyuda"></div>
+  <div id="salaPista"><span id="salaTxt"></span><button id="btnEntrar" class="btnJuego">JUGAR</button></div>
+</section>
+
+<div id="zonaRuleta">
 
 <section id="escenario" class="t-poco">
   <div id="rayos"></div>
@@ -344,9 +460,51 @@ header h1{font-family:Bungee,Impact,sans-serif;font-size:20px;letter-spacing:1px
 </section>
 
 <nav id="selector"></nav>
+</div>
+
+<section id="zonaTraga" class="oculto">
+  <div class="maquina">
+    <div class="luces"></div>
+    <div class="marquesina">TRAGAPERRAS</div>
+    <div class="ventana" id="tragaVentana">
+      <div class="carrete"><div class="tira"></div></div>
+      <div class="carrete"><div class="tira"></div></div>
+      <div class="carrete"><div class="tira"></div></div>
+      <div class="linea"></div>
+    </div>
+    <div id="tragaRes"></div>
+    <div class="luces"></div>
+    <button id="palanca" title="Tirar"><i></i></button>
+  </div>
+  <div class="apuestas" id="tragaApuestas"></div>
+  <button id="btnTirar" class="btnJuego">TIRAR · 10 €</button>
+  <div id="tragaAviso" class="aviso"></div>
+  <div class="pagos"><h3>Premios con esta ficha</h3><div id="tragaPagos"></div></div>
+</section>
+
+<section id="zonaBJ" class="oculto">
+  <div class="mesa">
+    <div class="rotulo">BLACKJACK PAGA 2 A 1 · 5 CARTAS SIN PASARTE GANAN</div>
+    <div class="puntos" id="bjPBanca"></div>
+    <div class="mano" id="bjBanca"></div>
+    <div class="rotulo chico">La banca pide hasta 16 y se planta con 17</div>
+    <div id="bjRes"></div>
+    <div class="mano" id="bjJugador"></div>
+    <div class="puntos" id="bjPJug"></div>
+    <div class="fichaMesa" id="bjFicha"></div>
+  </div>
+  <div class="apuestas" id="bjApuestas"></div>
+  <div class="bjBotones">
+    <button id="btnRepartir" class="btnJuego">REPARTIR · 10 €</button>
+    <button id="btnPedir" class="btnJuego oculto">PEDIR <small>↑</small></button>
+    <button id="btnPlantarse" class="btnJuego oculto">PLANTARSE <small>↓</small></button>
+    <button id="btnDoblar" class="btnJuego oculto">DOBLAR <small>D</small></button>
+  </div>
+  <div id="bjAviso" class="aviso"></div>
+</section>
 
 <section id="historial">
-  <h2>Últimas tiradas</h2>
+  <h2>Últimas jugadas</h2>
   <ul id="lista"></ul>
 </section>
 
@@ -364,7 +522,7 @@ header h1{font-family:Bungee,Impact,sans-serif;font-size:20px;letter-spacing:1px
 
 <div id="fin"><div class="caja">
   <h2>ARRUINADO</h2>
-  <p>No te llega ni para la ruleta más barata.</p>
+  <p>No te llega ni para la apuesta más barata (10 €).</p>
   <p>Récord: <b id="finRecord"></b></p>
   <p>Tiradas: <b id="finTiradas"></b></p>
   <p>Veces arruinado: <b id="finRuinas"></b></p>
@@ -791,6 +949,7 @@ function refrescar(){
     L.appendChild(li);
   });
   if($('tienda').classList.contains('ver')) pintarTienda();
+  refrescarJuegos();
 }
 function animarDinero(clase){
   const d=$('dinero'); d.classList.remove('sube','baja'); void d.offsetWidth; d.classList.add(clase);
@@ -816,6 +975,11 @@ const SFX = {
   efecto(){ [660,880,1320,1760].forEach((f,i)=>tono(f,i*.06,.3,'sine',.14,f*1.5)); },
   compra(){ [988,1319].forEach((f,i)=>tono(f,i*.08,.15,'square',.08)); },
   iman(){ tono(300,0,.35,'sine',.15,900); },
+  ficha(){ tono(2400,0,.04,'square',.04); tono(1800,.03,.05,'square',.03); },
+  palanca(){ tono(220,0,.25,'sawtooth',.08,90); tono(1200,.2,.06,'square',.05); },
+  ticTraga(){ tono(1400,0,.015,'square',.025); },
+  paroCarrete(){ tono(160,0,.12,'square',.12,70); tono(900,0,.04,'triangle',.06); },
+  carta(){ tono(2600,0,.05,'triangle',.05,700); },
 };
 
 /* ---------- Girar ---------- */
@@ -1003,7 +1167,7 @@ function resolver(){
 }
 
 function comprobarRuina(){
-  const minimo=Math.min(...RULETAS.map(precioTirada));
+  const minimo=minimoJuego();
   if(dinero>=minimo || efectos.gratis) return;
   if(mejoras.seguro){
     mejoras.seguro=0; dinero=SALDO_INICIAL; guardarEstado();
@@ -1070,10 +1234,825 @@ function finPartida(){
 function reiniciar(){
   dinero=SALDO_INICIAL; tiradas=0; historial=[]; efectos=SIN_EFECTOS(); mejoras=SIN_MEJORAS(); inventario={};
   preparados={escudo:false,x2:false,tapar:false}; jugada=null; girando=false;
+  BJ.fase='apostar'; BJ.banca=[]; BJ.jug=[]; BJ.jugado=0; pintarMesa(); $('bjRes').innerHTML=''; $('tragaRes').innerHTML='';
   guardarEstado();
   $('fin').classList.remove('ver');
   seleccionar(RULETAS[0]);
 }
+
+/* =====================================================================
+   MÁS JUEGOS: tragaperras y blackjack. El dinero es el mismo en todos.
+   ===================================================================== */
+const APUESTAS  = [10,50,250,1000,5000,25000,100000,500000];
+const COLOR_AP  = ['#7a7a7a','#d0021b','#1e6fd9','#1a9e4b','#8a2be2','#222','#c9940a','#e01fb8'];
+const abreviar  = n => n>=1e6 ? (n/1e6).toLocaleString('es-ES')+'M' : n>=1e3 ? (n/1e3).toLocaleString('es-ES')+'K' : ''+n;
+const minimoJuego = () => Math.min(APUESTAS[0], ...RULETAS.map(precioTirada));
+let juego = cargar('rds_juego','ruleta');
+if(!['ruleta','traga','bj'].includes(juego)) juego='ruleta';
+
+function pintarApuestas(cont, actual, elegir, conTodo, bloqueado){
+  cont.innerHTML='';
+  const lista = conTodo ? [...APUESTAS,'todo'] : APUESTAS;
+  lista.forEach((v,i)=>{
+    const b=document.createElement('button');
+    b.className='chipAp'+(v===actual?' on':'');
+    b.style.setProperty('--c', v==='todo' ? 'linear-gradient(135deg,#ffd700,#ff2bd6)' : COLOR_AP[i]);
+    b.innerHTML = v==='todo' ? 'TODO' : abreviar(v);
+    b.title = v==='todo' ? 'Apostar todo tu dinero' : 'Apostar '+fmt(v);
+    b.disabled = bloqueado || (v==='todo' ? dinero<APUESTAS[0] : dinero<v);
+    b.onclick=()=>{ elegir(v); SFX.ficha(); };
+    cont.appendChild(b);
+  });
+}
+
+/* ---------- Tragaperras ---------- */
+// w = cuántas veces sale ese símbolo en cada carrete (de 100)
+// p3 = tres iguales en la línea: te devuelven p3 veces la apuesta (contando lo apostado)
+// TODO(human): decide los premios (p3) y lo raro que es cada símbolo (w). Ahora devuelve de media un 122 %.
+const SIMBOLOS = [
+  {s:'🍒', w:30, p3:5},
+  {s:'🍋', w:25, p3:8},
+  {s:'🍀', w:18, p3:12},
+  {s:'🔔', w:12, p3:20},
+  {s:'⭐', w:8,  p3:40},
+  {s:'💎', w:5,  p3:100},
+  {s:'7️⃣', w:2,  p3:300},
+];
+// Cerezas sueltas en la línea (sin ser tres): 1 cereza → recuperas la apuesta, 2 cerezas → el doble
+const PAGO_CEREZAS = {1:1, 2:2};
+function pagoTraga(r){
+  if(r[0]===r[1] && r[1]===r[2]) return r[0].p3;
+  return PAGO_CEREZAS[r.filter(x=>x.s==='🍒').length] || 0;
+}
+const TR = { girando:false, apuesta:cargar('rds_apTraga',10), vis:[] };
+function simboloAzar(){
+  let x=Math.random()*SIMBOLOS.reduce((s,y)=>s+y.w,0);
+  for(const y of SIMBOLOS){ if((x-=y.w)<0) return y; }
+  return SIMBOLOS[0];
+}
+const carretes = () => [...document.querySelectorAll('#zonaTraga .carrete')];
+function rellenarTira(t,lista){ t.innerHTML=lista.map(x=>`<div>${x.s}</div>`).join(''); }
+function iniciarTraga(){
+  carretes().forEach((c,i)=>{ TR.vis[i]=[simboloAzar(),simboloAzar(),simboloAzar()]; rellenarTira(c.firstElementChild,TR.vis[i]); });
+}
+function tirar(){
+  if(TR.girando) return;
+  const A=TR.apuesta;
+  if(dinero<A){ refrescar(); return; }
+  audio();
+  TR.girando=true;
+  const antes=dinero;
+  dinero-=A; animarDinero('baja');
+  const f=window.__R&&window.__R.forzarTraga;
+  const res = f ? f.map(s=>SIMBOLOS.find(y=>y.s===s)) : [simboloAzar(),simboloAzar(),simboloAzar()];
+  if(window.__R) window.__R.forzarTraga=null;
+  const p=$('palanca'); p.classList.remove('baja'); void p.offsetWidth; p.classList.add('baja');
+  SFX.palanca();
+  $('tragaRes').innerHTML=''; $('tragaVentana').classList.remove('premio');
+  refrescar();
+  let parados=0;
+  carretes().forEach((c,i)=>{
+    const tira=c.firstElementChild;
+    const relleno=Array.from({length:16+i*6},simboloAzar);
+    const lista=[...TR.vis[i], ...relleno, simboloAzar(), res[i], simboloAzar()];
+    rellenarTira(tira,lista);
+    const H=tira.firstElementChild.offsetHeight||80, fin=(lista.length-3)*H;
+    const dur=(window.__R&&window.__R.rapido)?30:1000+i*450, t0=performance.now();
+    let ultimo=0;
+    (function paso(t){
+      const q=Math.min(1,Math.max(0,(t-t0)/dur));
+      const e=1-Math.pow(1-q,3);
+      const y=fin*e;
+      tira.style.transform=`translateY(${-y}px)`;
+      const k=Math.floor(y/H); if(k!==ultimo){ ultimo=k; SFX.ticTraga(); }
+      if(q<1) return requestAnimationFrame(paso);
+      TR.vis[i]=lista.slice(-3); rellenarTira(tira,TR.vis[i]); tira.style.transform='';
+      SFX.paroCarrete();
+      if(++parados===3) resolverTraga(res,A,antes);
+    })(t0);
+  });
+}
+function resolverTraga(res,A,antes){
+  const x=pagoTraga(res), cobro=A*x;
+  dinero+=cobro;
+  const neto=dinero-antes;
+  if(dinero>record){ record=dinero; guardar('rds_record',record); }
+  historial.unshift({ruleta:'🎰 Tragaperras', casilla:res.map(y=>y.s).join('')+' · apuesta '+fmt(A), neto});
+  historial=historial.slice(0,30);
+  guardarEstado();
+  const tres = res[0]===res[1] && res[1]===res[2];
+  const titulo = tres ? `¡TRES ${res[0].s}!` : neto>0 ? '¡CEREZAS!' : neto===0 ? 'RECUPERAS' : 'NADA';
+  const color = neto>0 ? '#3ddc84' : neto<0 ? '#ff4d4d' : '#ffffff';
+  $('tragaRes').innerHTML = `<span style="color:${color}">${titulo} ${neto?conSigno(neto):''}</span><small>Tenías ${fmt(antes)} → ahora ${fmt(dinero)}</small>`;
+  if(x>1) $('tragaVentana').classList.add('premio');
+  if(x>=40){ SFX.granPremio(); confeti(x>=100?160:70); }
+  else if(x>1) SFX.ganar();
+  else if(x===1) SFX.compra();
+  else SFX.perder();
+  animarDinero(neto>=0?'sube':'baja');
+  TR.girando=false;
+  refrescar();
+  comprobarRuina();
+}
+function pintarPagos(){
+  const A=TR.apuesta, P=$('tragaPagos');
+  const fila=(simb,x)=>`<div><span>${simb}</span><b class="${x>1?'mas':''}">${x===1?'recuperas':conSigno(A*x-A)}</b></div>`;
+  P.innerHTML = [...SIMBOLOS].reverse().map(y=>fila(y.s+y.s+y.s,y.p3)).join('')
+    + fila('🍒🍒 dos',PAGO_CEREZAS[2]) + fila('🍒 una',PAGO_CEREZAS[1]);
+}
+
+/* ---------- Blackjack ---------- */
+// Reglas: 6 barajas · el blackjack paga 2 a 1 · la banca se planta con 17 · doblar con cualquier
+// pareja de cartas iniciales · 5 cartas sin pasarte = ganas.
+const PALOS=['♠','♥','♦','♣'], RANGOS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const BJ = { fase:'apostar', apuesta:cargar('rds_apBJ',10), mazo:[], banca:[], jug:[], jugado:0, antes:0, doblado:false, tapada:true };
+function barajar(){
+  BJ.mazo=[];
+  for(let b=0;b<6;b++) for(const p of PALOS) for(const r of RANGOS) BJ.mazo.push({r,p});
+  for(let i=BJ.mazo.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [BJ.mazo[i],BJ.mazo[j]]=[BJ.mazo[j],BJ.mazo[i]]; }
+}
+function sacarCarta(){
+  const F=window.__R&&window.__R.bjCartas;
+  if(F&&F.length){ const [r,p]=F.shift().split(':'); return {r,p:p||'♠'}; }
+  if(BJ.mazo.length<30) barajar();
+  return BJ.mazo.pop();
+}
+function puntos(m){
+  let t=0,a=0;
+  for(const c of m){ if(c.r==='A'){ t+=11; a++; } else t += ['J','Q','K'].includes(c.r) ? 10 : +c.r; }
+  while(t>21&&a){ t-=10; a--; }
+  return {t, blanda:a>0};
+}
+const esBJ = m => m.length===2 && puntos(m).t===21;
+const pausa = ms => new Promise(r=>setTimeout(r,(window.__R&&window.__R.rapido)?0:ms));
+function pintarMano(el, mano, tapar){
+  while(el.children.length>mano.length) el.lastChild.remove();
+  mano.forEach((c,i)=>{
+    let d=el.children[i];
+    if(!d){
+      d=document.createElement('div');
+      d.innerHTML=`<span class="esq">${c.r}<br>${c.p}</span><span class="cen">${c.p}</span><span class="esq abajo">${c.r}<br>${c.p}</span>`;
+      el.appendChild(d);
+    }
+    d.className='naipe'+(c.p==='♥'||c.p==='♦'?' rojo':'')+(tapar&&i===1?' dorso':'');
+  });
+}
+function pintarMesa(){
+  pintarMano($('bjBanca'),BJ.banca,BJ.tapada);
+  pintarMano($('bjJugador'),BJ.jug,false);
+  const pb = BJ.banca.length ? (BJ.tapada ? puntos([BJ.banca[0]]).t+' + ?' : puntos(BJ.banca).t) : '';
+  const pj = BJ.jug.length ? puntos(BJ.jug) : null;
+  $('bjPBanca').textContent = pb!=='' ? 'Banca: '+pb : '';
+  $('bjPJug').textContent = pj ? 'Tú: '+(pj.blanda&&pj.t<21 ? (pj.t-10)+' / '+pj.t : pj.t) : '';
+  $('bjFicha').textContent = BJ.jugado && BJ.fase!=='apostar' ? 'Apuesta '+fmt(BJ.jugado)+(BJ.doblado?' (doblada)':'') : '';
+}
+async function repartir(){
+  if(BJ.fase!=='apostar' && BJ.fase!=='fin') return;
+  const A = BJ.apuesta==='todo' ? dinero : BJ.apuesta;
+  if(A<APUESTAS[0] || dinero<A){ refrescar(); return; }
+  audio();
+  BJ.antes=dinero; BJ.jugado=A; BJ.doblado=false; BJ.tapada=true;
+  dinero-=A; animarDinero('baja');
+  BJ.banca=[]; BJ.jug=[];
+  $('bjRes').innerHTML=''; pintarMesa();
+  BJ.fase='repartiendo'; refrescar();
+  for(const m of [BJ.jug,BJ.banca,BJ.jug,BJ.banca]){ m.push(sacarCarta()); pintarMesa(); SFX.carta(); await pausa(330); }
+  const bj=esBJ(BJ.jug), bb=esBJ(BJ.banca);
+  if(bj||bb){ BJ.tapada=false; pintarMesa(); await pausa(300); return terminarBJ(bj&&bb?'empate':bj?'bj':'pierde'); }
+  BJ.fase='jugando'; refrescar();
+}
+async function pedir(){
+  if(BJ.fase!=='jugando') return;
+  BJ.fase='repartiendo'; refrescar();
+  BJ.jug.push(sacarCarta()); pintarMesa(); SFX.carta();
+  await pausa(300);
+  const t=puntos(BJ.jug).t;
+  if(t>21){ BJ.tapada=false; pintarMesa(); return terminarBJ('pasado'); }
+  if(BJ.jug.length===5) return terminarBJ('charlie');
+  if(t===21) return plantarse(true);
+  BJ.fase='jugando'; refrescar();
+}
+async function doblar(){
+  if(BJ.fase!=='jugando' || BJ.jug.length!==2 || dinero<BJ.jugado) return;
+  dinero-=BJ.jugado; BJ.jugado*=2; BJ.doblado=true; animarDinero('baja');
+  BJ.fase='repartiendo'; refrescar();
+  BJ.jug.push(sacarCarta()); pintarMesa(); SFX.carta();
+  await pausa(400);
+  if(puntos(BJ.jug).t>21){ BJ.tapada=false; pintarMesa(); return terminarBJ('pasado'); }
+  plantarse(true);
+}
+async function plantarse(forzado){
+  if(BJ.fase!=='jugando' && !forzado) return;
+  BJ.fase='banca'; refrescar();
+  BJ.tapada=false; pintarMesa(); SFX.carta();
+  await pausa(550);
+  while(puntos(BJ.banca).t<17){ BJ.banca.push(sacarCarta()); pintarMesa(); SFX.carta(); await pausa(600); }
+  const j=puntos(BJ.jug).t, b=puntos(BJ.banca).t;
+  terminarBJ(b>21 ? 'bancaPasa' : j>b ? 'gana' : j===b ? 'empate' : 'pierde');
+}
+const RES_BJ = {   // pago = veces la apuesta que te devuelven (contando lo apostado)
+  bj:        {pago:3, txt:'¡BLACKJACK!'},
+  charlie:   {pago:2, txt:'¡5 CARTAS!'},
+  bancaPasa: {pago:2, txt:'LA BANCA SE PASA'},
+  gana:      {pago:2, txt:'¡GANAS!'},
+  empate:    {pago:1, txt:'EMPATE'},
+  pierde:    {pago:0, txt:'PIERDES'},
+  pasado:    {pago:0, txt:'TE PASAS'},
+};
+function terminarBJ(res){
+  const R=RES_BJ[res];
+  dinero += BJ.jugado*R.pago;
+  const neto=dinero-BJ.antes;
+  if(dinero>record){ record=dinero; guardar('rds_record',record); }
+  historial.unshift({ruleta:'🃏 Blackjack', casilla:`${puntos(BJ.jug).t} contra ${puntos(BJ.banca).t}${BJ.doblado?' · doblada':''} · apuesta ${fmt(BJ.jugado)}`, neto});
+  historial=historial.slice(0,30);
+  guardarEstado();
+  const color = neto>0 ? '#3ddc84' : neto<0 ? '#ff4d4d' : '#ffffff';
+  $('bjRes').innerHTML = `<span style="color:${color}">${R.txt} ${neto?conSigno(neto):''}</span><small>Tenías ${fmt(BJ.antes)} → ahora ${fmt(dinero)}</small>`;
+  if(res==='bj'){ SFX.granPremio(); confeti(70); }
+  else if(neto>0) SFX.ganar(); else if(neto<0) SFX.perder(); else SFX.compra();
+  animarDinero(neto>=0?'sube':'baja');
+  BJ.fase='fin';
+  refrescar();
+  comprobarRuina();
+}
+
+/* ---------- Cambiar de juego ---------- */
+const enManoBJ = () => BJ.fase!=='apostar' && BJ.fase!=='fin';
+const ocupado  = () => girando || TR.girando || enManoBJ();
+const pistaActual = () => juego==='sala' ? SALA.zonaMusica : juego;
+function cambiarJuego(j){
+  if(j!==juego && ocupado()) return;
+  juego=j;
+  $('zonaSala').classList.toggle('oculto',j!=='sala');
+  $('juegos').classList.toggle('oculto',j==='sala');
+  $('historial').classList.toggle('oculto',j==='sala');
+  $('zonaRuleta').classList.toggle('oculto',j!=='ruleta');
+  $('zonaTraga').classList.toggle('oculto',j!=='traga');
+  $('zonaBJ').classList.toggle('oculto',j!=='bj');
+  if(j==='ruleta') ponerBombillas(sel);
+  if(j==='sala') SALA.iniciar(); else { SALA.parar(); scrollTo(0,0); }
+  MUS.poner(pistaActual());
+  refrescar();
+}
+function refrescarJuegos(){
+  const oc=ocupado();
+  $('btnSala').disabled = oc;
+  $('nombreJuego').textContent = {ruleta:'🎡 Ruletas', traga:'🎰 Tragaperras', bj:'🃏 Blackjack'}[juego] || '';
+  $('btnMusica').classList.toggle('off',!musica);
+  // tragaperras
+  pintarApuestas($('tragaApuestas'),TR.apuesta,v=>{ TR.apuesta=v; guardar('rds_apTraga',v); refrescar(); },false,TR.girando);
+  const bt=$('btnTirar');
+  bt.textContent='TIRAR · '+fmt(TR.apuesta);
+  bt.disabled=TR.girando||dinero<TR.apuesta;
+  const ta=$('tragaAviso');
+  if(!TR.girando){
+    if(dinero<TR.apuesta){ ta.textContent='Te faltan '+fmt(TR.apuesta-dinero)+'. Elige una ficha más pequeña.'; ta.className='aviso mal'; }
+    else { ta.textContent='Elige ficha y pulsa TIRAR o la palanca (espacio).'; ta.className='aviso'; }
+  }
+  pintarPagos();
+  // blackjack
+  const mano=enManoBJ();
+  pintarApuestas($('bjApuestas'),BJ.apuesta,v=>{ BJ.apuesta=v; guardar('rds_apBJ',v); refrescar(); },true,mano);
+  const A = BJ.apuesta==='todo' ? dinero : BJ.apuesta;
+  $('btnRepartir').classList.toggle('oculto',mano);
+  $('btnRepartir').textContent='REPARTIR · '+(BJ.apuesta==='todo'?'TODO ('+fmt(A)+')':fmt(A));
+  $('btnRepartir').disabled = A<APUESTAS[0] || dinero<A;
+  ['btnPedir','btnPlantarse','btnDoblar'].forEach(id=>{ $(id).classList.toggle('oculto',!mano); $(id).disabled=BJ.fase!=='jugando'; });
+  $('btnDoblar').disabled = BJ.fase!=='jugando' || BJ.jug.length!==2 || dinero<BJ.jugado;
+  const ba=$('bjAviso');
+  if(BJ.fase==='jugando') { ba.textContent='¿Pides otra carta o te plantas?'; ba.className='aviso'; }
+  else if(BJ.fase==='repartiendo'||BJ.fase==='banca') { ba.textContent=''; }
+  else if(A<APUESTAS[0] || dinero<A){ ba.textContent='Te faltan '+fmt(Math.max(A,APUESTAS[0])-dinero)+'. Elige una ficha más pequeña.'; ba.className='aviso mal'; }
+  else { ba.textContent='Elige ficha y pulsa REPARTIR (espacio).'; ba.className='aviso'; }
+}
+
+/* =====================================================================
+   MÚSICA DE FONDO: cada juego tiene la suya (todo sintetizado)
+   ===================================================================== */
+let musica = cargar('rds_musica', true);
+const MUS = (()=>{
+  let bus=null, ruidoBuf=null, pista=null, n=0, t=0, timer=null;
+  const hz = m => 440*Math.pow(2,(m-69)/12);
+  function prep(){
+    bus=AC.createGain(); bus.gain.value=.5; bus.connect(AC.destination);
+    if(!ruidoBuf){
+      ruidoBuf=AC.createBuffer(1,AC.sampleRate*.5,AC.sampleRate);
+      const d=ruidoBuf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+    }
+  }
+  function nota(m,t0,dur,tipo,vol,ataque=.008,corte=0){
+    const o=AC.createOscillator(), g=AC.createGain();
+    o.type=tipo; o.frequency.value=hz(m);
+    g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(vol,t0+ataque);
+    g.gain.exponentialRampToValueAtTime(.0001,t0+Math.max(dur,ataque+.02));
+    o.connect(g);
+    if(corte){ const f=AC.createBiquadFilter(); f.type='lowpass'; f.frequency.value=corte; g.connect(f).connect(bus); }
+    else g.connect(bus);
+    o.start(t0); o.stop(t0+dur+.05);
+  }
+  function ruido(t0,dur,vol,hp){
+    const s=AC.createBufferSource(), f=AC.createBiquadFilter(), g=AC.createGain();
+    s.buffer=ruidoBuf; f.type='highpass'; f.frequency.value=hp;
+    g.gain.setValueAtTime(vol,t0); g.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+    s.connect(f).connect(g).connect(bus); s.start(t0); s.stop(t0+dur+.02);
+  }
+  function bombo(t0,vol){
+    const o=AC.createOscillator(), g=AC.createGain();
+    o.frequency.setValueAtTime(130,t0); o.frequency.exponentialRampToValueAtTime(40,t0+.14);
+    g.gain.setValueAtTime(vol,t0); g.gain.exponentialRampToValueAtTime(.0001,t0+.2);
+    o.connect(g).connect(bus); o.start(t0); o.stop(t0+.25);
+  }
+  // Toca la nota de una línea de melodía: número = nota, '-' = sigue sonando la anterior, null = silencio
+  function linea(L,i,t0,durDe,fn){
+    const m=L[i%L.length]; if(typeof m!=='number') return;
+    let d=durDe(i), k=i+1;
+    while(L[k%L.length]==='-' && k-i<16){ d+=durDe(k); k++; }
+    fn(m,t0,d);
+  }
+  const _='-';
+  const PISTAS = {
+    // RULETA: vals de salón, en La menor (3 tiempos por compás)
+    ruleta:(()=>{
+      const beat=60/168;
+      const ac=[[45,[57,60,64]],[50,[62,65,69]],[40,[56,62,64]],[45,[57,60,64]],[41,[57,60,65]],[50,[62,65,69]],[40,[56,62,64]],[45,[57,60,64]]];
+      const mel=[76,72,69, 74,77,74, 76,71,68, 69,_,_, 72,77,81, 81,77,74, 71,74,80, 81,_,null,
+                 69,72,76, 77,_,74, 71,_,68, 69,72,76, 77,81,84, 81,_,77, 76,74,71, 69,_,null];
+      return { dur:()=>beat, paso(i,t0){
+        const [b,acorde]=ac[Math.floor(i/3)%8], tiempo=i%3;
+        if(tiempo===0) nota(b,t0,beat*.9,'triangle',.22,.01,900);
+        else acorde.forEach(m=>nota(m,t0,beat*.45,'triangle',.045,.01,2400));
+        linea(mel,i,t0,()=>beat,(m,tt,d)=>{ nota(m,tt,d*.95,'sawtooth',.045,.03,1800); nota(m+12,tt,d*.95,'sine',.02,.03); });
+      }};
+    })(),
+    // TRAGAPERRAS: marcha de recreativa, Do mayor, rápida
+    traga:(()=>{
+      const st=60/152/2;
+      const ac=[48,45,41,43, 48,45,41,43];
+      const mel=[72,_,76,_,79,_,76,79, 81,_,79,_,76,_,72,_, 74,_,77,_,81,_,77,74, 79,_,_,_,74,_,71,_,
+                 72,76,79,84,_,_,83,_, 81,_,79,_,76,_,81,_, 77,_,81,_,79,_,77,_, 74,_,79,_,83,_,_,_];
+      return { dur:()=>st, paso(i,t0){
+        const b=ac[Math.floor(i/8)%8], s=i%8;
+        nota(b+(s%2?12:0),t0,st*.8,'square',.05,.005,900);
+        if(s===0||s===4) bombo(t0,.35);
+        if(s===2||s===6) ruido(t0,.12,.06,1500);
+        if(s%2) ruido(t0,.04,.03,7000);
+        linea(mel,i,t0,()=>st,(m,tt,d)=>nota(m,tt,d*.9,'square',.035,.005,3500));
+      }};
+    })(),
+    // BLACKJACK: jazz tranquilo con swing (ii-V-I)
+    bj:(()=>{
+      const beat=60/96, durDe=i=>i%2 ? beat/3 : beat*2/3;
+      const ac=[[[38,41,45,44],[62,65,69,72]],[[43,47,50,49],[59,62,65,67]],[[48,47,45,43],[60,64,67,71]],[[45,49,40,39],[61,64,67,69]]];
+      const mel=[null,null,69,72,76,_,74,_, 71,_,_,_,null,67,71,74, 76,_,_,_,_,null,72,74, 73,_,76,_,79,_,77,76,
+                 74,_,_,72,69,_,65,_, 67,_,71,_,74,_,77,_, 76,_,_,_,72,_,71,_, 69,_,_,_,null,null,null,null];
+      return { dur:durDe, paso(i,t0){
+        const [bajo,acorde]=ac[Math.floor(i/8)%4], s=i%8;
+        if(s%2===0) nota(bajo[s/2],t0,beat*.85,'triangle',.25,.01,700);
+        if(s===0) acorde.forEach(m=>nota(m,t0,beat*.5,'sine',.035,.01));
+        if(s===3) acorde.forEach(m=>nota(m,t0,beat*1.2,'sine',.035,.01));
+        if(s%2===0) ruido(t0,.25,.02,8000);
+        if(s===3||s===7) ruido(t0,.12,.012,8000);
+        if(s===2||s===6) ruido(t0,.04,.015,5000);
+        linea(mel,i,t0,durDe,(m,tt,d)=>{ nota(m,tt,Math.max(d,.6),'sine',.05,.005); nota(m+12,tt,.25,'sine',.012,.005); });
+      }};
+    })(),
+  };
+  PISTAS.sala=(()=>{
+    const st=60/116/2;
+    const ac=[[41,[57,60,64,65]],[43,[58,62,65,67]],[45,[57,60,64,67]],[46,[58,62,65,69]]];
+    const mel=[72,_,_,69,_,_,72,_, 74,_,_,_,70,_,72,_, 76,_,_,72,_,_,74,_, 77,_,_,_,_,_,null,null,
+               81,_,_,79,_,_,77,_, 74,_,_,77,_,_,74,_, 72,_,_,76,_,_,72,_, 69,_,_,_,_,_,null,null];
+    const clave=[0,3,6,10,13];
+    return { dur:()=>st, paso(i,t0){
+      const [b,acorde]=ac[Math.floor(i/8)%4], s=i%8;
+      if(s===0||s===4) nota(b,t0,st*2.6,'triangle',.24,.01,600);
+      if(s===3||s===7) nota(b+7,t0,st*.9,'triangle',.18,.01,600);
+      if(s===0||s===3||s===6) acorde.forEach(m=>nota(m,t0,st*1.4,'sine',.03,.01));
+      if(clave.includes(i%16)) ruido(t0,.05,.05,3000);
+      ruido(t0,.05,s%2?.008:.014,9000);
+      linea(mel,i,t0,()=>st,(m,tt,d)=>nota(m,tt,d*.95,'sine',.055,.04));
+    }};
+  })();
+  function bucle(){
+    if(!pista||!bus) return;
+    const P=PISTAS[pista];
+    if(t<AC.currentTime) t=AC.currentTime+.05;
+    while(t<AC.currentTime+.3){ P.paso(n,t); t+=P.dur(n); n++; }
+  }
+  function parar(){
+    clearInterval(timer); timer=null;
+    if(bus){ const b=bus; b.gain.setTargetAtTime(0,AC.currentTime,.08); setTimeout(()=>b.disconnect(),600); bus=null; }
+  }
+  function poner(nombre){
+    if(nombre===pista && timer) return;
+    parar(); pista=nombre;
+    if(!musica || !sonido || !AC || document.hidden) return;
+    prep(); n=0; t=AC.currentTime+.08;
+    timer=setInterval(bucle,60); bucle();
+  }
+  return { poner, parar, get pista(){ return pista; }, get sonando(){ return !!timer; } };
+})();
+
+/* =====================================================================
+   FASE 2: LA SALA DEL CASINO. Un personaje de píxeles anda por la sala
+   y entra en cada juego. El mundo mide 36×26 baldosas de 16 píxeles.
+   ===================================================================== */
+const SALA = (()=>{
+  const T=16, COLS=36, FILAS=26, WW=COLS*T, WH=FILAS*T;
+  const cv=$('sala'), c=cv.getContext('2d');
+  const FUENTE='"Press Start 2P",monospace';
+  let vw=320, vh=240, esc=2, camX=0, camY=0, t=0, ultimo=0, anim=null, fondo=null, rejilla=null;
+  let zonaMus='sala', pistaVista=null, ayudaVista=true;
+  const teclas=new Set();
+  const R=(x,y,w,h)=>({x,y,w,h});
+  const choca=(a,b)=>a.x<b.x+b.w && b.x<a.x+a.w && a.y<b.y+b.h && b.y<a.y+a.h;
+  const dentro=(px,py,r)=>px>=r.x && px<r.x+r.w && py>=r.y && py<r.y+r.h;
+  const solidos=[ R(0,0,WW,3*T), R(0,0,T,WH), R(WW-T,0,T,WH), R(0,WH-T,WW,T) ];
+  const libre=(x,y)=>{ const k=R(x-4,y-3,8,4); return !solidos.some(s=>choca(k,s)); };
+  const azar=a=>a[Math.floor(Math.random()*a.length)];
+
+  /* ---------- Personas ---------- */
+  const PIELES=['#f1c27d','#e0ac69','#c68642','#8d5524','#ffdbac'];
+  const PELOS=['#2b1b0e','#4a2c14','#c9a227','#a33a1a','#111','#888'];
+  const CAMISAS=['#d0021b','#1e6fd9','#2ecc71','#8a2be2','#ff7f2a','#e01fb8','#00b3a4','#eee'];
+  const PANTS=['#222','#2b3a8c','#4a3b2a','#333a44'];
+  const ropaAzar=()=>({piel:azar(PIELES),pelo:azar(PELOS),camisa:azar(CAMISAS),pant:azar(PANTS),zap:'#1a1a1a'});
+  const chaleco=(x,yb)=>{ c.fillStyle='#111'; c.fillRect(x-4,yb,2,6); c.fillRect(x+2,yb,2,6); c.fillStyle='#d0021b'; c.fillRect(x-1,yb,2,1); };
+  function persona(p){
+    const x=Math.round(p.x), y=Math.round(p.y), C=p.ropa, d=p.dir;
+    const f = p.anda ? (Math.floor(p.paso/5)%2 ? 1 : -1) : 0;
+    c.fillStyle='rgba(0,0,0,.3)'; c.fillRect(x-4,y-1,8,2);
+    const yb = y-11+(p.sentado?3:0);
+    if(!p.sentado){
+      c.fillStyle=C.pant; c.fillRect(x-3,y-5,2,f>0?3:4); c.fillRect(x+1,y-5,2,f<0?3:4);
+      c.fillStyle=C.zap;  c.fillRect(x-3,y-(f>0?2:1),2,1); c.fillRect(x+1,y-(f<0?2:1),2,1);
+    } else { c.fillStyle=C.pant; c.fillRect(x-3,y-3,6,2); }
+    c.fillStyle=C.camisa; c.fillRect(x-4,yb,8,6);
+    if(C.chaleco) chaleco(x,yb);
+    const ba = p.brazo ? -4 : 0;
+    if(d!=='l'){ c.fillStyle=C.camisa; c.fillRect(x+4,yb+1+(f<0?1:0)+ba,1,4); c.fillStyle=C.piel; c.fillRect(x+4,yb+5+(f<0?1:0)+ba,1,1); }
+    if(d!=='r'){ c.fillStyle=C.camisa; c.fillRect(x-5,yb+1+(f>0?1:0),1,4); c.fillStyle=C.piel; c.fillRect(x-5,yb+5+(f>0?1:0),1,1); }
+    const yh=yb-5;
+    c.fillStyle=C.piel; c.fillRect(x-3,yh,6,5);
+    c.fillStyle=C.pelo; c.fillRect(x-3,yh-1,6,2);
+    if(d==='u') c.fillRect(x-3,yh,6,4);
+    if(d==='l') c.fillRect(x+1,yh,2,3);
+    if(d==='r') c.fillRect(x-3,yh,2,3);
+    if(d==='d'){ c.fillRect(x-3,yh,1,2); c.fillRect(x+2,yh,1,2); }
+    c.fillStyle='#111';
+    if(d==='d'){ c.fillRect(x-2,yh+2,1,1); c.fillRect(x+1,yh+2,1,1); }
+    if(d==='l') c.fillRect(x-2,yh+2,1,1);
+    if(d==='r') c.fillRect(x+1,yh+2,1,1);
+    if(p.bandeja){ c.fillStyle='#ccc'; c.fillRect(x+3,yb-1,7,1); c.fillStyle='#ffcc33'; c.fillRect(x+5,yb-4,2,3); }
+    if(p.burbuja && p.burbuja.hasta>t) burbuja(x,yh-4,p.burbuja.txt);
+  }
+  function burbuja(x,y,txt){
+    c.font='8px '+FUENTE; const w=Math.ceil(c.measureText(txt).width)+6;
+    const bx=Math.round(x-w/2), by=y-12;
+    c.fillStyle='#fff'; c.fillRect(bx,by,w,11); c.fillRect(x-1,by+11,3,2);
+    c.fillStyle='#111'; c.textAlign='left'; c.textBaseline='top'; c.fillText(txt,bx+3,by+2);
+  }
+  const jugador = { x:18*T, y:24*T+6, dir:'u', anda:false, paso:0, ropa:{piel:'#f1c27d',pelo:'#4a2c14',camisa:'#ffcc33',pant:'#2b3a8c',zap:'#222'}, ruta:[], auto:null };
+  const gente=[];
+
+  /* ---------- Objetos de la sala ---------- */
+  const objetos=[];   // {y: orden de dibujo, dibujar()}
+  const zonas=[];     // sitios donde puedes jugar o usar algo
+  function zona(r,clic,txt,boton,accion){ zonas.push({...r,clic,txt,boton,accion}); }
+
+  // Ruedas de ruleta (como en el juego: la barata sencilla, la cara dorada y con luces)
+  const RUEDAS=[
+    {cx:44,  id:'poco',      nivel:0, cols:['#d8d2c4','#b9b1a0','#d8d2c4','#b9b1a0','#d8d2c4','#b9b1a0']},
+    {cx:96,  id:'normal',    nivel:1, cols:['#d0021b','#f2f2f2','#1e6fd9','#f2f2f2','#2ecc71','#f2f2f2','#ffcc33','#f2f2f2']},
+    {cx:148, id:'imposible', nivel:2, cols:['#ffd700','#111','#ff2bd6','#111','#00e5ff','#111','#ffd700','#111','#7bff9e','#111']},
+  ];
+  RUEDAS.forEach(w=>{
+    w.ang=Math.random()*6; w.vel=.4; w.prox=2+Math.random()*6;
+    const base=112, r=20, cy=base-r-16;
+    solidos.push(R(w.cx-12,96,24,18));
+    const Rr=RULETAS.find(x=>x.id===w.id);
+    zona(R(w.cx-24,114,48,26),R(w.cx-24,cy-24,48,base-cy+26),'Ruleta '+Rr.nombre,'JUGAR',()=>entrar('ruleta',w.id));
+    objetos.push({y:base,dibujar(){
+      c.fillStyle='#3a2a1a'; c.fillRect(w.cx-2,cy,4,r+14); c.fillRect(w.cx-10,base-4,20,4);
+      if(w.nivel) { c.fillStyle=w.nivel>1?'#ffd700':'#999'; c.fillRect(w.cx-10,base-4,20,1); }
+      const n=w.cols.length;
+      for(let i=0;i<n;i++){ c.beginPath(); c.moveTo(w.cx,cy); c.arc(w.cx,cy,r,w.ang+i*TAU/n,w.ang+(i+1)*TAU/n); c.closePath(); c.fillStyle=w.cols[i]; c.fill(); }
+      c.lineWidth=2; c.strokeStyle=['#8a7a5a','#e6e6e6','#ffd700'][w.nivel]; c.beginPath(); c.arc(w.cx,cy,r,0,TAU); c.stroke();
+      c.fillStyle=w.nivel>1?'#fff2a0':'#ccc'; c.fillRect(w.cx-2,cy-2,4,4);
+      c.fillStyle=w.nivel>1?'#ffd700':'#eee'; c.beginPath(); c.moveTo(w.cx-4,cy-r-5); c.lineTo(w.cx+4,cy-r-5); c.lineTo(w.cx,cy-r+3); c.fill();
+      if(w.nivel>=1){
+        const nb=w.nivel>1?14:10;
+        for(let i=0;i<nb;i++){ const a=i*TAU/nb; const on=(Math.floor(t*(w.nivel>1?6:3))+i)%2;
+          c.fillStyle= on ? (w.nivel>1?'#fff27a':'#ffffff') : (w.nivel>1?'#7a5a00':'#555');
+          c.fillRect(Math.round(w.cx+Math.cos(a)*(r+4))-1,Math.round(cy+Math.sin(a)*(r+4))-1,2,2); }
+      }
+    }});
+  });
+
+  // Mesas de blackjack (mesa en media luna, crupier detrás, jugadores sentados delante)
+  const MESAS=[{cx:280,ty:72},{cx:280,ty:150}];
+  const FRASES_BJ=['¡Carta!','Me planto','¡21!','¡Blackjack!','Uff, me pasé','Doblo','¡Bien!'];
+  MESAS.forEach((m,k)=>{
+    solidos.push(R(m.cx-52,m.ty-12,104,46));
+    zona(R(m.cx-52,m.ty+36,104,26),R(m.cx-52,m.ty-24,104,62),'Mesa de Blackjack','JUGAR',()=>entrar('bj'));
+    const asientos=[20,55,90,125,160].map(g=>{ const a=g*Math.PI/180; return {x:m.cx+Math.cos(a)*52, y:m.ty+Math.sin(a)*38+4}; });
+    m.asientos=asientos;
+    gente.push({x:m.cx,y:m.ty-3,dir:'d',ropa:{piel:azar(PIELES),pelo:azar(PELOS),camisa:'#f4f4f4',pant:'#111',zap:'#111',chaleco:1},tipo:'quieto'});
+    objetos.push({y:m.ty+34,dibujar(){
+      c.fillStyle='#4a240c'; c.beginPath(); c.ellipse(m.cx,m.ty,50,36,0,0,Math.PI); c.fill();
+      c.fillStyle='#1a8a45'; c.beginPath(); c.ellipse(m.cx,m.ty,45,31,0,0,Math.PI); c.fill();
+      c.strokeStyle='#ffd56b77'; c.lineWidth=1; c.beginPath(); c.ellipse(m.cx,m.ty,30,19,0,0,Math.PI); c.stroke();
+      c.fillStyle='#4a240c'; c.fillRect(m.cx-50,m.ty-3,100,4);
+      c.fillStyle='#b3122a'; c.fillRect(m.cx-20,m.ty+2,6,8); c.fillStyle='#fff'; c.fillRect(m.cx-19,m.ty+3,4,6);   // mazo
+      c.fillStyle='#fdfdf8'; c.fillRect(m.cx-3,m.ty+3,5,7); c.fillRect(m.cx+3,m.ty+3,5,7);
+      c.fillStyle='#d0021b'; c.fillRect(m.cx-2,m.ty+5,2,2);
+      asientos.forEach((s,i)=>{ const a=(i*.7+0.6), px=m.cx+(s.x-m.cx)*.62, py=m.ty+(s.y-m.ty)*.55;
+        c.fillStyle='#fdfdf8'; c.fillRect(Math.round(px)-3,Math.round(py)-3,4,6); c.fillRect(Math.round(px)+1,Math.round(py)-2,4,6);
+        c.fillStyle=COLOR_AP[(i+k)%COLOR_AP.length]; c.fillRect(Math.round(px)-2,Math.round(py)+5,3,2); });
+    }});
+    asientos.forEach(s=>objetos.push({y:s.y-1,dibujar(){ c.fillStyle='#5a2e12'; c.fillRect(Math.round(s.x)-3,Math.round(s.y)-4,6,3); c.fillStyle='#2a1406'; c.fillRect(Math.round(s.x)-1,Math.round(s.y)-1,2,2); }}));
+    [k?1:0, k?4:3].forEach(i=>gente.push({x:asientos[i].x,y:asientos[i].y,dir:'u',sentado:true,ropa:ropaAzar(),tipo:'bj',prox:3+Math.random()*6}));
+  });
+
+  // Tragaperras: una fila contra la pared y una isla en medio
+  const MAQ=[];
+  [380,406,432,458,484,510,536].forEach(x=>MAQ.push({x,by:90}));
+  [404,430,456,482,508].forEach(x=>MAQ.push({x,by:152}));
+  const SYMC=['#e0283a','#ffd700','#2ecc71','#1e6fd9','#c58bff','#ff7f2a'];
+  MAQ.forEach((q,i)=>{
+    q.sim=[i%6,(i+2)%6,(i+4)%6]; q.gira=0; q.premio=0;
+    solidos.push(R(q.x-11,q.by-18,22,18));
+    zona(R(q.x-13,q.by,26,20),R(q.x-12,q.by-32,24,34),'Tragaperras','JUGAR',()=>entrar('traga'));
+    objetos.push({y:q.by,dibujar(){
+      const y=q.by-30, x=q.x;
+      c.fillStyle='#5a0610'; c.fillRect(x-11,y,22,30);
+      c.fillStyle=q.premio>t?(Math.floor(t*10)%2?'#ffd700':'#e0283a'):'#e0283a'; c.fillRect(x-10,y+1,20,28);
+      c.fillStyle='#ffcc33'; c.fillRect(x-11,y,22,4);
+      for(let k=0;k<5;k++){ c.fillStyle=(Math.floor(t*4)+k+i)%2?'#fff27a':'#a86f00'; c.fillRect(x-9+k*4,y+1,2,2); }
+      c.fillStyle='#fff'; c.fillRect(x-8,y+7,16,9);
+      for(let k=0;k<3;k++){ const s = q.gira>t ? Math.floor(t*14+k*3+i)%6 : q.sim[k]; c.fillStyle=SYMC[s]; c.fillRect(x-7+k*5,y+9,4,5); }
+      c.fillStyle='#ff2b55'; c.fillRect(x-8,y+11,16,1);
+      c.fillStyle='#3a0208'; c.fillRect(x-7,y+20,14,3);
+      c.fillStyle='#ffcc33'; c.fillRect(x-6,y+25,12,2);
+      const baja=q.palanca>t;
+      c.fillStyle='#ccc'; c.fillRect(x+11,y+(baja?14:6),2,baja?6:12);
+      c.fillStyle='#d0021b'; c.fillRect(x+10,y+(baja?12:3),4,4);
+    }});
+  });
+  [1,5].forEach(i=>gente.push({x:MAQ[i].x-2,y:MAQ[i].by+12,dir:'u',ropa:ropaAzar(),tipo:'traga',maq:MAQ[i],prox:1+Math.random()*4}));
+  gente.push({x:MAQ[9].x-2,y:MAQ[9].by+12,dir:'u',ropa:ropaAzar(),tipo:'traga',maq:MAQ[9],prox:2+Math.random()*4});
+
+  // Caja (abre la tienda)
+  solidos.push(R(24,300,96,40));
+  zona(R(28,340,88,26),R(24,276,96,64),'Caja: compra poderes','TIENDA',()=>abrirTienda());
+  const cajera={x:72,y:322,dir:'d',ropa:{piel:'#e0ac69',pelo:'#111',camisa:'#1e6fd9',pant:'#111',zap:'#111',chaleco:1},tipo:'quieto'};
+  objetos.push({y:338,dibujar(){
+    persona(cajera);
+    c.fillStyle='#8fd3ff33'; c.fillRect(28,300,88,22);
+    c.fillStyle='#ffcc33'; for(let x=28;x<=116;x+=22) c.fillRect(x,300,1,22); c.fillRect(28,300,88,1);
+    c.fillStyle='#6b3b1a'; c.fillRect(24,322,96,6); c.fillStyle='#4a240c'; c.fillRect(24,328,96,12);
+    c.fillStyle='#ffcc33'; c.fillRect(24,328,96,1);
+    c.fillStyle='#ffd700'; for(let k=0;k<4;k++) c.fillRect(40+k*3,319-k,6,2);
+  }});
+
+  // Bar (adorno: el camarero te anima)
+  solidos.push(R(456,270,96,70));
+  const camarero={x:504,y:322,dir:'d',ropa:{piel:'#c68642',pelo:'#2b1b0e',camisa:'#f4f4f4',pant:'#111',zap:'#111',chaleco:1},tipo:'quieto'};
+  zona(R(460,340,88,26),R(456,270,96,70),'Bar','PEDIR',()=>{ camarero.burbuja={txt:azar(['¡Invita la casa!','¡Mucha suerte!','Hoy es tu día','¿Un zumo?']),hasta:t+2.5}; SFX.compra(); });
+  objetos.push({y:338,dibujar(){
+    c.fillStyle='#3a1a0a'; c.fillRect(458,272,92,26);
+    const bot=['#2ecc71','#d0021b','#ffcc33','#8fd3ff','#e01fb8','#ff7f2a'];
+    for(let k=0;k<11;k++){ c.fillStyle=bot[k%6]; c.fillRect(462+k*8,276,4,9); c.fillRect(463+k*8,273,2,3); c.fillRect(462+k*8,288,4,8); }
+    persona(camarero);
+    c.fillStyle='#6b3b1a'; c.fillRect(456,322,96,6); c.fillStyle='#4a240c'; c.fillRect(456,328,96,12);
+    c.fillStyle='#ffcc33'; c.fillRect(456,328,96,1);
+  }});
+  [470,494,518,542].forEach(x=>objetos.push({y:356,dibujar(){ c.fillStyle='#d0021b'; c.fillRect(x-4,348,8,3); c.fillStyle='#888'; c.fillRect(x-1,351,2,5); }}));
+
+  // Fuente
+  solidos.push(R(256,286,64,30));
+  objetos.push({y:316,dibujar(){
+    c.fillStyle='#9a8f80'; c.beginPath(); c.ellipse(288,300,32,16,0,0,TAU); c.fill();
+    c.fillStyle='#2a7fd4'; c.beginPath(); c.ellipse(288,300,27,12,0,0,TAU); c.fill();
+    for(let k=0;k<6;k++){ const a=t*.8+k; c.fillStyle='#bfe6ff'; c.fillRect(Math.round(288+Math.cos(a)*18),Math.round(300+Math.sin(a)*7),2,1); }
+    c.fillStyle='#b5aa98'; c.fillRect(285,284,6,16); c.fillStyle='#ffd700'; c.fillRect(284,282,8,3);
+    for(let k=0;k<8;k++){ const f=((t*1.6+k/8)%1); c.fillStyle='#bfe6ff';
+      c.fillRect(Math.round(288+(k%2?1:-1)*f*12),Math.round(280-Math.sin(f*Math.PI)*14+f*16),1,2); }
+  }});
+
+  // Columnas y plantas
+  [[200,236],[376,236]].forEach(([x,y])=>{ solidos.push(R(x-5,y-4,10,6)); objetos.push({y,dibujar(){
+    c.fillStyle='#a87d00'; c.fillRect(x-5,y-34,10,34); c.fillStyle='#ffd700'; c.fillRect(x-4,y-34,3,34);
+    c.fillStyle='#fff2a0'; c.fillRect(x-6,y-36,12,3); c.fillRect(x-6,y-3,12,3); }}); });
+  [[28,226],[548,226],[150,392],[426,392],[24,392],[552,392]].forEach(([x,y])=>{ solidos.push(R(x-5,y-4,10,5)); objetos.push({y,dibujar(){
+    c.fillStyle='#7a3a12'; c.fillRect(x-4,y-6,8,6); c.fillStyle='#1f7a32';
+    c.fillRect(x-6,y-14,5,7); c.fillRect(x+1,y-15,5,8); c.fillRect(x-2,y-19,4,10); c.fillStyle='#2ecc71'; c.fillRect(x-1,y-18,2,6); }}); });
+
+  // Gente que mira las ruedas, gente que pasea y un camarero con bandeja
+  gente.push({x:70,y:132,dir:'u',ropa:ropaAzar(),tipo:'mira',rueda:RUEDAS[0]});
+  gente.push({x:124,y:134,dir:'u',ropa:ropaAzar(),tipo:'mira',rueda:RUEDAS[2]});
+  for(let k=0;k<3;k++) gente.push({x:120+k*150,y:260,dir:'d',ropa:ropaAzar(),tipo:'paseo',ruta:[],espera:Math.random()*3,paso:0});
+  gente.push({x:300,y:240,dir:'d',ropa:{piel:'#ffdbac',pelo:'#c9a227',camisa:'#f4f4f4',pant:'#111',zap:'#111',chaleco:1},bandeja:1,tipo:'paseo',ruta:[],espera:0,paso:0});
+  gente.forEach(p=>{ p.paso=p.paso||0; });
+
+  /* ---------- Caminos (para andar tocando y para la gente que pasea) ---------- */
+  function hacerRejilla(){
+    rejilla=new Uint8Array(COLS*FILAS);
+    for(let r=0;r<FILAS;r++) for(let k=0;k<COLS;k++) rejilla[r*COLS+k]=libre(k*T+8,r*T+10)?1:0;
+  }
+  const centro=i=>({x:(i%COLS)*T+8, y:Math.floor(i/COLS)*T+10});
+  const baldosa=(x,y)=>Math.max(0,Math.min(FILAS-1,Math.floor(y/T)))*COLS+Math.max(0,Math.min(COLS-1,Math.floor(x/T)));
+  function vista(a,b){ const n=Math.ceil(Math.hypot(b.x-a.x,b.y-a.y)/3); for(let i=1;i<=n;i++){ if(!libre(a.x+(b.x-a.x)*i/n, a.y+(b.y-a.y)*i/n)) return false; } return true; }
+  function camino(x0,y0,x1,y1){
+    if(!rejilla) hacerRejilla();
+    const ini=baldosa(x0,y0); let fin=baldosa(x1,y1);
+    if(!rejilla[fin]){ // la baldosa libre más cercana
+      let mejor=-1, md=1e9; for(let i=0;i<rejilla.length;i++) if(rejilla[i]){ const p=centro(i), d=Math.hypot(p.x-x1,p.y-y1); if(d<md){md=d;mejor=i;} }
+      fin=mejor; x1=centro(fin).x; y1=centro(fin).y;
+    }
+    const prev=new Int32Array(rejilla.length).fill(-1); prev[ini]=ini; const cola=[ini];
+    for(let q=0;q<cola.length && prev[fin]<0;q++){
+      const i=cola[q], cx=i%COLS, cy=Math.floor(i/COLS);
+      for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]){
+        const nx=cx+dx, ny=cy+dy; if(nx<0||ny<0||nx>=COLS||ny>=FILAS) continue;
+        const j=ny*COLS+nx; if(prev[j]>=0||!rejilla[j]) continue;
+        if(dx&&dy && (!rejilla[cy*COLS+nx]||!rejilla[ny*COLS+cx])) continue;
+        prev[j]=i; cola.push(j);
+      }
+    }
+    if(prev[fin]<0) return [];
+    const pts=[]; for(let i=fin;i!==ini;i=prev[i]) pts.unshift(centro(i));
+    if(libre(x1,y1)) pts[pts.length-1]={x:x1,y:y1}; else if(!pts.length) pts.push({x:x1,y:y1});
+    const lisa=[]; let desde={x:x0,y:y0};
+    for(let i=0;i<pts.length;i++){ if(i===pts.length-1 || !vista(desde,pts[i+1])){ lisa.push(pts[i]); desde=pts[i]; } }
+    return lisa;
+  }
+  function seguir(p,dt,vel){
+    if(!p.ruta.length){ p.anda=false; return true; }
+    const o=p.ruta[0], dx=o.x-p.x, dy=o.y-p.y, d=Math.hypot(dx,dy), s=vel*dt;
+    if(d<=s){ p.x=o.x; p.y=o.y; p.ruta.shift(); }
+    else { p.x+=dx/d*s; p.y+=dy/d*s; }
+    p.dir = Math.abs(dx)>Math.abs(dy) ? (dx>0?'r':'l') : (dy>0?'d':'u');
+    p.anda=true; p.paso+=s/2.2;
+    return false;
+  }
+
+  /* ---------- Fondo fijo (suelo y paredes) ---------- */
+  function pintarFondo(){
+    fondo=document.createElement('canvas'); fondo.width=WW; fondo.height=WH;
+    const f=fondo.getContext('2d');
+    const suelo=(x,y,w,h,base,dib)=>{ f.fillStyle=base; f.fillRect(x,y,w,h); f.fillStyle=dib;
+      for(let yy=y;yy<y+h;yy+=8) for(let xx=x+((yy/8)%2?4:0);xx<x+w;xx+=8) f.fillRect(xx+3,yy+3,2,2); };
+    suelo(0,0,WW,WH,'#4a0d1c','#6b1a2a');
+    suelo(T,3*T,11*T,10*T,'#14234a','#22377a');        // ruletas
+    suelo(12*T,3*T,11*T,10*T,'#0e3a22','#16512f');     // blackjack
+    suelo(23*T,3*T,12*T,10*T,'#2e0d3a','#47175a');     // tragaperras
+    f.fillStyle='#ffcc3355'; f.fillRect(T,13*T,WW-2*T,1); f.fillRect(12*T,3*T,1,10*T); f.fillRect(23*T,3*T,1,10*T);
+    // alfombra de la entrada
+    f.fillStyle='#8c0d20'; f.fillRect(15*T,20*T,6*T,5*T); f.fillStyle='#ffcc33'; f.fillRect(15*T,20*T,6*T,1); f.fillRect(15*T,20*T,1,5*T); f.fillRect(21*T-1,20*T,1,5*T);
+    // paredes
+    f.fillStyle='#2a0612'; f.fillRect(0,0,WW,3*T);
+    f.fillStyle='#38091a'; for(let x=0;x<WW;x+=12) f.fillRect(x,0,6,3*T-4);
+    f.fillStyle='#ffcc33'; f.fillRect(0,3*T-4,WW,2); f.fillStyle='#a86f00'; f.fillRect(0,3*T-2,WW,2);
+    f.fillStyle='#1a040b'; f.fillRect(0,0,T,WH); f.fillRect(WW-T,0,T,WH); f.fillRect(0,WH-T,WW,T);
+    f.fillStyle='#ffcc33'; f.fillRect(T-2,3*T,2,WH-4*T); f.fillRect(WW-T,3*T,2,WH-4*T); f.fillRect(T,WH-T,WW-2*T,2);
+    // puerta
+    f.fillStyle='#ffcc33'; f.fillRect(16*T-2,WH-T,4*T+4,T); f.fillStyle='#8fd3ff66'; f.fillRect(16*T+1,WH-T+3,2*T-2,T-3); f.fillRect(18*T+1,WH-T+3,2*T-2,T-3);
+  }
+  function neon(txt,x,y,col,i){
+    const apag = Math.sin(t*3.1+i*7)>.97 || (Math.floor(t*9+i)%37===0);
+    c.font='8px '+FUENTE; c.textAlign='center'; c.textBaseline='middle';
+    c.shadowColor=col; c.shadowBlur=apag?0:6; c.fillStyle=apag?'#55334a':col; c.fillText(txt,x,y); c.shadowBlur=0;
+  }
+
+  /* ---------- Bucle ---------- */
+  function actualizar(dt){
+    t+=dt;
+    // jugador
+    let dx=0, dy=0;
+    if(teclas.has('ArrowLeft')||teclas.has('KeyA')) dx--; if(teclas.has('ArrowRight')||teclas.has('KeyD')) dx++;
+    if(teclas.has('ArrowUp')||teclas.has('KeyW')) dy--;   if(teclas.has('ArrowDown')||teclas.has('KeyS')) dy++;
+    const j=jugador;
+    if(dx||dy){
+      j.ruta=[]; j.auto=null;
+      const n=Math.hypot(dx,dy), s=72*dt;
+      const nx=j.x+dx/n*s, ny=j.y+dy/n*s;
+      if(libre(nx,j.y)) j.x=nx; if(libre(j.x,ny)) j.y=ny;
+      j.dir = dx && Math.abs(dx)>=Math.abs(dy) ? (dx>0?'r':'l') : (dy>0?'d':'u');
+      j.anda=true; j.paso+=s/2.2;
+    } else if(seguir(j,dt,80)){
+      j.anda=false;
+      if(j.auto){ const z=j.auto; j.auto=null; if(dentro(j.x,j.y,z)) usar(z); }
+    }
+    if((dx||dy||j.ruta.length) && ayudaVista){ ayudaVista=false; $('salaAyuda').style.opacity=0; }
+    // gente
+    for(const p of gente){
+      if(p.tipo==='paseo'){
+        if(p.ruta.length) seguir(p,dt,p.bandeja?44:32);
+        else { p.anda=false; p.espera-=dt; if(p.espera<=0){ p.espera=2+Math.random()*5;
+          p.ruta=camino(p.x,p.y, T*2+Math.random()*(WW-T*4), 14*T+Math.random()*9*T); } }
+      } else if(p.tipo==='traga' && t>p.prox){
+        const q=p.maq; p.prox=t+3+Math.random()*5; p.brazo=1; setTimeout(()=>p.brazo=0,350);
+        q.palanca=t+.35; q.gira=t+1.4;
+        const gana=Math.random()<.25;
+        q.sim = gana ? Array(3).fill(Math.floor(Math.random()*6)) : [0,1,2].map(()=>Math.floor(Math.random()*6));
+        if(gana){ setTimeout(()=>{ q.premio=t+1.5; p.burbuja={txt:azar(['¡PREMIO!','¡Toma!','¡Bote!']),hasta:t+2}; },1400); }
+      } else if(p.tipo==='bj' && t>p.prox){
+        p.prox=t+5+Math.random()*8; p.burbuja={txt:azar(FRASES_BJ),hasta:t+2};
+      } else if(p.tipo==='mira' && p.rueda.frase){
+        p.burbuja={txt:p.rueda.frase,hasta:t+2}; p.rueda.frase=null;
+      }
+    }
+    for(const w of RUEDAS){
+      w.ang+=w.vel*dt;
+      if(w.vel>.5) { w.vel*=Math.pow(.55,dt); if(w.vel<=.5){ w.vel=.4; w.frase=azar(['¡Bien!','¡Ohh!','¡Otra!','¡Toma ya!']); } }
+      if(t>w.prox){ w.prox=t+8+Math.random()*10; w.vel=9+Math.random()*4; }
+    }
+    // sitio donde puedes jugar
+    const z=zonas.find(z=>dentro(j.x,j.y,z))||null;
+    if(z!==pistaVista){
+      pistaVista=z; const P=$('salaPista');
+      if(z){ $('salaTxt').textContent=z.txt; $('btnEntrar').textContent=z.boton; P.classList.add('ver'); } else P.classList.remove('ver');
+    }
+    // música según la zona
+    const zm = j.y<13*T ? (j.x<12*T?'ruleta': j.x<23*T?'bj':'traga') : 'sala';
+    if(zm!==zonaMus){ zonaMus=zm; MUS.poner(zm); }
+  }
+  function dibujar(){
+    camX = vw>=WW ? Math.round((WW-vw)/2) : Math.round(Math.max(0,Math.min(WW-vw,jugador.x-vw/2)));
+    camY = vh>=WH ? Math.round((WH-vh)/2) : Math.round(Math.max(0,Math.min(WH-vh,jugador.y-vh/2)));
+    c.setTransform(1,0,0,1,0,0); c.fillStyle='#000'; c.fillRect(0,0,vw,vh);
+    c.setTransform(1,0,0,1,-camX,-camY);
+    c.drawImage(fondo,0,0);
+    neon('RULETAS',6.5*T,1.4*T,'#00e5ff',1); neon('BLACKJACK',17.5*T,1.4*T,'#7bff9e',2); neon('TRAGAPERRAS',29*T,1.4*T,'#ff2bd6',3);
+    neon('CAJA',72,276,'#ffcc33',4); neon('BAR',504,262,'#ff7f2a',5);
+    const lista=[...objetos, ...gente.map(p=>({y:p.y,dibujar:()=>persona(p)})), {y:jugador.y,dibujar:()=>persona(jugador)}];
+    lista.sort((a,b)=>a.y-b.y).forEach(o=>o.dibujar());
+    // flecha sobre tu personaje
+    if(!jugador.anda){ const b=Math.floor(t*3)%2; c.fillStyle='#ffcc33'; c.fillRect(Math.round(jugador.x)-2,Math.round(jugador.y)-24+b,5,1); c.fillRect(Math.round(jugador.x)-1,Math.round(jugador.y)-23+b,3,1); c.fillRect(Math.round(jugador.x),Math.round(jugador.y)-22+b,1,1); }
+    // destino al tocar
+    if(jugador.ruta.length){ const d=jugador.ruta[jugador.ruta.length-1]; c.strokeStyle='#ffcc33'; c.lineWidth=1; c.strokeRect(Math.round(d.x)-3,Math.round(d.y)-2,6,3); }
+  }
+  function bucle(ahora){
+    const dt=Math.min(.05,Math.max(0,(ahora-ultimo)/1000)); ultimo=ahora;
+    actualizar(dt); dibujar();
+    anim=requestAnimationFrame(bucle);
+  }
+  function medir(){
+    const cw=$('zonaSala').clientWidth||320;
+    const ch=Math.max(300, innerHeight-document.querySelector('header').offsetHeight);
+    esc=Math.max(2,Math.floor(Math.min(cw/320,ch/240)));
+    vw=Math.ceil(cw/esc); vh=Math.ceil(ch/esc);
+    cv.width=vw; cv.height=vh; cv.style.width=vw*esc+'px'; cv.style.height=vh*esc+'px';
+    $('zonaSala').style.height=ch+'px';
+    c.imageSmoothingEnabled=false;
+  }
+  function usar(z){
+    z=z||pistaVista; if(!z) return;
+    jugador.vuelta={x:jugador.x,y:jugador.y};
+    jugador.ruta=[]; jugador.auto=null; teclas.clear();
+    z.accion();
+  }
+  function entrar(j,idRuleta){
+    if(idRuleta) seleccionar(RULETAS.find(r=>r.id===idRuleta));
+    cambiarJuego(j);
+  }
+  cv.addEventListener('pointerdown',e=>{
+    audio();
+    const r=cv.getBoundingClientRect();
+    const wx=camX+(e.clientX-r.left)/r.width*vw, wy=camY+(e.clientY-r.top)/r.height*vh;
+    const z=zonas.find(z=>dentro(wx,wy,z.clic))||zonas.find(z=>dentro(wx,wy,z));
+    if(z && dentro(jugador.x,jugador.y,z)) return usar(z);
+    const destino = z ? {x:z.x+z.w/2, y:z.y+Math.min(z.h-4,12)} : {x:wx,y:wy};
+    jugador.ruta=camino(jugador.x,jugador.y,destino.x,destino.y);
+    jugador.auto=z;
+  });
+  $('btnEntrar').onclick=()=>usar();
+  window.addEventListener('resize',()=>{ if(anim) medir(); });
+  window.addEventListener('blur',()=>teclas.clear());
+  if(document.fonts) document.fonts.load('8px "Press Start 2P"').catch(()=>{});
+  $('salaAyuda').textContent = matchMedia('(hover:none)').matches ? 'Toca el suelo para andar' : 'Flechas o WASD para andar · E para jugar';
+
+  return {
+    iniciar(){
+      if(!fondo) pintarFondo();
+      if(jugador.vuelta){ Object.assign(jugador,jugador.vuelta); jugador.dir='d'; jugador.vuelta=null; }
+      jugador.ruta=[]; jugador.anda=false; pistaVista=undefined;
+      medir();
+      zonaMus = jugador.y<13*T ? (jugador.x<12*T?'ruleta': jugador.x<23*T?'bj':'traga') : 'sala';
+      if(!anim){ ultimo=performance.now(); anim=requestAnimationFrame(bucle); }
+    },
+    parar(){ if(anim) cancelAnimationFrame(anim); anim=null; teclas.clear(); },
+    tecla(e,abajo){
+      const mov=['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','KeyA','KeyD','KeyW','KeyS'];
+      if(mov.includes(e.code)){ e.preventDefault(); abajo ? teclas.add(e.code) : teclas.delete(e.code); return; }
+      if(abajo && ['KeyE','Space','Enter'].includes(e.code)){ e.preventDefault(); usar(); }
+    },
+    get zonaMusica(){ return zonaMus; },
+    jugador, zonas, gente, camino, libre,
+  };
+})();
 
 /* ---------- Arranque ---------- */
 $('btnGirar').onclick=girar;
@@ -1081,9 +2060,36 @@ $('btnReiniciar').onclick=reiniciar;
 $('btnTienda').onclick=abrirTienda;
 $('btnCerrarTienda').onclick=cerrarTienda;
 $('tienda').onclick=e=>{ if(e.target.id==='tienda') cerrarTienda(); };
-$('btnSonido').onclick=()=>{ sonido=!sonido; guardar('rds_sonido',sonido); refrescar(); };
+$('btnSonido').onclick=()=>{ sonido=!sonido; guardar('rds_sonido',sonido); audio(); sonido ? MUS.poner(pistaActual()) : MUS.parar(); refrescar(); };
+$('btnMusica').onclick=()=>{ musica=!musica; guardar('rds_musica',musica); audio(); musica ? MUS.poner(pistaActual()) : MUS.parar(); refrescar(); };
+$('btnSala').onclick=()=>{ audio(); cambiarJuego('sala'); };
+$('btnTirar').onclick=tirar;
+$('palanca').onclick=tirar;
+$('btnRepartir').onclick=repartir;
+$('btnPedir').onclick=pedir;
+$('btnPlantarse').onclick=()=>plantarse();
+$('btnDoblar').onclick=doblar;
+let musicaArrancada=false;
+const arrancarMusica=()=>{ if(musicaArrancada) return; musicaArrancada=true; audio(); MUS.poner(pistaActual()); };
+document.addEventListener('pointerdown',arrancarMusica);
+document.addEventListener('keydown',arrancarMusica);
+document.addEventListener('visibilitychange',()=>{ if(document.hidden) MUS.parar(); else if(musicaArrancada) MUS.poner(pistaActual()); });
 document.addEventListener('keydown',e=>{
   if($('tienda').classList.contains('ver')){ if(e.code==='Escape') cerrarTienda(); return; }
+  if($('fin').classList.contains('ver')) return;
+  if(juego==='sala'){ SALA.tecla(e,true); return; }
+  if(e.code==='Escape'){ cambiarJuego('sala'); return; }
+  if(juego==='traga'){
+    if(e.code==='Space'||e.code==='Enter'){ e.preventDefault(); tirar(); }
+    return;
+  }
+  if(juego==='bj'){
+    if(e.code==='Space'||e.code==='Enter'){ e.preventDefault(); if(!enManoBJ()) repartir(); }
+    else if(e.code==='ArrowUp'){ e.preventDefault(); pedir(); }
+    else if(e.code==='ArrowDown'){ e.preventDefault(); plantarse(); }
+    else if(e.code==='KeyD') doblar();
+    return;
+  }
   if(e.code==='Space'||e.code==='Enter'){ e.preventDefault(); girar(); }
   else if(jugada && jugada.fase==='decidir'){
     if(e.code==='ArrowLeft') iman(-1);
@@ -1092,15 +2098,21 @@ document.addEventListener('keydown',e=>{
   }
 });
 window.addEventListener('resize',()=>ponerBombillas(sel));
+document.addEventListener('keyup',e=>{ if(juego==='sala') SALA.tecla(e,false); });
 crearSelector();
+iniciarTraga();
 seleccionar(RULETAS[0]);
+juego='';
+cambiarJuego('sala');
 if(document.fonts) document.fonts.ready.then(()=>{ dibujar(cv,sel,true); });
-if(dinero<Math.min(...RULETAS.map(precioTirada)) && !efectos.gratis) finPartida();
+if(dinero<minimoJuego() && !efectos.gratis) finPartida();
 
 // para pruebas: forzar la casilla que sale
 window.__R={RULETAS,elegirCasilla, forzar:null, get dinero(){return dinero}, set dinero(v){dinero=v;refrescar()},
   get efectos(){return efectos}, get mejoras(){return mejoras}, get jugada(){return jugada}, get inventario(){return inventario},
-  precioPoder, aceptar, repetir, iman};
+  precioPoder, aceptar, repetir, iman,
+  forzarTraga:null, bjCartas:null, rapido:false, SIMBOLOS, pagoTraga, puntos, cambiarJuego, tirar, repartir, pedir, plantarse, doblar,
+  get BJ(){return BJ}, get TR(){return TR}, get juego(){return juego}, MUS, SALA};
 })();
 </script>
 </body>
