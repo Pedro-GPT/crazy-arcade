@@ -312,6 +312,11 @@ header h1{font-family:Bungee,Impact,sans-serif;font-size:20px;letter-spacing:1px
 .negocio .cara{font-size:42px;line-height:1}
 .negocio .dice{font-size:15px;font-style:italic;line-height:1.4}
 
+#toast{position:fixed;left:50%;top:84px;transform:translate(-50%,-10px);z-index:60;background:#0a3a1aee;border:2px solid #3ddc84;color:#fff;
+  font-weight:800;font-size:14px;padding:10px 14px;border-radius:12px;opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;max-width:92vw;text-align:center}
+#toast.ver{opacity:1;transform:translate(-50%,0)}
+#toast.mal{background:#3a2a0aee;border-color:#ffcc33}
+
 /* ---------- Fin de partida ---------- */
 #fin{position:fixed;inset:0;background:rgba(0,0,0,.86);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
 #fin.ver{display:flex}
@@ -662,6 +667,8 @@ header h1{font-family:Bungee,Impact,sans-serif;font-size:20px;letter-spacing:1px
   </div>
 </div></div>
 
+<div id="toast"></div>
+
 <div id="panel"><div class="caja">
   <div class="cab"><h2 id="panelTit"></h2><span>Tienes <b id="panelDinero"></b></span><button id="btnCerrarPanel" title="Cerrar">✕</button></div>
   <div id="panelCuerpo"></div>
@@ -801,7 +808,7 @@ const SIN_MEJORAS = ()=>({seguro:0, descuento:0, banco:0, llaves:{}});
 let mejoras  = Object.assign(SIN_MEJORAS(), (E && E.mejoras) || {});   // compras de la tienda (toda la partida)
 let inventario = (E && E.inventario) || {};                         // poderes comprados: {ruleta:{poder:n}}
 let suerte   = (E && E.suerte) || null;
-let bienes   = Object.assign({vip:0, coches:[], conduce:-1, casas:{}, armas:{}, guardias:0}, (E && E.bienes) || {});   // coches, casas, armas...
+let bienes   = Object.assign({vip:0, coches:[], conduce:-1, casas:{}, armas:{}, guardias:0, alquiler:{}}, (E && E.bienes) || {});   // coches, casas, armas...
 bienes.conduce = -1;                              // bebida del bar: {n, ico, nombre} para la próxima jugada
 let preparados = {escudo:false, x2:false, tapar:false};            // poderes marcados para la próxima tirada
 let jugada   = null;                                               // tirada en curso
@@ -2030,7 +2037,7 @@ const CASAS_TIPO={
   villa:  {nombre:'Villa en la playa',  base:25000000,  w:220, h:150, pared:'#ffffff', tejado:'#d9c7a0', piscina:1, playa:1, desc:'Frente al mar, con piscina y palmeras.'},
   palacio:{nombre:'Palacio',            base:120000000, w:340, h:220, pared:'#f5ecd0', tejado:'#7a1a2a', jardin:1, piscina:1, fuente:1, desc:'Torres, cúpula de oro, fuente y piscina. Lo más caro del barrio.'},
 };
-const SIN_BIENES=()=>({vip:0, coches:[], conduce:-1, casas:{}, armas:{}, guardias:0});
+const SIN_BIENES=()=>({vip:0, coches:[], conduce:-1, casas:{}, armas:{}, guardias:0, alquiler:{}});
 
 /* ---------- Ventana de compra (concesionario, armería, agencia, portero, vecinos) ---------- */
 let panelPintar=null;
@@ -2080,10 +2087,7 @@ function abrirPortero(){
 const CARAS=['👨','👩','👴','👵','🧔','👱‍♀️','👨‍🦳','👩‍🦱'];
 function negociar(casa){
   const D=CASAS_TIPO[casa.tipo];
-  if(bienes.casas[casa.id]){
-    abrirPanel('🏠 TU '+D.nombre.toUpperCase(),C=>{ C.innerHTML=`<p class="nota">Esta ${D.nombre.toLowerCase()} es tuya. La compraste por <b>${fmt(bienes.casas[casa.id])}</b>.</p>`; });
-    return;
-  }
+  if(bienes.casas[casa.id]){ fichaCasaMia(casa); return; }
   if(!casa.minimo) casa.minimo=Math.round(casa.valor*(.95+Math.random()*.4));   // lo mínimo que le compensa al dueño (secreto)
   casa.cara = casa.cara || CARAS[+casa.id.slice(1)%CARAS.length];
   casa.msg = casa.msg || '¿Sí? ¿Qué desea?';
@@ -2100,6 +2104,58 @@ function negociar(casa){
     });
   });
 }
+/* ---------- Alquilar tus casas ---------- */
+// renta = lo que pagan cada minuto (un "mes" del juego), según lo que te costó la casa
+const TIPOS_INQUILINO=[
+  {tipo:'Estudiante', cara:'🎓', tasa:.004, fiable:1,   desc:'Paga poco, pero nunca falla.'},
+  {tipo:'Familia',    cara:'👨‍👩‍👧', tasa:.006, fiable:.95, desc:'Paga bien y casi siempre a tiempo.'},
+  {tipo:'Empresario', cara:'💼', tasa:.009, fiable:.75, desc:'Paga mucho, pero a veces no paga.'},
+];
+const NOMBRES_INQ=['Laura','Marcos','Sofía','Hugo','Valeria','Pablo','Lucía','Daniel','Martina','Adrián','Paula','Mario','Carla','Iván','Noa','Raúl'];
+function filaAccion(C,{ico,nombre,desc,boton,accion,lujo}){
+  const d=document.createElement('div'); d.className='bebida'+(lujo?' lujo':'');
+  d.innerHTML=`<span class="ico">${ico}</span><div><b>${nombre}</b><small>${desc}</small></div>`;
+  const b=document.createElement('button'); b.textContent=boton; b.onclick=accion;
+  d.appendChild(b); C.appendChild(d);
+}
+function fichaCasaMia(casa){
+  const D=CASAS_TIPO[casa.tipo], precio=bienes.casas[casa.id];
+  abrirPanel('🏠 TU '+D.nombre.toUpperCase(),C=>{
+    C.insertAdjacentHTML('beforeend',`<p class="nota">Esta ${D.nombre.toLowerCase()} es tuya. La compraste por <b>${fmt(precio)}</b>.</p>`);
+    const a=bienes.alquiler[casa.id];
+    if(a){
+      C.insertAdjacentHTML('beforeend',`<div class="negocio"><span class="cara">${a.cara}</span><div class="dice"><b>${a.nombre}</b> (${a.tipo.toLowerCase()}) vive aquí de alquiler.
+        Paga <b>${fmt(a.renta)}</b> cada minuto${a.fiable<1?', aunque a veces se retrasa':''}. Ya te ha pagado <b>${fmt(a.cobrado)}</b>.</div></div>`);
+      filaAccion(C,{ico:'🚪',nombre:'Echar a '+a.nombre,desc:'La casa se queda vacía y deja de pagarte.',boton:'ECHAR',accion:()=>{ delete bienes.alquiler[casa.id]; SFX.perder(); guardarEstado(); repintarPanel(); }});
+      return;
+    }
+    C.insertAdjacentHTML('beforeend','<p class="nota">Está vacía. Si la alquilas, el inquilino te paga <b>cada minuto</b> (un mes del juego), estés donde estés. Elige a quién:</p>');
+    if(!casa.candidatos) casa.candidatos=TIPOS_INQUILINO.map(T=>({...T, nombre:NOMBRES_INQ[Math.floor(Math.random()*NOMBRES_INQ.length)], renta:redondea(precio*T.tasa*(.9+Math.random()*.2))}));
+    casa.candidatos.forEach(q=>filaAccion(C,{ico:q.cara,nombre:`${q.nombre} · ${fmt(q.renta)} al minuto`,desc:q.tipo+'. '+q.desc,boton:'ALQUILAR',
+      accion:()=>{ bienes.alquiler[casa.id]={tipo:q.tipo,cara:q.cara,nombre:q.nombre,renta:q.renta,fiable:q.fiable,cobrado:0}; casa.candidatos=null;
+        SFX.efecto(); guardarEstado(); refrescar(); repintarPanel(); }}));
+  });
+}
+let relojAlquiler=0;
+function cobrarAlquileres(){
+  const ids=Object.keys(bienes.alquiler||{}); if(!ids.length) return 0;
+  let total=0; const morosos=[];
+  ids.forEach(id=>{ const a=bienes.alquiler[id]; if(Math.random()<a.fiable){ total+=a.renta; a.cobrado+=a.renta; } else morosos.push(a.nombre); });
+  if(total){ dinero+=total; if(dinero>record){ record=dinero; guardar('rds_record',record); } animarDinero('sube'); SFX.compra(); }
+  guardarEstado(); refrescar();
+  aviso('🏠 Alquileres: +'+fmt(total)+(morosos.length?' · '+morosos.join(', ')+(morosos.length>1?' no han pagado':' no ha pagado')+' este mes':''), morosos.length>0);
+  return total;
+}
+function aviso(txt,mal){
+  const a=$('toast'); a.textContent=txt; a.className=mal?'mal ver':'ver';
+  clearTimeout(aviso.t); aviso.t=setTimeout(()=>a.classList.remove('ver'),3200);
+}
+setInterval(()=>{
+  if(document.hidden || $('fin').classList.contains('ver')) return;
+  if(!Object.keys(bienes.alquiler||{}).length){ relojAlquiler=0; return; }
+  if(++relojAlquiler>=60){ relojAlquiler=0; cobrarAlquileres(); }
+},1000);
+
 function oferta(casa,cant){
   if(cant>=casa.minimo){
     dinero-=cant; bienes.casas[casa.id]=cant;
@@ -2681,7 +2737,7 @@ const SALA = (()=>{
     const lujo = k.tipo==='mansion'||k.tipo==='palacio'||k.tipo==='villa';
     c.fillStyle= lujo ? '#ffd700' : '#5a2e12'; c.fillRect(b.x+b.w/2-5,b.y+b.h-12,10,12);
     c.fillStyle='#0004'; c.fillRect(b.x+b.w/2,b.y+b.h-12,1,12);
-    if(mia){ c.fillStyle='#ccc'; c.fillRect(b.x+6,b.y-16,1,18); c.fillStyle='#2ecc71'; c.fillRect(b.x+7,b.y-16,10,6); c.fillStyle='#ffd700'; c.fillRect(b.x+10,b.y-14,3,2); }
+    if(mia){ const alq=bienes.alquiler&&bienes.alquiler[k.id]; c.fillStyle='#ccc'; c.fillRect(b.x+6,b.y-16,1,18); c.fillStyle=alq?'#ffd700':'#2ecc71'; c.fillRect(b.x+7,b.y-16,10,6); c.fillStyle=alq?'#2ecc71':'#ffd700'; c.fillRect(b.x+10,b.y-14,3,2); }
   }
   function pintarParcelas(f){        // jardines, piscinas, caminos y vallas (van en el fondo fijo)
     CASAS.forEach(k=>{
@@ -3313,7 +3369,7 @@ window.__R={RULETAS,elegirCasilla, forzar:null, get dinero(){return dinero}, set
   precioPoder, aceptar, repetir, iman,
   forzarTraga:null, bjCartas:null, rapido:false, SIMBOLOS, pagoTraga, puntos, cambiarJuego, tirar, repartir, pedir, plantarse, doblar,
   get BJ(){return BJ}, get TR(){return TR}, get juego(){return juego}, MUS, SALA, COCHES, ARMAS, CASAS_TIPO, negociar, oferta, abrirCajaVip, abrirAgencia, abrirPortero,
-  get bienes(){return bienes}, CA, PK, caJugar, caCobrar, pkRepartir, pkPasar, pkApostar, pkIgualar, pkRetirarse, mejorMano, NOMBRES_MANO,
+  get bienes(){return bienes}, cobrarAlquileres, fichaCasaMia, CA, PK, caJugar, caCobrar, pkRepartir, pkPasar, pkApostar, pkIgualar, pkRetirarse, mejorMano, NOMBRES_MANO,
   caCartas:null, pkCartas:null, BEBIDAS, precioBebida, comprarBebida, abrirBar,
   get suerte(){return suerte}, set suerte(v){suerte=v;refrescar()}};
 })();
