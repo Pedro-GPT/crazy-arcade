@@ -3017,8 +3017,13 @@ const SALA = (()=>{
     if(l.estado==='ko') return;
     l.estado='ko'; l.t0=t; l.anda=false; l.burbuja={txt:'¡Ay!',hasta:t+1.2};
     if(quien) quien.burbuja={txt:azar(['¡Quieto!','¡Al suelo!','¡Fuera!']),hasta:t+1.2};
-    if(l.botin){ dinero+=l.botin; avisoSala('¡Recuperas '+fmt(l.botin)+'!'); animarDinero('sube'); guardarEstado(); refrescar(); l.botin=0; }
-    SFX.paroCarrete();
+    // recompensa por cada ladrón eliminado (+ lo que te hubiera robado)
+    const RECOMPENSA=1000, recupera=l.botin;
+    dinero+=RECOMPENSA+recupera; l.botin=0;
+    if(dinero>record){ record=dinero; guardar('rds_record',record); }
+    avisoSala('🦹 Ladrón eliminado: +'+fmt(RECOMPENSA)+(recupera?' · recuperas '+fmt(recupera):''));
+    animarDinero('sube'); guardarEstado(); refrescar();
+    SFX.paroCarrete(); SFX.compra();
   }
   function moverHacia(p,x,y,vel,dt){
     const dx=x-p.x, dy=y-p.y, d=Math.hypot(dx,dy); if(d<1) { p.anda=false; return d; }
