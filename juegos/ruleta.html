@@ -317,6 +317,9 @@ header h1{font-family:Bungee,Impact,sans-serif;font-size:20px;letter-spacing:1px
 #toast.ver{opacity:1;transform:translate(-50%,0)}
 #toast.mal{background:#3a2a0aee;border-color:#ffcc33}
 
+.pj{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;max-width:min(94vw,600px)}
+.pj:empty{display:none}
+
 /* ---------- Fin de partida ---------- */
 #fin{position:fixed;inset:0;background:rgba(0,0,0,.86);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
 #fin.ver{display:flex}
@@ -571,6 +574,7 @@ header h1{font-family:Bungee,Impact,sans-serif;font-size:20px;letter-spacing:1px
   </div>
   <div class="apuestas" id="tragaApuestas"></div>
   <button id="btnTirar" class="btnJuego">TIRAR · 10 €</button>
+  <div class="poderes pj" id="pj_traga"></div>
   <div id="tragaAviso" class="aviso"></div>
   <div class="pagos"><h3>Premios con esta ficha</h3><div id="tragaPagos"></div></div>
 </section>
@@ -592,6 +596,7 @@ header h1{font-family:Bungee,Impact,sans-serif;font-size:20px;letter-spacing:1px
     <button id="btnCaCobrar" class="btnJuego oculto">COBRAR</button>
     <button id="btnCaDoble" class="btnJuego oculto">DOBLE O NADA</button>
   </div>
+  <div class="poderes pj" id="pj_carta"></div>
   <div id="caAviso" class="aviso"></div>
 </section>
 
@@ -617,6 +622,7 @@ header h1{font-family:Bungee,Impact,sans-serif;font-size:20px;letter-spacing:1px
     <button id="btnPkIgualar" class="btnJuego oculto">IGUALAR</button>
     <button id="btnPkRetirarse" class="btnJuego oculto">RETIRARSE</button>
   </div>
+  <div class="poderes pj" id="pj_poker"></div>
   <div id="pkAviso" class="aviso"></div>
   <div class="pagos"><h3>Jugadas, de mejor a peor</h3><div class="listaManos">Escalera de color · Póker · Full · Color · Escalera · Trío · Dobles parejas · Pareja · Carta alta</div></div>
 </section>
@@ -639,6 +645,7 @@ header h1{font-family:Bungee,Impact,sans-serif;font-size:20px;letter-spacing:1px
     <button id="btnPlantarse" class="btnJuego oculto">PLANTARSE <small>↓</small></button>
     <button id="btnDoblar" class="btnJuego oculto">DOBLAR <small>D</small></button>
   </div>
+  <div class="poderes pj" id="pj_bj"></div>
   <div id="bjAviso" class="aviso"></div>
 </section>
 
@@ -806,7 +813,8 @@ const SIN_EFECTOS = ()=>({mult:1, gratis:0, escudo:0});
 let efectos  = (E && E.efectos) || SIN_EFECTOS();   // lo que espera a la siguiente tirada
 const SIN_MEJORAS = ()=>({seguro:0, descuento:0, banco:0, llaves:{}});
 let mejoras  = Object.assign(SIN_MEJORAS(), (E && E.mejoras) || {});   // compras de la tienda (toda la partida)
-let inventario = (E && E.inventario) || {};                         // poderes comprados: {ruleta:{poder:n}}
+let inventario = (E && E.inventario) || {};
+let invJuego   = (E && E.invJuego) || {};                            // poderes de los otros juegos: {juego:{poder:[apuestas]}}                         // poderes comprados: {ruleta:{poder:n}}
 let suerte   = (E && E.suerte) || null;
 let bienes   = Object.assign({vip:0, coches:[], conduce:-1, casas:{}, armas:{}, guardias:0, alquiler:{}}, (E && E.bienes) || {});   // coches, casas, armas...
 bienes.conduce = -1;                              // bebida del bar: {n, ico, nombre} para la próxima jugada
@@ -1047,7 +1055,7 @@ function costeTirada(R){
   const t = efectos.gratis>0 ? 0 : precioTirada(R);
   return { tirada:t, extra:0, total:t };
 }
-const guardarEstado = ()=>guardar('rds_estado',{dinero,tiradas,historial,efectos,mejoras,inventario,suerte,bienes});
+const guardarEstado = ()=>guardar('rds_estado',{dinero,tiradas,historial,efectos,mejoras,inventario,suerte,bienes,invJuego});
 
 /* ---------- Marcador y botón ---------- */
 function refrescar(){
@@ -1342,6 +1350,9 @@ function comprobarRuina(){
 
 /* ---------- Tienda ---------- */
 function pintarTienda(){
+  const ay=$('tienda').querySelector('.ayuda');
+  if(PODERES_JUEGO[juego]){ ay.style.display='none'; return pintarTiendaJuego(juego); }
+  ay.style.display='';
   const T=$('tiendaLista'); T.innerHTML='';
   const R=sel;
   T.insertAdjacentHTML('beforeend',`<h3>Poderes para <select id="tiendaRuleta">${RULETAS.map(r=>`<option value="${r.id}"${r===R?' selected':''}>${r.nombre}</option>`).join('')}</select></h3><p class="nota">Solo sirven en la ruleta que elijas aquí.</p>`);
@@ -1394,7 +1405,7 @@ function finPartida(){
   $('fin').classList.add('ver');
 }
 function reiniciar(){
-  dinero=SALDO_INICIAL; tiradas=0; historial=[]; efectos=SIN_EFECTOS(); mejoras=SIN_MEJORAS(); inventario={}; suerte=null; bienes=SIN_BIENES();
+  dinero=SALDO_INICIAL; tiradas=0; historial=[]; efectos=SIN_EFECTOS(); mejoras=SIN_MEJORAS(); inventario={}; suerte=null; bienes=SIN_BIENES(); invJuego={};
   preparados={escudo:false,x2:false,tapar:false}; jugada=null; girando=false;
   BJ.fase='apostar'; BJ.banca=[]; BJ.jug=[]; BJ.jugado=0; pintarMesa(); $('bjRes').innerHTML=''; $('tragaRes').innerHTML='';
   guardarEstado();
@@ -1460,14 +1471,17 @@ function rellenarTira(t,lista){ t.innerHTML=lista.map(x=>`<div>${x.s}</div>`).jo
 function iniciarTraga(){
   carretes().forEach((c,i)=>{ TR.vis[i]=[simboloAzar(),simboloAzar(),simboloAzar()]; rellenarTira(c.firstElementChild,TR.vis[i]); });
 }
-function tirar(){
+function tirar(gratis){
   if(TR.girando) return;
   const A=TR.apuesta;
-  if(dinero<A){ refrescar(); return; }
+  if(!gratis && dinero<A){ refrescar(); return; }
   audio();
   TR.girando=true;
   const antes=dinero;
-  dinero-=A; animarDinero('baja');
+  if(!gratis){
+    dinero-=A; animarDinero('baja');
+    TR.comodin=usarPrep('traga','comodin',A); TR.otra=usarPrep('traga','otra',A); TR.doble=usarPrep('traga','doble',A);
+  }
   const f=window.__R&&window.__R.forzarTraga;
   let res = f ? f.map(s=>SIMBOLOS.find(y=>y.s===s)) : null;
   const nota={};
@@ -1476,6 +1490,10 @@ function tirar(){
     for(let k=0;k<Math.abs(s);k++){ const o=[simboloAzar(),simboloAzar(),simboloAzar()]; if(!res || mejorQue(s,pagoTraga(o),pagoTraga(res))) res=o; }
   }
   TR.suerte=nota.suerte||'';
+  if(TR.comodin){       // el carrete del medio se convierte en el símbolo que más paga
+    let mejor=res[1]; for(const y of SIMBOLOS) if(pagoTraga([res[0],y,res[2]])>pagoTraga([res[0],mejor,res[2]])) mejor=y;
+    res[1]=mejor; TR.comodin=false; TR.nota='🃏 comodín';
+  } else TR.nota='';
   if(window.__R) window.__R.forzarTraga=null;
   const p=$('palanca'); p.classList.remove('baja'); void p.offsetWidth; p.classList.add('baja');
   SFX.palanca();
@@ -1504,7 +1522,10 @@ function tirar(){
   });
 }
 function resolverTraga(res,A,antes){
-  const x=pagoTraga(res), cobro=A*x;
+  const x=pagoTraga(res);
+  let cobro=A*x;
+  if(TR.doble && x>1){ cobro=A+(A*x-A)*2; TR.nota=(TR.nota?TR.nota+' · ':'')+'✖️2 premio doble'; }
+  if(x>1) TR.doble=false;
   dinero+=cobro;
   const neto=dinero-antes;
   if(dinero>record){ record=dinero; guardar('rds_record',record); }
@@ -1514,13 +1535,20 @@ function resolverTraga(res,A,antes){
   const tres = res[0]===res[1] && res[1]===res[2];
   const titulo = tres ? `¡TRES ${res[0].s}!` : neto>0 ? '¡CEREZAS!' : neto===0 ? 'RECUPERAS' : 'NADA';
   const color = neto>0 ? '#3ddc84' : neto<0 ? '#ff4d4d' : '#ffffff';
-  $('tragaRes').innerHTML = `<span style="color:${color}">${titulo} ${neto?conSigno(neto):''}</span><small>Tenías ${fmt(antes)} → ahora ${fmt(dinero)}${TR.suerte?' · '+TR.suerte:''}</small>`;
+  $('tragaRes').innerHTML = `<span style="color:${color}">${titulo} ${neto?conSigno(neto):''}</span><small>Tenías ${fmt(antes)} → ahora ${fmt(dinero)}${TR.suerte?' · '+TR.suerte:''}${TR.nota?' · '+TR.nota:''}</small>`;
   if(x>1) $('tragaVentana').classList.add('premio');
   if(x>=40){ SFX.granPremio(); confeti(x>=100?160:70); }
   else if(x>1) SFX.ganar();
   else if(x===1) SFX.compra();
   else SFX.perder();
   animarDinero(neto>=0?'sube':'baja');
+  if(x===0 && TR.otra){      // otra oportunidad: tira gratis
+    TR.otra=false; aviso('🔁 ¡Otra oportunidad! Tiras gratis');
+    setTimeout(()=>{ TR.girando=false; tirar(true); },900);
+    refrescar(); return;
+  }
+  if(x>0) TR.otra=false;
+  TR.doble=false;
   TR.girando=false;
   refrescar();
   comprobarRuina();
@@ -1543,6 +1571,7 @@ function barajar(){
   for(let i=BJ.mazo.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [BJ.mazo[i],BJ.mazo[j]]=[BJ.mazo[j],BJ.mazo[i]]; }
 }
 function sacarCarta(){
+  if(BJ.siguiente){ const c=BJ.siguiente; BJ.siguiente=null; return c; }     // la que viste con la bola de cristal
   const F=window.__R&&window.__R.bjCartas;
   if(F&&F.length){ const [r,p]=F.shift().split(':'); return {r,p:p||'♠'}; }
   if(BJ.mazo.length<30) barajar();
@@ -1558,7 +1587,7 @@ const esBJ = m => m.length===2 && puntos(m).t===21;
 // Con suerte ×N se sacan N cartas y se queda la mejor para ti; las demás vuelven al mazo.
 function cartaElegida(valorar){
   const s=BJ.suerte||1, n=Math.abs(s), F=window.__R&&window.__R.bjCartas;
-  if(n<=1 || (F&&F.length)) return sacarCarta();
+  if(n<=1 || (F&&F.length) || BJ.siguiente) return sacarCarta();
   const cand=Array.from({length:n},sacarCarta);
   let m=0; cand.forEach((c,i)=>{ if(mejorQue(s,valorar(c),valorar(cand[m]))) m=i; });
   cand.forEach((c,i)=>{ if(i!==m) BJ.mazo.splice(Math.floor(Math.random()*(BJ.mazo.length+1)),0,c); });
@@ -1584,9 +1613,9 @@ function pintarMano(el, mano, tapar){
   });
 }
 function pintarMesa(){
-  pintarMano($('bjBanca'),BJ.banca,BJ.tapada);
+  pintarMano($('bjBanca'),BJ.banca,BJ.tapada&&!BJ.rayos);
   pintarMano($('bjJugador'),BJ.jug,false);
-  const pb = BJ.banca.length ? (BJ.tapada ? puntos([BJ.banca[0]]).t+' + ?' : puntos(BJ.banca).t) : '';
+  const pb = BJ.banca.length ? (BJ.tapada ? (BJ.rayos ? puntos(BJ.banca).t+' 👁' : puntos([BJ.banca[0]]).t+' + ?') : puntos(BJ.banca).t) : '';
   const pj = BJ.jug.length ? puntos(BJ.jug) : null;
   $('bjPBanca').textContent = pb!=='' ? 'Banca: '+pb : '';
   $('bjPJug').textContent = pj ? 'Tú: '+(pj.blanda&&pj.t<21 ? (pj.t-10)+' / '+pj.t : pj.t) : '';
@@ -1598,6 +1627,8 @@ async function repartir(){
   if(A<APUESTAS[0] || dinero<A){ refrescar(); return; }
   audio();
   BJ.antes=dinero; BJ.jugado=A; BJ.doblado=false; BJ.tapada=true;
+  BJ.apuestaIni=A; BJ.rayos=false; BJ.siguiente=null;
+  BJ.salva=usarPrep('bj','salva',A); BJ.reembolso=usarPrep('bj','reembolso',A);
   const nota={}; BJ.suerte=usarSuerte(nota); BJ.notaSuerte=nota.suerte||'';
   dinero-=A; animarDinero('baja');
   BJ.banca=[]; BJ.jug=[];
@@ -1614,6 +1645,7 @@ async function pedir(){
   BJ.jug.push(cartaElegida(paraMi(BJ.jug))); pintarMesa(); SFX.carta();
   await pausa(300);
   const t=puntos(BJ.jug).t;
+  if(t>21 && BJ.salva){ BJ.salva=false; const c=BJ.jug.pop(); pintarMesa(); aviso('🛟 ¡Salvavidas! El '+c.r+c.p+' se va a la basura'); BJ.fase='jugando'; refrescar(); return; }
   if(t>21){ BJ.tapada=false; pintarMesa(); return terminarBJ('pasado'); }
   if(BJ.jug.length===5) return terminarBJ('charlie');
   if(t===21) return plantarse(true);
@@ -1625,6 +1657,7 @@ async function doblar(){
   BJ.fase='repartiendo'; refrescar();
   BJ.jug.push(cartaElegida(paraMi(BJ.jug))); pintarMesa(); SFX.carta();
   await pausa(400);
+  if(puntos(BJ.jug).t>21 && BJ.salva){ BJ.salva=false; const c=BJ.jug.pop(); pintarMesa(); aviso('🛟 ¡Salvavidas! El '+c.r+c.p+' se va a la basura'); }
   if(puntos(BJ.jug).t>21){ BJ.tapada=false; pintarMesa(); return terminarBJ('pasado'); }
   plantarse(true);
 }
@@ -1649,13 +1682,16 @@ const RES_BJ = {   // pago = veces la apuesta que te devuelven (contando lo apos
 function terminarBJ(res){
   const R=RES_BJ[res];
   dinero += BJ.jugado*R.pago;
+  let notaPJ='';
+  if(R.pago===0 && BJ.reembolso){ const dev=Math.floor(BJ.jugado/2); dinero+=dev; notaPJ=' · ↩️ recuperas '+fmt(dev); }
+  BJ.reembolso=false; BJ.salva=false; BJ.rayos=false; BJ.siguiente=null;
   const neto=dinero-BJ.antes;
   if(dinero>record){ record=dinero; guardar('rds_record',record); }
   historial.unshift({ruleta:'🃏 Blackjack', casilla:`${puntos(BJ.jug).t} contra ${puntos(BJ.banca).t}${BJ.doblado?' · doblada':''} · apuesta ${fmt(BJ.jugado)}`, neto});
   historial=historial.slice(0,30);
   guardarEstado();
   const color = neto>0 ? '#3ddc84' : neto<0 ? '#ff4d4d' : '#ffffff';
-  $('bjRes').innerHTML = `<span style="color:${color}">${R.txt} ${neto?conSigno(neto):''}</span><small>Tenías ${fmt(BJ.antes)} → ahora ${fmt(dinero)}${BJ.notaSuerte?' · '+BJ.notaSuerte:''}</small>`;
+  $('bjRes').innerHTML = `<span style="color:${color}">${R.txt} ${neto?conSigno(neto):''}</span><small>Tenías ${fmt(BJ.antes)} → ahora ${fmt(dinero)}${BJ.notaSuerte?' · '+BJ.notaSuerte:''}${notaPJ}</small>`;
   BJ.suerte=1;
   if(res==='bj'){ SFX.granPremio(); confeti(70); }
   else if(neto>0) SFX.ganar(); else if(neto<0) SFX.perder(); else SFX.compra();
@@ -1758,6 +1794,7 @@ async function caJugar(){
   if(CA.fase!=='ganada'){
     const A=CA.apuesta; if(dinero<A){ refrescar(); return; }
     audio(); CA.antes=dinero; dinero-=A; CA.bote=A; CA.racha=0; animarDinero('baja');
+    CA.apuestaIni=A; CA.segunda=usarPrep('carta','segunda',A); CA.as=usarPrep('carta','as',A); CA.seguro=usarPrep('carta','seguro',A);
     CA.suerte=usarSuerte({});
   }
   CA.fase='sacando'; $('caRes').innerHTML=''; refrescar();
@@ -1766,6 +1803,7 @@ async function caJugar(){
   const F=window.__R&&window.__R.caCartas;
   CA.banca = F&&F.length ? F.shift() : elegir(false);
   CA.tu    = F&&F.length ? F.shift() : elegir(true);
+  if(CA.as){ while(VAL_R[CA.tu.r]<10) CA.tu=cartaAzar(); CA.as=false; }
   CA.suerte=1;             // la bebida solo vale para la primera carta
   pintarCartas($('caBanca'),[CA.banca],true); pintarCartas($('caTu'),[],false); SFX.carta();
   await pausa(450);
@@ -1773,6 +1811,18 @@ async function caJugar(){
   await pausa(450);
   pintarCartas($('caBanca'),[CA.banca],false); SFX.carta();
   await pausa(350);
+  if(VAL_R[CA.tu.r]<VAL_R[CA.banca.r] && CA.segunda){      // segunda carta
+    CA.segunda=false; aviso('🔄 ¡Segunda carta!'); await pausa(500);
+    CA.tu=cartaAzar(); pintarCartas($('caTu'),[CA.tu],false); SFX.carta(); await pausa(450);
+  }
+  CA.segunda=false;
+  const seguro=CA.seguro; CA.seguro=false;
+  if(VAL_R[CA.tu.r]<VAL_R[CA.banca.r] && seguro){         // seguro: recuperas lo apostado
+    dinero+=CA.apuestaIni; CA.fase='fin';
+    const neto=finJugada('🂡 Carta alta', `${CA.tu.r} contra ${CA.banca.r} · 🛡 seguro`, CA.antes);
+    $('caRes').innerHTML=lineaRes('PIERDES, PERO EL SEGURO TE DEVUELVE LA APUESTA',neto,CA.antes); SFX.compra();
+    refrescar(); return;
+  }
   if(VAL_R[CA.tu.r]>=VAL_R[CA.banca.r]){
     CA.bote*=2; CA.racha++; CA.fase='ganada';
     const emp = VAL_R[CA.tu.r]===VAL_R[CA.banca.r];
@@ -1900,6 +1950,7 @@ async function pkRepartir(){
   for(let i=PK.mazo.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [PK.mazo[i],PK.mazo[j]]=[PK.mazo[j],PK.mazo[i]]; }
   PK.suerte=usarSuerte({});
   PK.rivales.forEach(r=>{ r.cartas=[]; r.activo=true; r.ver=false; r.estado=''; });
+  PK.verRivales=false; PK.siguienteMesa=null; PK.cambiado=false; PK.farol=false;
   $('pkRes').innerHTML=''; PK.fase='repartiendo'; refrescar();
   for(let k=0;k<2;k++){
     PK.tu.push(pkCarta(c=>k ? fuerza([PK.tu[0],c],[]) : VAL_R[c.r])); pintarPoker(); SFX.carta(); await pausa(220);
@@ -1930,10 +1981,12 @@ async function pkApostar(){
   PK.fase='rivales'; refrescar();
   for(const r of activos()){
     await pausa(380);
-    if(fuerza(r.cartas,PK.mesa)+Math.random()*.3>.45){ r.estado='Iguala'; PK.bote+=A; SFX.ficha(); }
-    else { r.activo=false; r.estado='Se retira'; }
+    const sigue = PK.farol ? fuerza(r.cartas,PK.mesa)>.85 : fuerza(r.cartas,PK.mesa)+Math.random()*.3>.45;
+    if(sigue){ r.estado='Iguala'; PK.bote+=A; SFX.ficha(); }
+    else { r.activo=false; r.estado=PK.farol?'¡Se asusta!':'Se retira'; }
     refrescar();
   }
+  PK.farol=false;
   await pausa(350);
   if(!activos().length) return pkFin([]);
   pkSiguiente();
@@ -1966,7 +2019,8 @@ async function pkSiguiente(){
   PK.fase='repartiendo'; refrescar();
   const n = PK.ronda===1 ? 3 : 1;
   for(let k=0;k<n;k++){
-    PK.mesa.push(pkCarta(c=>numMano(mejorMano([...PK.tu,...PK.mesa,c])))); pintarPoker(); SFX.carta(); await pausa(300);
+    const sig = k===0 && PK.siguienteMesa; if(k===0) PK.siguienteMesa=null;
+    PK.mesa.push(sig || pkCarta(c=>numMano(mejorMano([...PK.tu,...PK.mesa,c])))); pintarPoker(); SFX.carta(); await pausa(300);
   }
   PK.fase='juego'; refrescar();
 }
@@ -2184,6 +2238,107 @@ function oferta(casa,cant){
 }
 const azar2=a=>a[Math.floor(Math.random()*a.length)];
 
+/* =====================================================================
+   PODERES DE CADA JUEGO (se compran en la 🛒 TIENDA estando dentro de ese juego)
+   El precio depende de tu apuesta: precio = f × apuesta.
+   Cada poder sirve para apuestas de hasta lo que apostabas al comprarlo.
+   uso:'antes' → se marca antes de jugar · uso:'mano' → se usa durante la mano
+   ===================================================================== */
+const PODERES_JUEGO={
+  bj:{titulo:'Blackjack', lista:[
+    {id:'rayos',     nombre:'👁 Rayos X',         f:.5, uso:'mano',  desc:'Ves la carta tapada de la banca.'},
+    {id:'futuro',    nombre:'🔮 Bola de cristal',  f:.4, uso:'mano',  desc:'Ves cuál será la próxima carta antes de pedir.'},
+    {id:'salva',     nombre:'🛟 Salvavidas',       f:.7, uso:'antes', desc:'Si te pasas de 21, la última carta se va a la basura.'},
+    {id:'reembolso', nombre:'↩️ Reembolso',        f:.3, uso:'antes', desc:'Si pierdes la mano, recuperas la mitad.'}]},
+  poker:{titulo:'Póker', lista:[
+    {id:'rivales',   nombre:'👁 Ver rivales',      f:.6, uso:'mano',  desc:'Ves las cartas de todos tus rivales.'},
+    {id:'adivino',   nombre:'🔮 Adivino',           f:.4, uso:'mano',  desc:'Ves la siguiente carta que saldrá en la mesa.'},
+    {id:'cambio',    nombre:'🔄 Cambiar carta',     f:.5, uso:'mano',  desc:'Cambias tu carta más baja por otra del mazo.'},
+    {id:'farol',     nombre:'😎 Farol',             f:.9, uso:'mano',  desc:'En tu próxima apuesta se retiran todos, salvo que lleven un jugadón.'}]},
+  traga:{titulo:'Tragaperras', lista:[
+    {id:'comodin',   nombre:'🃏 Comodín',           f:.8, uso:'antes', desc:'El carrete del medio vale como el símbolo que más te convenga.'},
+    {id:'otra',      nombre:'🔁 Otra oportunidad',  f:.5, uso:'antes', desc:'Si no ganas nada, vuelves a tirar gratis.'},
+    {id:'doble',     nombre:'✖️2 Premio doble',     f:.6, uso:'antes', desc:'Si ganas, lo que ganas se duplica.'}]},
+  carta:{titulo:'Carta alta', lista:[
+    {id:'segunda',   nombre:'🔄 Segunda carta',     f:.6, uso:'antes', desc:'Si pierdes, sacas otra carta.'},
+    {id:'as',        nombre:'🂡 As en la manga',    f:.9, uso:'antes', desc:'Tu carta será un 10 o más alta.'},
+    {id:'seguro',    nombre:'🛡 Seguro',            f:.5, uso:'antes', desc:'Si pierdes, recuperas lo apostado.'}]},
+};
+const MAX_PJ=3;
+const prepJuego={bj:{},traga:{},carta:{}};
+function apuestaJuego(j){
+  if(j==='traga') return TR.apuesta;
+  if(j==='bj') return enManoBJ() ? BJ.apuestaIni : (BJ.apuesta==='todo' ? dinero : BJ.apuesta);
+  if(j==='carta') return (CA.fase==='ganada'||CA.fase==='sacando') ? CA.apuestaIni : CA.apuesta;
+  if(j==='poker') return PK.apuesta;
+  return 0;
+}
+const precioPJ=(p,A)=>redondea(Math.max(5,A*p.f));
+const listaPJ=(j,id)=>{ invJuego[j]=invJuego[j]||{}; return invJuego[j][id]=invJuego[j][id]||[]; };
+const usablesPJ=(j,id,A)=>listaPJ(j,id).filter(c=>c>=A).length;
+function gastarPJ(j,id,A){
+  const L=listaPJ(j,id).sort((a,b)=>a-b), i=L.findIndex(c=>c>=A);
+  if(i<0) return false; L.splice(i,1); guardarEstado(); return true;
+}
+const usarPrep=(j,id,A)=>{ const ok=!!(prepJuego[j][id] && gastarPJ(j,id,A)); prepJuego[j][id]=false; return ok; };
+function pintarTiendaJuego(j){
+  const T=$('tiendaLista'); T.innerHTML='';
+  const P=PODERES_JUEGO[j], A=apuestaJuego(j);
+  T.insertAdjacentHTML('beforeend',`<h3>Poderes de ${P.titulo}</h3><p class="nota">El precio depende de tu apuesta (ahora ${fmt(A)}): cuanto más apuestas, más caros.
+    Cada poder sirve para apuestas de hasta lo que apostabas al comprarlo. Salen como botones debajo del juego. Máximo ${MAX_PJ} de cada uno.</p>`);
+  P.lista.forEach(p=>{
+    const L=listaPJ(j,p.id), us=usablesPJ(j,p.id,A), pr=precioPJ(p,A);
+    const d=document.createElement('div'); d.className='item';
+    d.innerHTML=`<div><b>${p.nombre} <span class="cuenta">${L.length}</span></b><small>${p.desc}${L.length>us?` · ${L.length-us} no ${L.length-us>1?'valen':'vale'} para esta apuesta`:''}</small></div>`;
+    const b=document.createElement('button');
+    if(L.length>=MAX_PJ){ b.textContent='Máx. '+MAX_PJ; b.disabled=true; }
+    else { b.textContent=fmt(pr); b.disabled=dinero<pr;
+      b.onclick=()=>{ if(dinero<pr) return; dinero-=pr; L.push(A); SFX.compra(); animarDinero('baja'); guardarEstado(); refrescar(); }; }
+    d.appendChild(b); T.appendChild(d);
+  });
+  $('tiendaDinero').textContent=fmt(dinero);
+}
+function usadoEnMano(j,id){
+  if(j==='bj') return (id==='rayos'&&BJ.rayos) || (id==='futuro'&&!!BJ.siguiente);
+  if(j==='poker') return (id==='rivales'&&PK.verRivales) || (id==='adivino'&&(!!PK.siguienteMesa||PK.ronda>=3)) || (id==='cambio'&&PK.cambiado) || (id==='farol'&&PK.farol);
+  return false;
+}
+function faseJuego(j){
+  if(j==='bj') return BJ.fase==='jugando' ? 'mano' : enManoBJ() ? 'nada' : 'antes';
+  if(j==='poker') return PK.fase==='juego'||PK.fase==='responder' ? 'mano' : 'nada';
+  if(j==='traga') return TR.girando ? 'nada' : 'antes';
+  return (CA.fase==='sacando'||CA.fase==='ganada') ? 'nada' : 'antes';
+}
+function pintarPoderesJuego(j){
+  const C=$('pj_'+j); if(!C) return;
+  C.innerHTML='';
+  const P=PODERES_JUEGO[j], A=apuestaJuego(j), fase=faseJuego(j);
+  P.lista.forEach(p=>{
+    if(!listaPJ(j,p.id).length) return;
+    const n=usablesPJ(j,p.id,A), prep=prepJuego[j]&&prepJuego[j][p.id];
+    const b=document.createElement('button'); b.className='poder'+(prep?' on':'');
+    b.innerHTML=`${p.nombre} <span class="cuenta">${n}</span><small>${prep?'✔ se usará':n?(p.uso==='antes'?'márcalo antes de jugar':'úsalo durante la mano'):'no vale para esta apuesta'}</small>`;
+    b.disabled = !(p.uso===fase && n>0 && !usadoEnMano(j,p.id));
+    b.onclick=()=>{ if(p.uso==='antes'){ prepJuego[j][p.id]=!prepJuego[j][p.id]; refrescar(); } else usarPJ(j,p.id); };
+    C.appendChild(b);
+  });
+}
+function usarPJ(j,id){
+  if(faseJuego(j)!=='mano' || usadoEnMano(j,id)) return;
+  if(!gastarPJ(j,id,apuestaJuego(j))) return;
+  SFX.efecto();
+  if(j==='bj'){
+    if(id==='rayos'){ BJ.rayos=true; pintarMesa(); aviso('👁 La carta tapada de la banca es '+BJ.banca[1].r+BJ.banca[1].p); }
+    if(id==='futuro'){ if(BJ.mazo.length<30) barajar(); BJ.siguiente=BJ.mazo.pop(); aviso('🔮 La próxima carta será '+BJ.siguiente.r+BJ.siguiente.p); }
+  } else if(j==='poker'){
+    if(id==='rivales'){ PK.verRivales=true; PK.rivales.forEach(r=>r.ver=true); aviso('👁 Ya ves las cartas de tus rivales'); }
+    if(id==='adivino'){ PK.siguienteMesa=pkCarta(c=>numMano(mejorMano([...PK.tu,...PK.mesa,c]))); aviso('🔮 La siguiente carta de la mesa será '+PK.siguienteMesa.r+PK.siguienteMesa.p); }
+    if(id==='cambio'){ const i=VAL_R[PK.tu[0].r]<=VAL_R[PK.tu[1].r]?0:1; const vieja=PK.tu[i]; PK.tu[i]=pkCarta(); PK.mazo.push(vieja); PK.cambiado=true; SFX.carta(); aviso('🔄 Cambias tu '+vieja.r+vieja.p+' por '+PK.tu[i].r+PK.tu[i].p); }
+    if(id==='farol'){ PK.farol=true; aviso('😎 En tu próxima apuesta, los rivales se asustarán'); }
+  }
+  refrescar();
+}
+
 /* ---------- Cambiar de juego ---------- */
 const enManoBJ = () => BJ.fase!=='apostar' && BJ.fase!=='fin';
 const ocupado  = () => girando || TR.girando || enManoBJ() || CA.fase==='sacando' || CA.fase==='ganada' || !['apostar','fin'].includes(PK.fase);
@@ -2211,6 +2366,7 @@ function refrescarJuegos(){
   if($('panel').classList.contains('ver')) repintarPanel();
   $('nombreJuego').textContent = {ruleta:'🎡 Ruletas', traga:'🎰 Tragaperras', bj:'🃏 Blackjack', carta:'🂡 Carta alta', poker:'🂠 Póker'}[juego] || '';
   refrescarCarta(); refrescarPoker();
+  ['bj','poker','traga','carta'].forEach(pintarPoderesJuego);
   $('btnMusica').classList.toggle('off',!musica);
   // tragaperras
   pintarApuestas($('tragaApuestas'),TR.apuesta,v=>{ TR.apuesta=v; guardar('rds_apTraga',v); refrescar(); },false,TR.girando);
@@ -3310,8 +3466,8 @@ $('btnCerrarBar').onclick=cerrarBar;
 $('btnCerrarPanel').onclick=cerrarPanel;
 $('panel').onclick=e=>{ if(e.target.id==='panel') cerrarPanel(); };
 $('bar').onclick=e=>{ if(e.target.id==='bar') cerrarBar(); };
-$('btnTirar').onclick=tirar;
-$('palanca').onclick=tirar;
+$('btnTirar').onclick=()=>tirar();
+$('palanca').onclick=()=>tirar();
 $('btnRepartir').onclick=repartir;
 $('btnPedir').onclick=pedir;
 $('btnPlantarse').onclick=()=>plantarse();
@@ -3369,7 +3525,7 @@ window.__R={RULETAS,elegirCasilla, forzar:null, get dinero(){return dinero}, set
   precioPoder, aceptar, repetir, iman,
   forzarTraga:null, bjCartas:null, rapido:false, SIMBOLOS, pagoTraga, puntos, cambiarJuego, tirar, repartir, pedir, plantarse, doblar,
   get BJ(){return BJ}, get TR(){return TR}, get juego(){return juego}, MUS, SALA, COCHES, ARMAS, CASAS_TIPO, negociar, oferta, abrirCajaVip, abrirAgencia, abrirPortero,
-  get bienes(){return bienes}, cobrarAlquileres, fichaCasaMia, CA, PK, caJugar, caCobrar, pkRepartir, pkPasar, pkApostar, pkIgualar, pkRetirarse, mejorMano, NOMBRES_MANO,
+  get bienes(){return bienes}, PODERES_JUEGO, prepJuego, usarPJ, pintarTiendaJuego, get invJuego(){return invJuego}, cobrarAlquileres, fichaCasaMia, CA, PK, caJugar, caCobrar, pkRepartir, pkPasar, pkApostar, pkIgualar, pkRetirarse, mejorMano, NOMBRES_MANO,
   caCartas:null, pkCartas:null, BEBIDAS, precioBebida, comprarBebida, abrirBar,
   get suerte(){return suerte}, set suerte(v){suerte=v;refrescar()}};
 })();
