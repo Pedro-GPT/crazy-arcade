@@ -227,6 +227,66 @@ header h1{font-family:Bungee,Impact,sans-serif;font-size:20px;letter-spacing:1px
 }
 @media (hover:none){ .btnJuego small{display:none} }
 
+/* ---------- Bar ---------- */
+#suerteHdr{font-weight:900;font-size:14px;padding:5px 10px;border-radius:999px;background:linear-gradient(90deg,#2ecc71,#ffd700);color:#10240a;
+  box-shadow:0 0 14px #7bff9e88;animation:latido 1.2s ease-in-out infinite;white-space:nowrap}
+#bar{position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;z-index:45;padding:16px}
+#bar.ver{display:flex}
+#bar .caja{background:linear-gradient(180deg,#2a1a10,#1a100a);border-radius:18px;padding:18px 18px 14px;max-width:460px;width:100%;max-height:92vh;
+  overflow-y:auto;overflow-x:hidden;border:2px solid #ff7f2a;box-shadow:0 0 30px #ff7f2a55}
+#bar .cab{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+#bar .cab h2{font-family:Bungee,Impact,sans-serif;color:#ff9f4a;font-size:22px;flex:1}
+#bar .cab span{font-size:14px;color:var(--mut)} #bar .cab b{color:var(--txt)}
+#btnCerrarBar{font-size:18px;padding:2px 8px;border-radius:8px;background:#ffffff14}
+.bebida{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #3a2a1e}
+.bebida .ico{font-size:34px;width:44px;text-align:center;flex:0 0 auto}
+.bebida>div{flex:1;min-width:0}
+.bebida b{display:block;font-size:15px} .bebida small{display:block;font-size:12px;color:var(--mut);margin-top:2px}
+.bebida .x{display:inline-block;margin-left:6px;padding:0 7px;border-radius:999px;background:#2ecc71;color:#06240f;font-size:12px;font-weight:900}
+.bebida .x.cero{background:#555;color:#ddd}
+.bebida button{flex:0 0 auto;font-weight:900;padding:8px 12px;border-radius:10px;background:#ff9f4a;color:#2a1000;min-width:96px}
+.bebida button:disabled{filter:grayscale(1) brightness(.6);cursor:not-allowed}
+.bebida.lujo{background:linear-gradient(90deg,#ffd70018,transparent)}
+.bebida.lujo b{color:#ffd700}
+#salaAyuda{white-space:normal;max-width:90%;width:max-content;text-align:center}
+@media (max-width:600px){
+  .marcador{flex-wrap:wrap;row-gap:6px}
+  #suerteHdr{font-size:12px;padding:4px 8px}
+}
+@media (max-width:480px){
+  #bar .caja{padding:14px 12px 12px}
+  .bebida{gap:8px}
+  .bebida .ico{font-size:26px;width:30px}
+  .bebida b{font-size:14px}
+  .bebida .x{display:block;width:max-content;margin:2px 0 0}
+  .bebida button{min-width:70px;padding:8px 8px;font-size:13px}
+}
+#bar .ayuda{font-size:12px;color:var(--mut);margin-top:12px;line-height:1.5}
+#bar .ayuda b{color:var(--txt)}
+
+/* ---------- Carta alta y póker ---------- */
+#zonaCarta,#zonaPoker{position:relative;display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px 16px 22px}
+#zonaCarta{background:radial-gradient(circle at 50% 20%,#3a2a0a 0%,#1a1206 60%,#0a0703 100%)}
+#zonaPoker{background:radial-gradient(circle at 50% 20%,#0f2a4a 0%,#081626 60%,#03080f 100%)}
+.mesaCarta{background:radial-gradient(ellipse at 50% 35%,#b23a3a,#7a1f1f 65%,#5a1414)}
+.mesaPoker{background:radial-gradient(ellipse at 50% 35%,#2a6fc0,#174a8a 65%,#0f3566)}
+.duelo{display:flex;align-items:center;gap:22px;margin:8px 0}
+.duelo>div{display:flex;flex-direction:column;align-items:center;gap:6px}
+.duelo .mano{--cw:min(96px,22vw);padding-left:0}
+.duelo .naipe{margin-left:0}
+.vs{font-family:Bungee,Impact,sans-serif;font-size:26px;color:#ffd56b;text-shadow:0 3px 0 #000}
+#caRes,#pkRes{min-height:48px;text-align:center;font-family:Bungee,Impact,sans-serif;font-size:clamp(17px,5vw,26px);text-shadow:0 3px 0 #000}
+#caRes small,#pkRes small{display:block;font-family:system-ui,sans-serif;font-weight:700;font-size:13px;color:#fff;opacity:.85;margin-top:2px}
+.rivales{display:flex;justify-content:center;gap:clamp(8px,4vw,30px);width:100%}
+.rival{display:flex;flex-direction:column;align-items:center;gap:3px;--cw:min(44px,10vw);transition:opacity .3s}
+.rival.fuera{opacity:.35}
+.rival .nom{font-weight:900;font-size:13px;color:#fff6c2}
+.rival .est{font-size:12px;font-weight:800;color:#fff;min-height:16px;text-align:center}
+.rival .mano{min-height:calc(var(--cw)*1.4)}
+#pkMesa{padding-left:0;gap:4px;min-height:calc(var(--cw)*1.4)}
+#pkMesa .naipe{margin-left:0}
+.listaManos{font-size:13px;text-align:center;line-height:1.6}
+
 /* ---------- Fin de partida ---------- */
 #fin{position:fixed;inset:0;background:rgba(0,0,0,.86);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
 #fin.ver{display:flex}
@@ -482,6 +542,52 @@ header h1{font-family:Bungee,Impact,sans-serif;font-size:20px;letter-spacing:1px
   <div class="pagos"><h3>Premios con esta ficha</h3><div id="tragaPagos"></div></div>
 </section>
 
+<section id="zonaCarta" class="oculto">
+  <div class="mesa mesaCarta">
+    <div class="rotulo">CARTA ALTA · LOS EMPATES LOS GANAS TÚ</div>
+    <div class="duelo">
+      <div><div class="puntos">Banca</div><div class="mano" id="caBanca"></div></div>
+      <div class="vs">VS</div>
+      <div><div class="puntos">Tú</div><div class="mano" id="caTu"></div></div>
+    </div>
+    <div id="caRes"></div>
+    <div class="fichaMesa" id="caBote"></div>
+  </div>
+  <div class="apuestas" id="caApuestas"></div>
+  <div class="bjBotones">
+    <button id="btnCaSacar" class="btnJuego">SACAR CARTA · 10 €</button>
+    <button id="btnCaCobrar" class="btnJuego oculto">COBRAR</button>
+    <button id="btnCaDoble" class="btnJuego oculto">DOBLE O NADA</button>
+  </div>
+  <div id="caAviso" class="aviso"></div>
+</section>
+
+<section id="zonaPoker" class="oculto">
+  <div class="mesa mesaPoker">
+    <div class="rotulo">PÓKER · TEXAS HOLD'EM</div>
+    <div class="rivales">
+      <div class="rival" id="pkRival0"><div class="nom"></div><div class="mano"></div><div class="est"></div></div>
+      <div class="rival" id="pkRival1"><div class="nom"></div><div class="mano"></div><div class="est"></div></div>
+      <div class="rival" id="pkRival2"><div class="nom"></div><div class="mano"></div><div class="est"></div></div>
+    </div>
+    <div class="mano" id="pkMesa"></div>
+    <div class="fichaMesa" id="pkBote"></div>
+    <div id="pkRes"></div>
+    <div class="mano" id="pkTu"></div>
+    <div class="puntos" id="pkJugada"></div>
+  </div>
+  <div class="apuestas" id="pkApuestas"></div>
+  <div class="bjBotones">
+    <button id="btnPkRepartir" class="btnJuego">REPARTIR · 10 €</button>
+    <button id="btnPkPasar" class="btnJuego oculto">PASAR</button>
+    <button id="btnPkApostar" class="btnJuego oculto">APOSTAR</button>
+    <button id="btnPkIgualar" class="btnJuego oculto">IGUALAR</button>
+    <button id="btnPkRetirarse" class="btnJuego oculto">RETIRARSE</button>
+  </div>
+  <div id="pkAviso" class="aviso"></div>
+  <div class="pagos"><h3>Jugadas, de mejor a peor</h3><div class="listaManos">Escalera de color · Póker · Full · Color · Escalera · Trío · Dobles parejas · Pareja · Carta alta</div></div>
+</section>
+
 <section id="zonaBJ" class="oculto">
   <div class="mesa">
     <div class="rotulo">BLACKJACK PAGA 2 A 1 · 5 CARTAS SIN PASARTE GANAN</div>
@@ -517,6 +623,14 @@ header h1{font-family:Bungee,Impact,sans-serif;font-size:20px;letter-spacing:1px
     🔁 Repetir y 🧲 Imán se ofrecen al parar la ruleta.<br>
     El precio de 🛡 Escudo, ×2 y ⛔ Tapar cambia según la ruleta y el dinero que llevas. Máximo 3 de cada uno.<br>
     Todo lo de la tienda se pierde al volver a empezar.
+  </div>
+</div></div>
+
+<div id="bar"><div class="caja">
+  <div class="cab"><h2>🍸 BAR</h2><span>Tienes <b id="barDinero"></b></span><button id="btnCerrarBar" title="Cerrar">✕</button></div>
+  <div id="barLista"></div>
+  <div class="ayuda">
+    Bebidas de la casa. ¡Salud!
   </div>
 </div></div>
 
@@ -653,6 +767,7 @@ let efectos  = (E && E.efectos) || SIN_EFECTOS();   // lo que espera a la siguie
 const SIN_MEJORAS = ()=>({seguro:0, descuento:0, banco:0, llaves:{}});
 let mejoras  = Object.assign(SIN_MEJORAS(), (E && E.mejoras) || {});   // compras de la tienda (toda la partida)
 let inventario = (E && E.inventario) || {};                         // poderes comprados: {ruleta:{poder:n}}
+let suerte   = (E && E.suerte) || null;                              // bebida del bar: {n, ico, nombre} para la próxima jugada
 let preparados = {escudo:false, x2:false, tapar:false};            // poderes marcados para la próxima tirada
 let jugada   = null;                                               // tirada en curso
 let record   = cargar('rds_record', SALDO_INICIAL);
@@ -890,7 +1005,7 @@ function costeTirada(R){
   const t = efectos.gratis>0 ? 0 : precioTirada(R);
   return { tirada:t, extra:0, total:t };
 }
-const guardarEstado = ()=>guardar('rds_estado',{dinero,tiradas,historial,efectos,mejoras,inventario});
+const guardarEstado = ()=>guardar('rds_estado',{dinero,tiradas,historial,efectos,mejoras,inventario,suerte});
 
 /* ---------- Marcador y botón ---------- */
 function refrescar(){
@@ -1036,7 +1151,12 @@ function girar(){
   $('aviso').textContent='Girando…'; $('aviso').className='';
 
   const f=window.__R&&window.__R.forzar;
-  const g=(f&&R.segs.find(f))||elegirCasilla(R,jugada.tapar);
+  let g=f&&R.segs.find(f);
+  if(!g){
+    const s=usarSuerte(jugada);
+    g=elegirCasilla(R,jugada.tapar);
+    for(let k=1;k<Math.abs(s);k++){ const o=elegirCasilla(R,jugada.tapar); if(mejorQue(s,valorCasilla(R,o),valorCasilla(R,g))) g=o; }
+  }
   if(window.__R) window.__R.forzar=null;
   lanzar(R,g,false);
 }
@@ -1150,7 +1270,7 @@ function resolver(){
   const res=$('resultado');
   const linea = nota || (['all','half','mul','bote'].includes(g.k) ? conSigno(neto) : '');
   const gastos = j.gastos ? ` (poderes −${fmt(j.gastos)})` : '';
-  res.innerHTML = `${c.titulo}${linea?`<small>${linea}</small>`:''}<small class="nota">Tenías ${fmt(j.antes)} → ahora ${fmt(dinero)}${gastos}</small>`;
+  res.innerHTML = `${c.titulo}${linea?`<small>${linea}</small>`:''}<small class="nota">Tenías ${fmt(j.antes)} → ahora ${fmt(dinero)}${gastos}${j.suerte?` · ${j.suerte}`:''}</small>`;
   res.style.color = g.k==='fut' ? (g.ef==='mitad' ? '#c9a8e6' : '#00e5ff') : neto>0 ? '#3ddc84' : neto<0 ? '#ff4d4d' : '#ffffff';
   res.classList.add('ver');
 
@@ -1175,7 +1295,7 @@ function comprobarRuina(){
     return;
   }
   ruinas++; guardar('rds_ruinas',ruinas); refrescar();
-  setTimeout(finPartida,1400);
+  setTimeout(()=>{ cambiarJuego('sala'); SALA.expulsar(finPartida); },1400);
 }
 
 /* ---------- Tienda ---------- */
@@ -1232,11 +1352,14 @@ function finPartida(){
   $('fin').classList.add('ver');
 }
 function reiniciar(){
-  dinero=SALDO_INICIAL; tiradas=0; historial=[]; efectos=SIN_EFECTOS(); mejoras=SIN_MEJORAS(); inventario={};
+  dinero=SALDO_INICIAL; tiradas=0; historial=[]; efectos=SIN_EFECTOS(); mejoras=SIN_MEJORAS(); inventario={}; suerte=null;
   preparados={escudo:false,x2:false,tapar:false}; jugada=null; girando=false;
   BJ.fase='apostar'; BJ.banca=[]; BJ.jug=[]; BJ.jugado=0; pintarMesa(); $('bjRes').innerHTML=''; $('tragaRes').innerHTML='';
   guardarEstado();
+  CA.fase='apostar'; PK.fase='apostar'; PK.tu=[]; PK.mesa=[]; PK.rivales.forEach(r=>{r.cartas=[];r.estado='';});
+  $('caRes').innerHTML=''; $('pkRes').innerHTML=''; pintarCartas($('caTu'),[],0); pintarCartas($('caBanca'),[],0);
   $('fin').classList.remove('ver');
+  SALA.volverAEntrar();
   seleccionar(RULETAS[0]);
 }
 
@@ -1304,7 +1427,13 @@ function tirar(){
   const antes=dinero;
   dinero-=A; animarDinero('baja');
   const f=window.__R&&window.__R.forzarTraga;
-  const res = f ? f.map(s=>SIMBOLOS.find(y=>y.s===s)) : [simboloAzar(),simboloAzar(),simboloAzar()];
+  let res = f ? f.map(s=>SIMBOLOS.find(y=>y.s===s)) : null;
+  const nota={};
+  if(!res){
+    const s=usarSuerte(nota);
+    for(let k=0;k<Math.abs(s);k++){ const o=[simboloAzar(),simboloAzar(),simboloAzar()]; if(!res || mejorQue(s,pagoTraga(o),pagoTraga(res))) res=o; }
+  }
+  TR.suerte=nota.suerte||'';
   if(window.__R) window.__R.forzarTraga=null;
   const p=$('palanca'); p.classList.remove('baja'); void p.offsetWidth; p.classList.add('baja');
   SFX.palanca();
@@ -1343,7 +1472,7 @@ function resolverTraga(res,A,antes){
   const tres = res[0]===res[1] && res[1]===res[2];
   const titulo = tres ? `¡TRES ${res[0].s}!` : neto>0 ? '¡CEREZAS!' : neto===0 ? 'RECUPERAS' : 'NADA';
   const color = neto>0 ? '#3ddc84' : neto<0 ? '#ff4d4d' : '#ffffff';
-  $('tragaRes').innerHTML = `<span style="color:${color}">${titulo} ${neto?conSigno(neto):''}</span><small>Tenías ${fmt(antes)} → ahora ${fmt(dinero)}</small>`;
+  $('tragaRes').innerHTML = `<span style="color:${color}">${titulo} ${neto?conSigno(neto):''}</span><small>Tenías ${fmt(antes)} → ahora ${fmt(dinero)}${TR.suerte?' · '+TR.suerte:''}</small>`;
   if(x>1) $('tragaVentana').classList.add('premio');
   if(x>=40){ SFX.granPremio(); confeti(x>=100?160:70); }
   else if(x>1) SFX.ganar();
@@ -1384,6 +1513,21 @@ function puntos(m){
   return {t, blanda:a>0};
 }
 const esBJ = m => m.length===2 && puntos(m).t===21;
+// Con suerte ×N se sacan N cartas y se queda la mejor para ti; las demás vuelven al mazo.
+function cartaElegida(valorar){
+  const s=BJ.suerte||1, n=Math.abs(s), F=window.__R&&window.__R.bjCartas;
+  if(n<=1 || (F&&F.length)) return sacarCarta();
+  const cand=Array.from({length:n},sacarCarta);
+  let m=0; cand.forEach((c,i)=>{ if(mejorQue(s,valorar(c),valorar(cand[m]))) m=i; });
+  cand.forEach((c,i)=>{ if(i!==m) BJ.mazo.splice(Math.floor(Math.random()*(BJ.mazo.length+1)),0,c); });
+  return cand[m];
+}
+const paraMi = mano => c => { const t=puntos([...mano,c]).t; return t>21 ? -1 : (t===21&&mano.length===1) ? 100 : t; };
+const paraBanca = mano => c => {   // cuanto más alto, peor para la banca
+  if(!mano.length){ const v=puntos([c]).t; return v<=6 ? v : 6-v; }
+  const t=puntos([...mano,c]).t;
+  return t>21 ? 100 : t>=17 ? -t : t>=12 ? 30+t : t;
+};
 const pausa = ms => new Promise(r=>setTimeout(r,(window.__R&&window.__R.rapido)?0:ms));
 function pintarMano(el, mano, tapar){
   while(el.children.length>mano.length) el.lastChild.remove();
@@ -1404,7 +1548,7 @@ function pintarMesa(){
   const pj = BJ.jug.length ? puntos(BJ.jug) : null;
   $('bjPBanca').textContent = pb!=='' ? 'Banca: '+pb : '';
   $('bjPJug').textContent = pj ? 'Tú: '+(pj.blanda&&pj.t<21 ? (pj.t-10)+' / '+pj.t : pj.t) : '';
-  $('bjFicha').textContent = BJ.jugado && BJ.fase!=='apostar' ? 'Apuesta '+fmt(BJ.jugado)+(BJ.doblado?' (doblada)':'') : '';
+  $('bjFicha').textContent = BJ.jugado && BJ.fase!=='apostar' ? 'Apuesta '+fmt(BJ.jugado)+(BJ.doblado?' (doblada)':'')+(BJ.notaSuerte&&BJ.fase!=='fin'?' · '+BJ.notaSuerte:'') : '';
 }
 async function repartir(){
   if(BJ.fase!=='apostar' && BJ.fase!=='fin') return;
@@ -1412,11 +1556,12 @@ async function repartir(){
   if(A<APUESTAS[0] || dinero<A){ refrescar(); return; }
   audio();
   BJ.antes=dinero; BJ.jugado=A; BJ.doblado=false; BJ.tapada=true;
+  const nota={}; BJ.suerte=usarSuerte(nota); BJ.notaSuerte=nota.suerte||'';
   dinero-=A; animarDinero('baja');
   BJ.banca=[]; BJ.jug=[];
   $('bjRes').innerHTML=''; pintarMesa();
   BJ.fase='repartiendo'; refrescar();
-  for(const m of [BJ.jug,BJ.banca,BJ.jug,BJ.banca]){ m.push(sacarCarta()); pintarMesa(); SFX.carta(); await pausa(330); }
+  for(const m of [BJ.jug,BJ.banca,BJ.jug,BJ.banca]){ m.push(cartaElegida(m===BJ.jug?paraMi(m):paraBanca(m))); pintarMesa(); SFX.carta(); await pausa(330); }
   const bj=esBJ(BJ.jug), bb=esBJ(BJ.banca);
   if(bj||bb){ BJ.tapada=false; pintarMesa(); await pausa(300); return terminarBJ(bj&&bb?'empate':bj?'bj':'pierde'); }
   BJ.fase='jugando'; refrescar();
@@ -1424,7 +1569,7 @@ async function repartir(){
 async function pedir(){
   if(BJ.fase!=='jugando') return;
   BJ.fase='repartiendo'; refrescar();
-  BJ.jug.push(sacarCarta()); pintarMesa(); SFX.carta();
+  BJ.jug.push(cartaElegida(paraMi(BJ.jug))); pintarMesa(); SFX.carta();
   await pausa(300);
   const t=puntos(BJ.jug).t;
   if(t>21){ BJ.tapada=false; pintarMesa(); return terminarBJ('pasado'); }
@@ -1436,7 +1581,7 @@ async function doblar(){
   if(BJ.fase!=='jugando' || BJ.jug.length!==2 || dinero<BJ.jugado) return;
   dinero-=BJ.jugado; BJ.jugado*=2; BJ.doblado=true; animarDinero('baja');
   BJ.fase='repartiendo'; refrescar();
-  BJ.jug.push(sacarCarta()); pintarMesa(); SFX.carta();
+  BJ.jug.push(cartaElegida(paraMi(BJ.jug))); pintarMesa(); SFX.carta();
   await pausa(400);
   if(puntos(BJ.jug).t>21){ BJ.tapada=false; pintarMesa(); return terminarBJ('pasado'); }
   plantarse(true);
@@ -1446,7 +1591,7 @@ async function plantarse(forzado){
   BJ.fase='banca'; refrescar();
   BJ.tapada=false; pintarMesa(); SFX.carta();
   await pausa(550);
-  while(puntos(BJ.banca).t<17){ BJ.banca.push(sacarCarta()); pintarMesa(); SFX.carta(); await pausa(600); }
+  while(puntos(BJ.banca).t<17){ BJ.banca.push(cartaElegida(paraBanca(BJ.banca))); pintarMesa(); SFX.carta(); await pausa(600); }
   const j=puntos(BJ.jug).t, b=puntos(BJ.banca).t;
   terminarBJ(b>21 ? 'bancaPasa' : j>b ? 'gana' : j===b ? 'empate' : 'pierde');
 }
@@ -1468,7 +1613,8 @@ function terminarBJ(res){
   historial=historial.slice(0,30);
   guardarEstado();
   const color = neto>0 ? '#3ddc84' : neto<0 ? '#ff4d4d' : '#ffffff';
-  $('bjRes').innerHTML = `<span style="color:${color}">${R.txt} ${neto?conSigno(neto):''}</span><small>Tenías ${fmt(BJ.antes)} → ahora ${fmt(dinero)}</small>`;
+  $('bjRes').innerHTML = `<span style="color:${color}">${R.txt} ${neto?conSigno(neto):''}</span><small>Tenías ${fmt(BJ.antes)} → ahora ${fmt(dinero)}${BJ.notaSuerte?' · '+BJ.notaSuerte:''}</small>`;
+  BJ.suerte=1;
   if(res==='bj'){ SFX.granPremio(); confeti(70); }
   else if(neto>0) SFX.ganar(); else if(neto<0) SFX.perder(); else SFX.compra();
   animarDinero(neto>=0?'sube':'baja');
@@ -1477,10 +1623,351 @@ function terminarBJ(res){
   comprobarRuina();
 }
 
+/* ---------- Bar: bebidas que dan suerte en la próxima jugada ---------- */
+// n = suerte (el juego lo intenta n veces y te quedas con lo mejor)
+// precio = el más alto entre "base" y "pct" de tu dinero
+// buena = probabilidad de que la bebida salga buena (si sale mala: te quedas con lo PEOR de n intentos)
+const BEBIDAS = [
+  {id:'agua',    ico:'💧', nombre:'Agua',               n:1,  buena:1,   base:0,      pct:0,   desc:'Fresquita y gratis.'},
+  {id:'cerveza', ico:'🍺', nombre:'Cerveza',            n:2,  buena:.6,  base:40,     pct:.03, desc:'Una caña bien fría.'},
+  {id:'vino',    ico:'🍷', nombre:'Vino tinto',         n:3,  buena:.65, base:150,    pct:.06, desc:'Reserva de la casa.'},
+  {id:'coctel',  ico:'🍹', nombre:'Cóctel tropical',    n:3,  buena:.7,  base:250,    pct:.05, desc:'Con sombrillita.'},
+  {id:'whisky',  ico:'🥃', nombre:'Whisky de 18 años',  n:4,  buena:.7,  base:800,    pct:.10, desc:'Solo para jugadores serios.'},
+  {id:'champan', ico:'🍾', nombre:'Champán',            n:5,  buena:.75, base:3000,   pct:.15, desc:'Con burbujas.'},
+  {id:'oro',     ico:'🏆', nombre:'Champán de oro',     n:10, buena:.8,  base:100000, pct:.30, desc:'Botella con pan de oro.'},
+];
+const precioBebida = b => b.pct ? Math.max(b.base, redondea(dinero*b.pct)) : b.base;
+// Gasta la bebida. Devuelve n (lo mejor de n intentos) o −n (lo peor de n: mala suerte). 1 = sin bebida.
+function usarSuerte(donde){
+  if(!suerte) return 1;
+  const n=suerte.n, ok=suerte.buena;
+  suerte=null; guardarEstado();
+  return ok ? n : -n;
+}
+const mejorQue = (s,a,b) => s>0 ? a>b : a<b;     // con mala suerte gana el PEOR
+function valorCasilla(R,g){             // lo bueno que es una casilla de la ruleta (para elegir con suerte)
+  if(g.k!=='fut') return deltaCasilla(g,dinero);
+  const P=R.precio;
+  return g.ef==='mul' ? P*(g.v-1)*.4 : g.ef==='gratis' ? P : g.ef==='combo' ? P+P*(g.v-1)*.4 : g.ef==='mitad' ? -P*.4 : 0;
+}
+function pintarBar(){
+  const L=$('barLista'); L.innerHTML='';
+  BEBIDAS.forEach(b=>{
+    const pr=precioBebida(b), d=document.createElement('div');
+    d.className='bebida'+(b.n>=5?' lujo':'');
+    d.innerHTML=`<span class="ico">${b.ico}</span><div><b>${b.nombre}</b><small>${b.desc}</small></div>`;
+    const bt=document.createElement('button');
+    bt.textContent = pr ? fmt(pr) : 'Gratis';
+    bt.disabled = dinero<pr || ocupado();
+    bt.onclick=()=>comprarBebida(b);
+    d.appendChild(bt); L.appendChild(d);
+  });
+  $('barDinero').textContent=fmt(dinero);
+}
+function comprarBebida(b){
+  const pr=precioBebida(b);
+  if(dinero<pr || ocupado()) return;
+  dinero-=pr;
+  // la bebida nueva sustituye a la anterior; su efecto es secreto
+  suerte = b.n>1 ? {n:b.n, ico:b.ico, nombre:b.nombre, buena:Math.random()<b.buena} : null;
+  SFX.compra();
+  if(pr) animarDinero('baja');
+  SALA.decirCamarero(b.n>1 ? '¡Marchando!' : '¡Agua fresquita!');
+  guardarEstado(); refrescar(); pintarBar();
+}
+function abrirBar(){ audio(); $('bar').classList.add('ver'); pintarBar(); }
+function cerrarBar(){ $('bar').classList.remove('ver'); }
+
+/* =====================================================================
+   CARTA ALTA y PÓKER
+   ===================================================================== */
+const VAL_R = {'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,J:11,Q:12,K:13,A:14};
+const cartaAzar = () => ({r:RANGOS[Math.floor(Math.random()*13)], p:PALOS[Math.floor(Math.random()*4)]});
+function pintarCartas(el, mano, tapadas){
+  while(el.children.length>mano.length) el.lastChild.remove();
+  mano.forEach((c,i)=>{
+    let d=el.children[i];
+    if(!d || d.dataset.c!==c.r+c.p){
+      const nueva=document.createElement('div');
+      nueva.dataset.c=c.r+c.p;
+      nueva.innerHTML=`<span class="esq">${c.r}<br>${c.p}</span><span class="cen">${c.p}</span><span class="esq abajo">${c.r}<br>${c.p}</span>`;
+      d ? el.replaceChild(nueva,d) : el.appendChild(nueva); d=nueva;
+    }
+    d.className='naipe'+(c.p==='♥'||c.p==='♦'?' rojo':'')+(tapadas?' dorso':'');
+  });
+}
+function finJugada(nombre, casilla, antes){
+  const neto=dinero-antes;
+  if(dinero>record){ record=dinero; guardar('rds_record',record); }
+  historial.unshift({ruleta:nombre, casilla, neto}); historial=historial.slice(0,30);
+  guardarEstado();
+  animarDinero(neto>=0?'sube':'baja');
+  return neto;
+}
+const lineaRes = (txt,neto,antes) =>
+  `<span style="color:${neto>0?'#3ddc84':neto<0?'#ff4d4d':'#fff'}">${txt} ${neto?conSigno(neto):''}</span><small>Tenías ${fmt(antes)} → ahora ${fmt(dinero)}</small>`;
+
+/* ---------- Carta alta ---------- */
+// Tú y la banca sacáis una carta; gana la más alta (el As es la más alta). Los empates los ganas tú.
+// Si ganas, puedes COBRAR o jugarte el bote a DOBLE O NADA.
+const CA = { fase:'apostar', apuesta:cargar('rds_apCarta',10), bote:0, racha:0, antes:0, suerte:1, tu:null, banca:null };
+async function caJugar(){
+  if(CA.fase==='sacando') return;
+  if(CA.fase!=='ganada'){
+    const A=CA.apuesta; if(dinero<A){ refrescar(); return; }
+    audio(); CA.antes=dinero; dinero-=A; CA.bote=A; CA.racha=0; animarDinero('baja');
+    CA.suerte=usarSuerte({});
+  }
+  CA.fase='sacando'; $('caRes').innerHTML=''; refrescar();
+  const elegir=(mia)=>{ const n=Math.abs(CA.suerte); let c=cartaAzar();
+    for(let k=1;k<n;k++){ const o=cartaAzar(); const vo=VAL_R[o.r]*(mia?1:-1), vc=VAL_R[c.r]*(mia?1:-1); if(mejorQue(CA.suerte,vo,vc)) c=o; } return c; };
+  const F=window.__R&&window.__R.caCartas;
+  CA.banca = F&&F.length ? F.shift() : elegir(false);
+  CA.tu    = F&&F.length ? F.shift() : elegir(true);
+  CA.suerte=1;             // la bebida solo vale para la primera carta
+  pintarCartas($('caBanca'),[CA.banca],true); pintarCartas($('caTu'),[],false); SFX.carta();
+  await pausa(450);
+  pintarCartas($('caTu'),[CA.tu],false); SFX.carta();
+  await pausa(450);
+  pintarCartas($('caBanca'),[CA.banca],false); SFX.carta();
+  await pausa(350);
+  if(VAL_R[CA.tu.r]>=VAL_R[CA.banca.r]){
+    CA.bote*=2; CA.racha++; CA.fase='ganada';
+    const emp = VAL_R[CA.tu.r]===VAL_R[CA.banca.r];
+    $('caRes').innerHTML=`<span style="color:#3ddc84">${emp?'¡EMPATE, GANAS TÚ!':'¡GANAS!'}</span><small>Bote: ${fmt(CA.bote)}${CA.racha>1?' · racha de '+CA.racha:''}. ¿Cobras o doble o nada?</small>`;
+    CA.racha>2 ? SFX.granPremio() : SFX.ganar();
+    refrescar();
+  } else {
+    CA.fase='fin';
+    const neto=finJugada('🂡 Carta alta', `${CA.tu.r} contra ${CA.banca.r}${CA.racha?' · racha de '+CA.racha:''}`, CA.antes);
+    $('caRes').innerHTML=lineaRes('PIERDES',neto,CA.antes); SFX.perder();
+    refrescar(); comprobarRuina();
+  }
+}
+function caCobrar(){
+  if(CA.fase!=='ganada') return;
+  dinero+=CA.bote; CA.fase='fin';
+  const neto=finJugada('🂡 Carta alta', `cobras tras racha de ${CA.racha}`, CA.antes);
+  $('caRes').innerHTML=lineaRes('COBRAS',neto,CA.antes);
+  CA.racha>2 ? (SFX.granPremio(), confeti(60)) : SFX.compra();
+  refrescar();
+}
+function refrescarCarta(){
+  const enJuego = CA.fase==='sacando'||CA.fase==='ganada';
+  pintarApuestas($('caApuestas'),CA.apuesta,v=>{ CA.apuesta=v; guardar('rds_apCarta',v); refrescar(); },false,enJuego);
+  const b=$('btnCaSacar');
+  b.classList.toggle('oculto',CA.fase==='ganada');
+  b.textContent='SACAR CARTA · '+fmt(CA.apuesta);
+  b.disabled = CA.fase==='sacando' || dinero<CA.apuesta;
+  $('btnCaCobrar').classList.toggle('oculto',CA.fase!=='ganada');
+  $('btnCaDoble').classList.toggle('oculto',CA.fase!=='ganada');
+  $('btnCaCobrar').textContent='COBRAR '+fmt(CA.bote);
+  $('btnCaDoble').textContent='DOBLE O NADA → '+fmt(CA.bote*2);
+  $('caBote').textContent = enJuego ? 'En juego: '+fmt(CA.bote) : '';
+  const av=$('caAviso');
+  if(CA.fase==='ganada'){ av.textContent='Si doblas y pierdes, te quedas sin el bote.'; av.className='aviso'; }
+  else if(CA.fase==='sacando') av.textContent='';
+  else if(dinero<CA.apuesta){ av.textContent='Te faltan '+fmt(CA.apuesta-dinero)+'. Elige una ficha más pequeña.'; av.className='aviso mal'; }
+  else { av.textContent='Elige ficha y pulsa SACAR CARTA (espacio).'; av.className='aviso'; }
+}
+
+/* ---------- Póker (Texas Hold'em contra 3 rivales) ---------- */
+// Cada uno pone la apuesta inicial (ficha). Recibes 2 cartas y salen 5 en la mesa (3 + 1 + 1).
+// En cada ronda: PASAR, APOSTAR (otra ficha) o RETIRARTE. Los rivales igualan, se retiran o apuestan.
+// Gana la mejor jugada de 5 cartas con tus 2 y las 5 de la mesa. Te llevas el bote.
+const NOMBRES_MANO=['Carta alta','Pareja','Dobles parejas','Trío','Escalera','Color','Full','Póker','Escalera de color'];
+function valorCinco(cs){
+  const v=cs.map(c=>VAL_R[c.r]).sort((a,b)=>b-a);
+  const cuenta={}; v.forEach(x=>cuenta[x]=(cuenta[x]||0)+1);
+  const g=Object.entries(cuenta).map(([x,n])=>[n,+x]).sort((a,b)=>b[0]-a[0]||b[1]-a[1]);
+  const resto=k=>g.slice(k).map(e=>e[1]);
+  if(cs.length<5){                      // menos de 5 cartas: solo parejas, tríos...
+    if(g[0][0]===4) return [7,g[0][1]];
+    if(g[0][0]===3) return [3,g[0][1],...resto(1)];
+    if(g[0][0]===2&&g[1]&&g[1][0]===2) return [2,g[0][1],g[1][1],...resto(2)];
+    if(g[0][0]===2) return [1,g[0][1],...resto(1)];
+    return [0,...v];
+  }
+  const color=cs.every(c=>c.p===cs[0].p);
+  let esc=0; if(g.length===5){ if(v[0]-v[4]===4) esc=v[0]; else if(v[0]===14&&v[1]===5) esc=5; }
+  if(esc&&color) return [8,esc];
+  if(g[0][0]===4) return [7,g[0][1],g[1][1]];
+  if(g[0][0]===3&&g[1][0]===2) return [6,g[0][1],g[1][1]];
+  if(color) return [5,...v];
+  if(esc) return [4,esc];
+  if(g[0][0]===3) return [3,g[0][1],...resto(1)];
+  if(g[0][0]===2&&g[1][0]===2) return [2,g[0][1],g[1][1],g[2][1]];
+  if(g[0][0]===2) return [1,g[0][1],...resto(1)];
+  return [0,...v];
+}
+const cmpMano=(a,b)=>{ for(let i=0;i<Math.max(a.length,b.length);i++){ const d=(a[i]||0)-(b[i]||0); if(d) return d; } return 0; };
+function mejorMano(cs){
+  if(cs.length<=5) return valorCinco(cs);
+  let mejor=null;
+  const elegir=(ini,sel)=>{                 // prueba todas las combinaciones de 5 cartas
+    if(sel.length===5){ const v=valorCinco(sel); if(!mejor||cmpMano(v,mejor)>0) mejor=v; return; }
+    for(let i=ini;i<=cs.length-(5-sel.length);i++) elegir(i+1,[...sel,cs[i]]);
+  };
+  elegir(0,[]);
+  return mejor;
+}
+const numMano = m => m.concat([0,0,0,0,0,0]).slice(0,6).reduce((x,y)=>x*16+y,0);
+function fuerza(mano,mesa){            // 0..1: lo buena que ve un rival su jugada
+  if(!mesa.length){
+    const a=VAL_R[mano[0].r], b=VAL_R[mano[1].r];
+    let f=(a+b)/28*.5; if(a===b) f+=.3+a/14*.2; if(mano[0].p===mano[1].p) f+=.05; if(Math.abs(a-b)===1) f+=.03;
+    return Math.min(1,f);
+  }
+  const m=mejorMano([...mano,...mesa]);
+  let f=[.15,.42,.6,.72,.8,.85,.92,.97,1][m[0]] + (m[1]||0)/14*.06;
+  if(mesa.length>=5 && cmpMano(mejorMano(mesa),m)===0) f*=.5;   // la jugada está entera en la mesa
+  return Math.min(1,f);
+}
+const PK = { fase:'apostar', apuesta:cargar('rds_apPoker',10), mazo:[], tu:[], mesa:[], bote:0, puesto:0, antes:0, ronda:0, suerte:1,
+  rivales:[{nombre:'Lola'},{nombre:'Paco'},{nombre:'Marga'}] };
+function pkCarta(valorar){
+  const F=window.__R&&window.__R.pkCartas;
+  if(F&&F.length){ const [r,p]=F.shift().split(':'); const i=PK.mazo.findIndex(c=>c.r===r&&c.p===(p||'♠')); return i>=0?PK.mazo.splice(i,1)[0]:{r,p:p||'♠'}; }
+  const n=valorar?Math.abs(PK.suerte):1;
+  const cand=PK.mazo.splice(0,n);
+  let m=0; if(valorar) cand.forEach((c,i)=>{ if(mejorQue(PK.suerte,valorar(c),valorar(cand[m]))) m=i; });
+  cand.forEach((c,i)=>{ if(i!==m) PK.mazo.splice(Math.floor(Math.random()*(PK.mazo.length+1)),0,c); });
+  return cand[m];
+}
+function pkEstado(i,txt){ PK.rivales[i].estado=txt; }
+function pintarPoker(){
+  PK.rivales.forEach((r,i)=>{
+    const el=$('pkRival'+i);
+    el.classList.toggle('fuera',!r.activo && PK.fase!=='apostar');
+    el.querySelector('.nom').textContent=r.nombre;
+    el.querySelector('.est').textContent=r.estado||'';
+    pintarCartas(el.querySelector('.mano'), r.cartas||[], !r.ver);
+  });
+  pintarCartas($('pkMesa'),PK.mesa,false);
+  pintarCartas($('pkTu'),PK.tu,false);
+  $('pkBote').textContent = PK.fase!=='apostar' ? 'Bote: '+fmt(PK.bote)+' · has puesto '+fmt(PK.puesto) : '';
+  $('pkJugada').textContent = PK.tu.length ? 'Tú: '+NOMBRES_MANO[mejorMano([...PK.tu,...PK.mesa])[0]] : '';
+}
+async function pkRepartir(){
+  if(PK.fase!=='apostar'&&PK.fase!=='fin') return;
+  const A=PK.apuesta; if(dinero<A){ refrescar(); return; }
+  audio();
+  PK.antes=dinero; dinero-=A; animarDinero('baja');
+  PK.puesto=A; PK.bote=4*A; PK.ronda=0; PK.mesa=[]; PK.tu=[];
+  PK.mazo=[]; for(const p of PALOS) for(const r of RANGOS) PK.mazo.push({r,p});
+  for(let i=PK.mazo.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [PK.mazo[i],PK.mazo[j]]=[PK.mazo[j],PK.mazo[i]]; }
+  PK.suerte=usarSuerte({});
+  PK.rivales.forEach(r=>{ r.cartas=[]; r.activo=true; r.ver=false; r.estado=''; });
+  $('pkRes').innerHTML=''; PK.fase='repartiendo'; refrescar();
+  for(let k=0;k<2;k++){
+    PK.tu.push(pkCarta(c=>k ? fuerza([PK.tu[0],c],[]) : VAL_R[c.r])); pintarPoker(); SFX.carta(); await pausa(220);
+    for(const r of PK.rivales){ r.cartas.push(pkCarta()); pintarPoker(); SFX.carta(); await pausa(140); }
+  }
+  PK.fase='juego'; refrescar();
+}
+const activos = () => PK.rivales.filter(r=>r.activo);
+async function pkPasar(){
+  if(PK.fase!=='juego') return;
+  PK.fase='rivales'; refrescar();
+  await pausa(350);
+  // ¿apuesta algún rival?
+  const A=PK.apuesta;
+  let quien=null;
+  if(dinero>=A) for(const r of activos()){ const f=fuerza(r.cartas,PK.mesa); if((f>.66&&Math.random()<.6)||Math.random()<.06){ quien=r; break; } }
+  PK.rivales.forEach(r=>{ if(r.activo) r.estado='Pasa'; });
+  if(quien){
+    quien.estado='¡Apuesta '+fmt(A)+'!'; PK.bote+=A; SFX.ficha();
+    PK.apuestaRival=quien; PK.fase='responder'; refrescar(); return;
+  }
+  refrescar(); await pausa(400); pkSiguiente();
+}
+async function pkApostar(){
+  if(PK.fase!=='juego') return;
+  const A=PK.apuesta; if(dinero<A) return;
+  dinero-=A; PK.puesto+=A; PK.bote+=A; animarDinero('baja'); SFX.ficha();
+  PK.fase='rivales'; refrescar();
+  for(const r of activos()){
+    await pausa(380);
+    if(fuerza(r.cartas,PK.mesa)+Math.random()*.3>.45){ r.estado='Iguala'; PK.bote+=A; SFX.ficha(); }
+    else { r.activo=false; r.estado='Se retira'; }
+    refrescar();
+  }
+  await pausa(350);
+  if(!activos().length) return pkFin([]);
+  pkSiguiente();
+}
+async function pkIgualar(){
+  if(PK.fase!=='responder') return;
+  const A=PK.apuesta; if(dinero<A) return;
+  dinero-=A; PK.puesto+=A; PK.bote+=A; animarDinero('baja'); SFX.ficha();
+  PK.fase='rivales'; refrescar();
+  for(const r of activos()){
+    if(r===PK.apuestaRival) continue;
+    await pausa(380);
+    if(fuerza(r.cartas,PK.mesa)+Math.random()*.3>.5){ r.estado='Iguala'; PK.bote+=A; SFX.ficha(); }
+    else { r.activo=false; r.estado='Se retira'; }
+    refrescar();
+  }
+  await pausa(350); pkSiguiente();
+}
+function pkRetirarse(){
+  if(PK.fase!=='juego'&&PK.fase!=='responder') return;
+  PK.fase='fin';
+  const neto=finJugada('🂠 Póker','te retiras · apuesta '+fmt(PK.apuesta),PK.antes);
+  $('pkRes').innerHTML=lineaRes('TE RETIRAS',neto,PK.antes); SFX.perder();
+  refrescar(); comprobarRuina();
+}
+async function pkSiguiente(){
+  PK.ronda++;
+  PK.rivales.forEach(r=>{ if(r.activo) r.estado=''; });
+  if(PK.ronda>3) return pkFin(activos());
+  PK.fase='repartiendo'; refrescar();
+  const n = PK.ronda===1 ? 3 : 1;
+  for(let k=0;k<n;k++){
+    PK.mesa.push(pkCarta(c=>numMano(mejorMano([...PK.tu,...PK.mesa,c])))); pintarPoker(); SFX.carta(); await pausa(300);
+  }
+  PK.fase='juego'; refrescar();
+}
+async function pkFin(rivales){
+  PK.fase='repartiendo'; refrescar();
+  const yo=mejorMano([...PK.tu,...PK.mesa]);
+  let mejor=yo, ganadores=['tú'];
+  rivales.forEach(r=>{ r.ver=true; const m=mejorMano([...r.cartas,...PK.mesa]); r.estado=NOMBRES_MANO[m[0]];
+    const d=cmpMano(m,mejor); if(d>0){ mejor=m; ganadores=[r.nombre]; } else if(d===0) ganadores.push(r.nombre); });
+  if(rivales.length){ pintarPoker(); await pausa(700); }
+  let txt;
+  if(ganadores.includes('tú')){
+    const parte=Math.floor(PK.bote/ganadores.length); dinero+=parte;
+    txt = !rivales.length ? '¡SE RETIRAN TODOS!' : ganadores.length>1 ? 'EMPATE CON '+NOMBRES_MANO[yo[0]].toUpperCase() : '¡GANAS CON '+NOMBRES_MANO[yo[0]].toUpperCase()+'!';
+  } else txt = ganadores[0].toUpperCase()+' GANA CON '+NOMBRES_MANO[mejor[0]].toUpperCase();
+  PK.fase='fin';
+  const neto=finJugada('🂠 Póker', `${NOMBRES_MANO[yo[0]]} · bote ${fmt(PK.bote)}`, PK.antes);
+  $('pkRes').innerHTML=lineaRes(txt,neto,PK.antes);
+  if(neto>0){ yo[0]>=4 ? (SFX.granPremio(), confeti(70)) : SFX.ganar(); } else if(neto<0) SFX.perder(); else SFX.compra();
+  refrescar(); comprobarRuina();
+}
+function refrescarPoker(){
+  const mano = PK.fase!=='apostar' && PK.fase!=='fin';
+  pintarApuestas($('pkApuestas'),PK.apuesta,v=>{ PK.apuesta=v; guardar('rds_apPoker',v); refrescar(); },false,mano);
+  const A=PK.apuesta, vis=(id,v)=>$(id).classList.toggle('oculto',!v);
+  vis('btnPkRepartir',!mano); vis('btnPkPasar',PK.fase==='juego'); vis('btnPkApostar',PK.fase==='juego');
+  vis('btnPkIgualar',PK.fase==='responder'); vis('btnPkRetirarse',PK.fase==='juego'||PK.fase==='responder');
+  $('btnPkRepartir').textContent='REPARTIR · '+fmt(A); $('btnPkRepartir').disabled=dinero<A;
+  $('btnPkApostar').textContent='APOSTAR '+fmt(A); $('btnPkApostar').disabled=dinero<A;
+  $('btnPkIgualar').textContent='IGUALAR '+fmt(A); $('btnPkIgualar').disabled=dinero<A;
+  pintarPoker();
+  const av=$('pkAviso');
+  if(PK.fase==='juego'){ av.textContent=['Tus dos cartas. ','Salen 3 cartas en la mesa. ','Sale la cuarta. ','Sale la última. '][PK.ronda]+'¿Pasas, apuestas o te retiras?'; av.className='aviso'; }
+  else if(PK.fase==='responder'){ av.textContent=PK.apuestaRival.nombre+' apuesta. ¿Igualas o te retiras?'; av.className='aviso'; }
+  else if(mano) av.textContent='';
+  else if(dinero<A){ av.textContent='Te faltan '+fmt(A-dinero)+'. Elige una ficha más pequeña.'; av.className='aviso mal'; }
+  else { av.textContent='Elige ficha (es lo que pone cada jugador) y pulsa REPARTIR.'; av.className='aviso'; }
+}
+
 /* ---------- Cambiar de juego ---------- */
 const enManoBJ = () => BJ.fase!=='apostar' && BJ.fase!=='fin';
-const ocupado  = () => girando || TR.girando || enManoBJ();
-const pistaActual = () => juego==='sala' ? SALA.zonaMusica : juego;
+const ocupado  = () => girando || TR.girando || enManoBJ() || CA.fase==='sacando' || CA.fase==='ganada' || !['apostar','fin'].includes(PK.fase);
+const pistaActual = () => juego==='sala' ? SALA.zonaMusica : ({carta:'sala', poker:'bj'}[juego] || juego);
 function cambiarJuego(j){
   if(j!==juego && ocupado()) return;
   juego=j;
@@ -1490,6 +1977,8 @@ function cambiarJuego(j){
   $('zonaRuleta').classList.toggle('oculto',j!=='ruleta');
   $('zonaTraga').classList.toggle('oculto',j!=='traga');
   $('zonaBJ').classList.toggle('oculto',j!=='bj');
+  $('zonaCarta').classList.toggle('oculto',j!=='carta');
+  $('zonaPoker').classList.toggle('oculto',j!=='poker');
   if(j==='ruleta') ponerBombillas(sel);
   if(j==='sala') SALA.iniciar(); else { SALA.parar(); scrollTo(0,0); }
   MUS.poner(pistaActual());
@@ -1498,7 +1987,9 @@ function cambiarJuego(j){
 function refrescarJuegos(){
   const oc=ocupado();
   $('btnSala').disabled = oc;
-  $('nombreJuego').textContent = {ruleta:'🎡 Ruletas', traga:'🎰 Tragaperras', bj:'🃏 Blackjack'}[juego] || '';
+  if($('bar').classList.contains('ver')) pintarBar();
+  $('nombreJuego').textContent = {ruleta:'🎡 Ruletas', traga:'🎰 Tragaperras', bj:'🃏 Blackjack', carta:'🂡 Carta alta', poker:'🂠 Póker'}[juego] || '';
+  refrescarCarta(); refrescarPoker();
   $('btnMusica').classList.toggle('off',!musica);
   // tragaperras
   pintarApuestas($('tragaApuestas'),TR.apuesta,v=>{ TR.apuesta=v; guardar('rds_apTraga',v); refrescar(); },false,TR.girando);
@@ -1680,7 +2171,8 @@ const SALA = (()=>{
   const ropaAzar=()=>({piel:azar(PIELES),pelo:azar(PELOS),camisa:azar(CAMISAS),pant:azar(PANTS),zap:'#1a1a1a'});
   const chaleco=(x,yb)=>{ c.fillStyle='#111'; c.fillRect(x-4,yb,2,6); c.fillRect(x+2,yb,2,6); c.fillStyle='#d0021b'; c.fillRect(x-1,yb,2,1); };
   function persona(p){
-    const x=Math.round(p.x), y=Math.round(p.y), C=p.ropa, d=p.dir;
+    if(p.oculto) return;
+    const x=Math.round(p.x), y=Math.round(p.y-(p.salto||0)), C=p.ropa, d=p.dir;
     const f = p.anda ? (Math.floor(p.paso/5)%2 ? 1 : -1) : 0;
     c.fillStyle='rgba(0,0,0,.3)'; c.fillRect(x-4,y-1,8,2);
     const yb = y-11+(p.sentado?3:0);
@@ -1704,6 +2196,7 @@ const SALA = (()=>{
     if(d==='d'){ c.fillRect(x-2,yh+2,1,1); c.fillRect(x+1,yh+2,1,1); }
     if(d==='l') c.fillRect(x-2,yh+2,1,1);
     if(d==='r') c.fillRect(x+1,yh+2,1,1);
+    if(C.gafas && d!=='u'){ c.fillStyle='#000'; c.fillRect(x-3,yh+2,6,1); }
     if(p.bandeja){ c.fillStyle='#ccc'; c.fillRect(x+3,yb-1,7,1); c.fillStyle='#ffcc33'; c.fillRect(x+5,yb-4,2,3); }
     if(p.burbuja && p.burbuja.hasta>t) burbuja(x,yh-4,p.burbuja.txt);
   }
@@ -1819,7 +2312,7 @@ const SALA = (()=>{
   // Bar (adorno: el camarero te anima)
   solidos.push(R(456,270,96,70));
   const camarero={x:504,y:322,dir:'d',ropa:{piel:'#c68642',pelo:'#2b1b0e',camisa:'#f4f4f4',pant:'#111',zap:'#111',chaleco:1},tipo:'quieto'};
-  zona(R(460,340,88,26),R(456,270,96,70),'Bar','PEDIR',()=>{ camarero.burbuja={txt:azar(['¡Invita la casa!','¡Mucha suerte!','Hoy es tu día','¿Un zumo?']),hasta:t+2.5}; SFX.compra(); });
+  zona(R(460,340,88,26),R(456,270,96,70),'Bar','PEDIR',()=>{ camarero.burbuja={txt:'¿Qué te pongo?',hasta:t+2}; abrirBar(); });
   objetos.push({y:338,dibujar(){
     c.fillStyle='#3a1a0a'; c.fillRect(458,272,92,26);
     const bot=['#2ecc71','#d0021b','#ffcc33','#8fd3ff','#e01fb8','#ff7f2a'];
@@ -1848,6 +2341,31 @@ const SALA = (()=>{
   [[28,226],[548,226],[150,392],[426,392],[24,392],[552,392]].forEach(([x,y])=>{ solidos.push(R(x-5,y-4,10,5)); objetos.push({y,dibujar(){
     c.fillStyle='#7a3a12'; c.fillRect(x-4,y-6,8,6); c.fillStyle='#1f7a32';
     c.fillRect(x-6,y-14,5,7); c.fillRect(x+1,y-15,5,8); c.fillRect(x-2,y-19,4,10); c.fillStyle='#2ecc71'; c.fillRect(x-1,y-18,2,6); }}); });
+
+  // Mesa de póker (abajo a la izquierda)
+  solidos.push(R(66,236,88,40));
+  zona(R(80,276,60,22),R(60,222,100,58),'Mesa de Póker','JUGAR',()=>entrar('poker'));
+  objetos.push({y:274,dibujar(){
+    c.fillStyle='#4a240c'; c.beginPath(); c.ellipse(110,258,42,18,0,0,TAU); c.fill();
+    c.fillStyle='#1d5fa0'; c.beginPath(); c.ellipse(110,258,37,14,0,0,TAU); c.fill();
+    c.fillStyle='#fdfdf8'; for(let k=0;k<5;k++) c.fillRect(97+k*6,255,4,6);
+    c.fillStyle='#d0021b'; c.fillRect(104,265,3,2); c.fillStyle='#1e6fd9'; c.fillRect(108,265,3,2); c.fillStyle='#ffcc33'; c.fillRect(112,265,3,2);
+  }});
+  gente.push({x:110,y:244,dir:'d',ropa:{piel:azar(PIELES),pelo:azar(PELOS),camisa:'#f4f4f4',pant:'#111',zap:'#111',chaleco:1},tipo:'quieto'});
+  gente.push({x:62,y:262,dir:'r',sentado:true,ropa:ropaAzar(),tipo:'bj',prox:2+Math.random()*6,frases:['Voy','Subo','Me retiro','¡Full!','Paso']});
+  gente.push({x:158,y:262,dir:'l',sentado:true,ropa:ropaAzar(),tipo:'bj',prox:4+Math.random()*6,frases:['Igualo','¡Póker!','Paso','Me retiro']});
+
+  // Mesa de carta alta (al lado de la columna derecha)
+  solidos.push(R(374,240,52,32));
+  zona(R(378,272,44,24),R(370,226,60,48),'Carta alta','JUGAR',()=>entrar('carta'));
+  objetos.push({y:270,dibujar(){
+    c.fillStyle='#4a240c'; c.fillRect(376,252,48,18); c.fillStyle='#b23a3a'; c.fillRect(378,254,44,14);
+    c.fillStyle='#fdfdf8'; c.fillRect(388,257,6,8); c.fillRect(406,257,6,8);
+    c.fillStyle='#d0021b'; c.fillRect(390,260,2,2); c.fillStyle='#111'; c.fillRect(408,260,2,2);
+    c.fillStyle='#ffd56b'; c.fillRect(398,259,4,1);
+  }});
+  gente.push({x:400,y:250,dir:'d',ropa:{piel:azar(PIELES),pelo:azar(PELOS),camisa:'#f4f4f4',pant:'#111',zap:'#111',chaleco:1},tipo:'quieto'});
+  gente.push({x:436,y:284,dir:'l',ropa:ropaAzar(),tipo:'bj',prox:3+Math.random()*6,frases:['¡Más alta!','¡Doble o nada!','¡Un As!','Uff']});
 
   // Gente que mira las ruedas, gente que pasea y un camarero con bandeja
   gente.push({x:70,y:132,dir:'u',ropa:ropaAzar(),tipo:'mira',rueda:RUEDAS[0]});
@@ -1926,9 +2444,63 @@ const SALA = (()=>{
     c.shadowColor=col; c.shadowBlur=apag?0:6; c.fillStyle=apag?'#55334a':col; c.fillText(txt,x,y); c.shadowBlur=0;
   }
 
+  /* ---------- Escena: los guardias te echan ---------- */
+  const PUERTA={x:288,y:394};
+  const ropaGuardia=()=>({piel:azar(PIELES),pelo:'#111',camisa:'#1a1a1a',pant:'#111',zap:'#000',gafas:1});
+  let cine=null;
+  function expulsar(fin){
+    const j=jugador;
+    j.ruta=[]; j.auto=null; teclas.clear(); j.oculto=false; j.sentado=false;
+    if(!libre(j.x,j.y)){ j.x=288; j.y=250; }
+    const g1={x:276,y:400,dir:'u',ropa:ropaGuardia(),tipo:'guardia',ruta:[],paso:0};
+    const g2={x:300,y:400,dir:'u',ropa:ropaGuardia(),tipo:'guardia',ruta:[],paso:0};
+    g1.ruta=camino(g1.x,g1.y-8,j.x-9,j.y); g2.ruta=camino(g2.x,g2.y-8,j.x+9,j.y);
+    gente.push(g1,g2);
+    cine={fase:'llegan',g1,g2,fin,t0:t};
+    $('salaPista').classList.remove('ver'); pistaVista=null;
+    $('salaAyuda').style.opacity=0;
+  }
+  function escena(dt){
+    const C=cine, j=jugador, {g1,g2}=C;
+    if(C.fase==='llegan'){
+      const a=seguir(g1,dt,75), b=seguir(g2,dt,75);
+      j.dir = g1.y>j.y ? 'd' : 'u';
+      if(a&&b || t-C.t0>8){
+        g1.x=j.x-9; g1.y=j.y; g2.x=j.x+9; g2.y=j.y; g1.dir='r'; g2.dir='l'; g1.anda=g2.anda=false;
+        g1.burbuja={txt:'¡Fuera de aquí!',hasta:t+1.2};
+        SFX.perder(); C.fase='agarran'; C.t0=t;
+      }
+    } else if(C.fase==='agarran'){
+      if(t-C.t0>1.2 && !j.burbuja) j.burbuja={txt:'¡Noo!',hasta:t+2.2};
+      if(t-C.t0>2){
+        const r=camino(j.x,j.y,PUERTA.x,PUERTA.y); C.ruta=r; j.ruta=r.map(q=>({...q})); C.fase='llevan'; C.t0=t;
+      }
+    } else if(C.fase==='llevan'){
+      const listo=seguir(j,dt,58);
+      g1.x=j.x-9; g1.y=j.y; g2.x=j.x+9; g2.y=j.y;
+      g1.dir=g2.dir=j.dir; g1.anda=g2.anda=!listo; g1.paso=g2.paso=j.paso;
+      j.anda=true; j.paso+=dt*40;          // pataleo
+      if(listo || t-C.t0>10){
+        g1.dir='d'; g2.dir='d'; j.dir='d'; C.fase='tiran'; C.t0=t; C.y0=j.y;
+        g2.burbuja={txt:'¡Y no vuelvas!',hasta:t+2};
+      }
+    } else if(C.fase==='tiran'){
+      const q=Math.min(1,(t-C.t0)/.7);
+      j.x=PUERTA.x; j.y=C.y0+q*44; j.salto=Math.sin(q*Math.PI)*16; j.anda=true; j.paso+=dt*60;
+      if(q>=1){ j.oculto=true; j.salto=0; SFX.paroCarrete(); C.fase='fin'; C.t0=t; }
+    } else if(C.fase==='fin'){
+      if(t-C.t0>1.3){ const f=C.fin; cine=null; j.burbuja=null; f(); }
+    }
+  }
+  function volverAEntrar(){
+    for(let i=gente.length-1;i>=0;i--) if(gente[i].tipo==='guardia') gente.splice(i,1);
+    cine=null; Object.assign(jugador,{x:18*T,y:24*T+6,dir:'u',oculto:false,salto:0,ruta:[],auto:null,vuelta:null,burbuja:null});
+  }
+
   /* ---------- Bucle ---------- */
   function actualizar(dt){
     t+=dt;
+    if(cine){ escena(dt); for(const w of RUEDAS) w.ang+=w.vel*dt; return; }
     // jugador
     let dx=0, dy=0;
     if(teclas.has('ArrowLeft')||teclas.has('KeyA')) dx--; if(teclas.has('ArrowRight')||teclas.has('KeyD')) dx++;
@@ -1959,7 +2531,7 @@ const SALA = (()=>{
         q.sim = gana ? Array(3).fill(Math.floor(Math.random()*6)) : [0,1,2].map(()=>Math.floor(Math.random()*6));
         if(gana){ setTimeout(()=>{ q.premio=t+1.5; p.burbuja={txt:azar(['¡PREMIO!','¡Toma!','¡Bote!']),hasta:t+2}; },1400); }
       } else if(p.tipo==='bj' && t>p.prox){
-        p.prox=t+5+Math.random()*8; p.burbuja={txt:azar(FRASES_BJ),hasta:t+2};
+        p.prox=t+5+Math.random()*8; p.burbuja={txt:azar(p.frases||FRASES_BJ),hasta:t+2};
       } else if(p.tipo==='mira' && p.rueda.frase){
         p.burbuja={txt:p.rueda.frase,hasta:t+2}; p.rueda.frase=null;
       }
@@ -1987,10 +2559,11 @@ const SALA = (()=>{
     c.drawImage(fondo,0,0);
     neon('RULETAS',6.5*T,1.4*T,'#00e5ff',1); neon('BLACKJACK',17.5*T,1.4*T,'#7bff9e',2); neon('TRAGAPERRAS',29*T,1.4*T,'#ff2bd6',3);
     neon('CAJA',72,276,'#ffcc33',4); neon('BAR',504,262,'#ff7f2a',5);
+    neon('POKER',110,222,'#4aa3ff',6); neon('CARTA ALTA',400,222,'#ffcc33',7);
     const lista=[...objetos, ...gente.map(p=>({y:p.y,dibujar:()=>persona(p)})), {y:jugador.y,dibujar:()=>persona(jugador)}];
     lista.sort((a,b)=>a.y-b.y).forEach(o=>o.dibujar());
     // flecha sobre tu personaje
-    if(!jugador.anda){ const b=Math.floor(t*3)%2; c.fillStyle='#ffcc33'; c.fillRect(Math.round(jugador.x)-2,Math.round(jugador.y)-24+b,5,1); c.fillRect(Math.round(jugador.x)-1,Math.round(jugador.y)-23+b,3,1); c.fillRect(Math.round(jugador.x),Math.round(jugador.y)-22+b,1,1); }
+    if(!jugador.anda && !cine){ const b=Math.floor(t*3)%2; c.fillStyle='#ffcc33'; c.fillRect(Math.round(jugador.x)-2,Math.round(jugador.y)-24+b,5,1); c.fillRect(Math.round(jugador.x)-1,Math.round(jugador.y)-23+b,3,1); c.fillRect(Math.round(jugador.x),Math.round(jugador.y)-22+b,1,1); }
     // destino al tocar
     if(jugador.ruta.length){ const d=jugador.ruta[jugador.ruta.length-1]; c.strokeStyle='#ffcc33'; c.lineWidth=1; c.strokeRect(Math.round(d.x)-3,Math.round(d.y)-2,6,3); }
   }
@@ -2020,6 +2593,7 @@ const SALA = (()=>{
   }
   cv.addEventListener('pointerdown',e=>{
     audio();
+    if(cine) return;
     const r=cv.getBoundingClientRect();
     const wx=camX+(e.clientX-r.left)/r.width*vw, wy=camY+(e.clientY-r.top)/r.height*vh;
     const z=zonas.find(z=>dentro(wx,wy,z.clic))||zonas.find(z=>dentro(wx,wy,z));
@@ -2037,19 +2611,23 @@ const SALA = (()=>{
   return {
     iniciar(){
       if(!fondo) pintarFondo();
-      if(jugador.vuelta){ Object.assign(jugador,jugador.vuelta); jugador.dir='d'; jugador.vuelta=null; }
+      if(jugador.vuelta && !cine){ Object.assign(jugador,jugador.vuelta); jugador.dir='d'; jugador.vuelta=null; }
       jugador.ruta=[]; jugador.anda=false; pistaVista=undefined;
       medir();
       zonaMus = jugador.y<13*T ? (jugador.x<12*T?'ruleta': jugador.x<23*T?'bj':'traga') : 'sala';
       if(!anim){ ultimo=performance.now(); anim=requestAnimationFrame(bucle); }
     },
     parar(){ if(anim) cancelAnimationFrame(anim); anim=null; teclas.clear(); },
+    expulsar, volverAEntrar, get enEscena(){ return !!cine; }, get faseEscena(){ return cine&&cine.fase; },
+    avanzar(seg){ for(let k=0;k<seg*30;k++) actualizar(1/30); },     // para pruebas
     tecla(e,abajo){
+      if(cine){ e.preventDefault&&e.preventDefault(); return; }
       const mov=['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','KeyA','KeyD','KeyW','KeyS'];
       if(mov.includes(e.code)){ e.preventDefault(); abajo ? teclas.add(e.code) : teclas.delete(e.code); return; }
       if(abajo && ['KeyE','Space','Enter'].includes(e.code)){ e.preventDefault(); usar(); }
     },
     get zonaMusica(){ return zonaMus; },
+    decirCamarero(txt){ camarero.burbuja={txt,hasta:t+2.5}; },
     jugador, zonas, gente, camino, libre,
   };
 })();
@@ -2063,6 +2641,11 @@ $('tienda').onclick=e=>{ if(e.target.id==='tienda') cerrarTienda(); };
 $('btnSonido').onclick=()=>{ sonido=!sonido; guardar('rds_sonido',sonido); audio(); sonido ? MUS.poner(pistaActual()) : MUS.parar(); refrescar(); };
 $('btnMusica').onclick=()=>{ musica=!musica; guardar('rds_musica',musica); audio(); musica ? MUS.poner(pistaActual()) : MUS.parar(); refrescar(); };
 $('btnSala').onclick=()=>{ audio(); cambiarJuego('sala'); };
+$('btnCaSacar').onclick=caJugar; $('btnCaDoble').onclick=caJugar; $('btnCaCobrar').onclick=caCobrar;
+$('btnPkRepartir').onclick=pkRepartir; $('btnPkPasar').onclick=pkPasar; $('btnPkApostar').onclick=pkApostar;
+$('btnPkIgualar').onclick=pkIgualar; $('btnPkRetirarse').onclick=pkRetirarse;
+$('btnCerrarBar').onclick=cerrarBar;
+$('bar').onclick=e=>{ if(e.target.id==='bar') cerrarBar(); };
 $('btnTirar').onclick=tirar;
 $('palanca').onclick=tirar;
 $('btnRepartir').onclick=repartir;
@@ -2076,9 +2659,17 @@ document.addEventListener('keydown',arrancarMusica);
 document.addEventListener('visibilitychange',()=>{ if(document.hidden) MUS.parar(); else if(musicaArrancada) MUS.poner(pistaActual()); });
 document.addEventListener('keydown',e=>{
   if($('tienda').classList.contains('ver')){ if(e.code==='Escape') cerrarTienda(); return; }
+  if($('bar').classList.contains('ver')){ if(e.code==='Escape') cerrarBar(); return; }
   if($('fin').classList.contains('ver')) return;
   if(juego==='sala'){ SALA.tecla(e,true); return; }
   if(e.code==='Escape'){ cambiarJuego('sala'); return; }
+  if(juego==='carta'){
+    if(e.code==='Space'||e.code==='Enter'){ e.preventDefault(); if(CA.fase!=='ganada') caJugar(); }
+    else if(e.code==='KeyC') caCobrar();
+    else if(e.code==='KeyD') caJugar();
+    return;
+  }
+  if(juego==='poker') return;
   if(juego==='traga'){
     if(e.code==='Space'||e.code==='Enter'){ e.preventDefault(); tirar(); }
     return;
@@ -2112,7 +2703,9 @@ window.__R={RULETAS,elegirCasilla, forzar:null, get dinero(){return dinero}, set
   get efectos(){return efectos}, get mejoras(){return mejoras}, get jugada(){return jugada}, get inventario(){return inventario},
   precioPoder, aceptar, repetir, iman,
   forzarTraga:null, bjCartas:null, rapido:false, SIMBOLOS, pagoTraga, puntos, cambiarJuego, tirar, repartir, pedir, plantarse, doblar,
-  get BJ(){return BJ}, get TR(){return TR}, get juego(){return juego}, MUS, SALA};
+  get BJ(){return BJ}, get TR(){return TR}, get juego(){return juego}, MUS, SALA, CA, PK, caJugar, caCobrar, pkRepartir, pkPasar, pkApostar, pkIgualar, pkRetirarse, mejorMano, NOMBRES_MANO,
+  caCartas:null, pkCartas:null, BEBIDAS, precioBebida, comprarBebida, abrirBar,
+  get suerte(){return suerte}, set suerte(v){suerte=v;refrescar()}};
 })();
 </script>
 </body>
