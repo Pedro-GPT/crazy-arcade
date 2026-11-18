@@ -308,7 +308,8 @@ header h1{font-family:Bungee,Impact,sans-serif;font-size:20px;letter-spacing:1px
 #panel .bebida button{background:#4aa3ff;color:#001a33}
 #panel h3.sec{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:#8fd3ff;margin:14px 0 2px}
 #panel .bebida button.hecho{background:#2e7d4f;color:#dfffe9}
-#panel .bebida .botones{display:flex;flex-direction:column;gap:6px;flex:0 0 auto}
+#panel .bebida .botones{display:flex;flex-direction:column;gap:6px;flex:0 0 auto;max-width:150px}
+#panel .bebida .botones button{min-width:0;font-size:12px;line-height:1.2}
 .negocio{display:flex;gap:12px;align-items:center;background:#ffffff10;border-radius:12px;padding:10px 12px;margin:6px 0}
 .negocio .cara{font-size:42px;line-height:1}
 .negocio .dice{font-size:15px;font-style:italic;line-height:1.4}
@@ -2278,9 +2279,9 @@ function abrirMisCosas(){
       else if(a.recuperando) filaAccion(C,{ico:'🕴️',nombre:D.nombre,desc:'Tus guardaespaldas van a cobrar a '+a.nombre+'.',boton:'EN CAMINO',off:1,accion:()=>{}});
       else if(a.debe && a.excusa) filaAccion(C,{ico:'💬',nombre:D.nombre+' · '+a.nombre+' te debe '+fmt(a.debe),desc:'Tu guardaespaldas ya sabe por qué no paga.',boton:'VER EXCUSA',lujo:1,accion:()=>abrirExcusa('casa',k.id)});
       else if(a.debe) filaBotones(C,{ico:'⚠️',nombre:D.nombre+' · '+a.nombre+' te debe '+fmt(a.debe),lujo:1,
-        desc:'Pregunta por qué no paga (1 guardaespaldas) o échale directamente (2).',
-        botones:[{txt:'PREGUNTAR 🕴️',off:libres<1,accion:()=>{ if(SALA.mandar('casa',k.id,'preguntar')) cerrarPanel(); }},
-                 {txt:'ECHAR 🕴️🕴️',off:libres<2,accion:()=>{ if(SALA.mandar('casa',k.id)) cerrarPanel(); }}]});
+        desc:'Elige: mandar 1 guardaespaldas a preguntar por qué no paga, o 2 para echarlos y cobrar lo que deben.',
+        botones:[{txt:'1 🕴️ PREGUNTAR POR QUÉ',off:libres<1,accion:()=>{ if(SALA.mandar('casa',k.id,'preguntar')) cerrarPanel(); }},
+                 {txt:'2 🕴️ ECHARLOS Y COBRAR',off:libres<2,accion:()=>{ if(SALA.mandar('casa',k.id)) cerrarPanel(); }}]});
       else filaAccion(C,{ico:a.cara,nombre:D.nombre,desc:`${a.nombre} paga ${fmt(a.renta)} al minuto.`,boton:'VER',accion:()=>fichaCasaMia(k)});
     });
     C.insertAdjacentHTML('beforeend','<h3 class="sec">🚗 Coches</h3>');
@@ -2292,9 +2293,9 @@ function abrirMisCosas(){
       else if(a.recuperando) filaAccion(C,{ico:'🕴️',nombre:m.nombre,desc:'Tu guardaespaldas va a por él.',boton:'EN CAMINO',off:1,accion:()=>{}});
       else if(a.debe && a.excusa) filaAccion(C,{ico:'💬',nombre:m.nombre+' · '+a.nombre+' te debe '+fmt(a.debe),desc:'Tu guardaespaldas ya sabe por qué no paga.',boton:'VER EXCUSA',lujo:1,accion:()=>abrirExcusa('coche',i)});
       else if(a.debe) filaBotones(C,{ico:'⚠️',nombre:m.nombre+' · '+a.nombre+' te debe '+fmt(a.debe),lujo:1,
-        desc:'Pregunta por qué no paga o quítale el coche (1 guardaespaldas).',
-        botones:[{txt:'PREGUNTAR 🕴️',off:libres<1,accion:()=>{ if(SALA.mandar('coche',i,'preguntar')) cerrarPanel(); }},
-                 {txt:'QUITAR 🕴️',off:libres<1,accion:()=>{ if(SALA.mandar('coche',i)) cerrarPanel(); }}]});
+        desc:'Elige: mandar 1 guardaespaldas a preguntar por qué no paga, o 1 para quitarle el coche y cobrar.',
+        botones:[{txt:'1 🕴️ PREGUNTAR POR QUÉ',off:libres<1,accion:()=>{ if(SALA.mandar('coche',i,'preguntar')) cerrarPanel(); }},
+                 {txt:'1 🕴️ QUITARLE EL COCHE',off:libres<1,accion:()=>{ if(SALA.mandar('coche',i)) cerrarPanel(); }}]});
       else filaAccion(C,{ico:a.cara,nombre:m.nombre,desc:`Alquilado a ${a.nombre}: ${fmt(a.renta)} al minuto.`,boton:'QUITAR',
         accion:()=>{ delete cc.alquiler; SFX.compra(); guardarEstado(); repintarPanel(); }});
     });
