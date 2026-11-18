@@ -308,6 +308,7 @@ header h1{font-family:Bungee,Impact,sans-serif;font-size:20px;letter-spacing:1px
 #panel .bebida button{background:#4aa3ff;color:#001a33}
 #panel h3.sec{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:#8fd3ff;margin:14px 0 2px}
 #panel .bebida button.hecho{background:#2e7d4f;color:#dfffe9}
+#panel .bebida .botones{display:flex;flex-direction:column;gap:6px;flex:0 0 auto}
 .negocio{display:flex;gap:12px;align-items:center;background:#ffffff10;border-radius:12px;padding:10px 12px;margin:6px 0}
 .negocio .cara{font-size:42px;line-height:1}
 .negocio .dice{font-size:15px;font-style:italic;line-height:1.4}
@@ -319,6 +320,9 @@ header h1{font-family:Bungee,Impact,sans-serif;font-size:20px;letter-spacing:1px
 
 .pj{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;max-width:min(94vw,600px)}
 .pj:empty{display:none}
+
+#btnMisCosas{position:absolute;top:10px;right:10px;font:900 13px system-ui,sans-serif;padding:8px 12px;border-radius:10px;
+  background:#1c2230ee;color:#8fd3ff;border:2px solid #4aa3ff;box-shadow:0 3px 0 #0008}
 
 /* ---------- Fin de partida ---------- */
 #fin{position:fixed;inset:0;background:rgba(0,0,0,.86);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
@@ -528,6 +532,7 @@ header h1{font-family:Bungee,Impact,sans-serif;font-size:20px;letter-spacing:1px
   <div id="salaAyuda"></div>
   <div id="salaPista"><span id="salaTxt"></span><button id="btnEntrar" class="btnJuego">JUGAR</button></div>
   <div id="salaHud"></div>
+  <button id="btnMisCosas">📋 MIS COSAS</button>
   <div id="salaAviso"></div>
   <button id="btnAtacar" class="oculto">ATACAR</button>
 </section>
@@ -816,7 +821,7 @@ let mejoras  = Object.assign(SIN_MEJORAS(), (E && E.mejoras) || {});   // compra
 let inventario = (E && E.inventario) || {};
 let invJuego   = (E && E.invJuego) || {};                            // poderes de los otros juegos: {juego:{poder:[apuestas]}}                         // poderes comprados: {ruleta:{poder:n}}
 let suerte   = (E && E.suerte) || null;
-let bienes   = Object.assign({vip:0, coches:[], conduce:-1, casas:{}, armas:{}, guardias:0, alquiler:{}}, (E && E.bienes) || {});   // coches, casas, armas...
+let bienes   = Object.assign({vip:0, coches:[], conduce:-1, casas:{}, armas:{}, guardias:0, alquiler:{}, hijos:[]}, (E && E.bienes) || {});   // coches, casas, armas...
 bienes.conduce = -1;                              // bebida del bar: {n, ico, nombre} para la próxima jugada
 let preparados = {escudo:false, x2:false, tapar:false};            // poderes marcados para la próxima tirada
 let jugada   = null;                                               // tirada en curso
@@ -1428,14 +1433,14 @@ if(!['ruleta','traga','bj'].includes(juego)) juego='ruleta';
 
 function pintarApuestas(cont, actual, elegir, conTodo, bloqueado){
   cont.innerHTML='';
-  const lista = conTodo ? [...APUESTAS,'todo'] : APUESTAS;
+  const lista = conTodo==='cuarto' ? [...APUESTAS,'cuarto'] : conTodo ? [...APUESTAS,'todo'] : APUESTAS;
   lista.forEach((v,i)=>{
     const b=document.createElement('button');
     b.className='chipAp'+(v===actual?' on':'');
-    b.style.setProperty('--c', v==='todo' ? 'linear-gradient(135deg,#ffd700,#ff2bd6)' : COLOR_AP[i]);
-    b.innerHTML = v==='todo' ? 'TODO' : abreviar(v);
-    b.title = v==='todo' ? 'Apostar todo tu dinero' : 'Apostar '+fmt(v);
-    b.disabled = bloqueado || (v==='todo' ? dinero<APUESTAS[0] : dinero<v);
+    b.style.setProperty('--c', v==='todo' ? 'linear-gradient(135deg,#ffd700,#ff2bd6)' : v==='cuarto' ? 'linear-gradient(135deg,#00e5ff,#2b6bff)' : COLOR_AP[i]);
+    b.innerHTML = v==='todo' ? 'TODO' : v==='cuarto' ? '1/4' : abreviar(v);
+    b.title = v==='todo' ? 'Apostar todo tu dinero' : v==='cuarto' ? 'Apostar un cuarto de tu dinero' : 'Apostar '+fmt(v);
+    b.disabled = bloqueado || (v==='todo' ? dinero<APUESTAS[0] : v==='cuarto' ? dinero/4<APUESTAS[0] : dinero<v);
     b.onclick=()=>{ elegir(v); SFX.ficha(); };
     cont.appendChild(b);
   });
@@ -1942,7 +1947,8 @@ function pintarPoker(){
 }
 async function pkRepartir(){
   if(PK.fase!=='apostar'&&PK.fase!=='fin') return;
-  const A=PK.apuesta; if(dinero<A){ refrescar(); return; }
+  const A=apuestaPoker(); if(A<APUESTAS[0] || dinero<A){ refrescar(); return; }
+  PK.A=A;
   audio();
   PK.antes=dinero; dinero-=A; animarDinero('baja');
   PK.puesto=A; PK.bote=4*A; PK.ronda=0; PK.mesa=[]; PK.tu=[];
@@ -1959,12 +1965,13 @@ async function pkRepartir(){
   PK.fase='juego'; refrescar();
 }
 const activos = () => PK.rivales.filter(r=>r.activo);
+const apuestaPoker = () => PK.apuesta==='cuarto' ? Math.floor(dinero/4) : PK.apuesta;   // 1/4 = un cuarto de tu dinero
 async function pkPasar(){
   if(PK.fase!=='juego') return;
   PK.fase='rivales'; refrescar();
   await pausa(350);
   // ¿apuesta algún rival?
-  const A=PK.apuesta;
+  const A=PK.A;
   let quien=null;
   if(dinero>=A) for(const r of activos()){ const f=fuerza(r.cartas,PK.mesa); if((f>.66&&Math.random()<.6)||Math.random()<.06){ quien=r; break; } }
   PK.rivales.forEach(r=>{ if(r.activo) r.estado='Pasa'; });
@@ -1976,7 +1983,7 @@ async function pkPasar(){
 }
 async function pkApostar(){
   if(PK.fase!=='juego') return;
-  const A=PK.apuesta; if(dinero<A) return;
+  const A=PK.A; if(dinero<A) return;
   dinero-=A; PK.puesto+=A; PK.bote+=A; animarDinero('baja'); SFX.ficha();
   PK.fase='rivales'; refrescar();
   for(const r of activos()){
@@ -1993,7 +2000,7 @@ async function pkApostar(){
 }
 async function pkIgualar(){
   if(PK.fase!=='responder') return;
-  const A=PK.apuesta; if(dinero<A) return;
+  const A=PK.A; if(dinero<A) return;
   dinero-=A; PK.puesto+=A; PK.bote+=A; animarDinero('baja'); SFX.ficha();
   PK.fase='rivales'; refrescar();
   for(const r of activos()){
@@ -2008,7 +2015,7 @@ async function pkIgualar(){
 function pkRetirarse(){
   if(PK.fase!=='juego'&&PK.fase!=='responder') return;
   PK.fase='fin';
-  const neto=finJugada('🂠 Póker','te retiras · apuesta '+fmt(PK.apuesta),PK.antes);
+  const neto=finJugada('🂠 Póker','te retiras · apuesta '+fmt(PK.A),PK.antes);
   $('pkRes').innerHTML=lineaRes('TE RETIRAS',neto,PK.antes); SFX.perder();
   refrescar(); comprobarRuina();
 }
@@ -2044,11 +2051,11 @@ async function pkFin(rivales){
 }
 function refrescarPoker(){
   const mano = PK.fase!=='apostar' && PK.fase!=='fin';
-  pintarApuestas($('pkApuestas'),PK.apuesta,v=>{ PK.apuesta=v; guardar('rds_apPoker',v); refrescar(); },false,mano);
-  const A=PK.apuesta, vis=(id,v)=>$(id).classList.toggle('oculto',!v);
+  pintarApuestas($('pkApuestas'),PK.apuesta,v=>{ PK.apuesta=v; guardar('rds_apPoker',v); refrescar(); },'cuarto',mano);
+  const A=mano ? PK.A : apuestaPoker(), vis=(id,v)=>$(id).classList.toggle('oculto',!v);
   vis('btnPkRepartir',!mano); vis('btnPkPasar',PK.fase==='juego'); vis('btnPkApostar',PK.fase==='juego');
   vis('btnPkIgualar',PK.fase==='responder'); vis('btnPkRetirarse',PK.fase==='juego'||PK.fase==='responder');
-  $('btnPkRepartir').textContent='REPARTIR · '+fmt(A); $('btnPkRepartir').disabled=dinero<A;
+  $('btnPkRepartir').textContent='REPARTIR · '+(PK.apuesta==='cuarto'?'1/4 ('+fmt(A)+')':fmt(A)); $('btnPkRepartir').disabled=A<APUESTAS[0]||dinero<A;
   $('btnPkApostar').textContent='APOSTAR '+fmt(A); $('btnPkApostar').disabled=dinero<A;
   $('btnPkIgualar').textContent='IGUALAR '+fmt(A); $('btnPkIgualar').disabled=dinero<A;
   pintarPoker();
@@ -2091,7 +2098,7 @@ const CASAS_TIPO={
   villa:  {nombre:'Villa en la playa',  base:25000000,  w:220, h:150, pared:'#ffffff', tejado:'#d9c7a0', piscina:1, playa:1, desc:'Frente al mar, con piscina y palmeras.'},
   palacio:{nombre:'Palacio',            base:120000000, w:340, h:220, pared:'#f5ecd0', tejado:'#7a1a2a', jardin:1, piscina:1, fuente:1, desc:'Torres, cúpula de oro, fuente y piscina. Lo más caro del barrio.'},
 };
-const SIN_BIENES=()=>({vip:0, coches:[], conduce:-1, casas:{}, armas:{}, guardias:0, alquiler:{}});
+const SIN_BIENES=()=>({vip:0, coches:[], conduce:-1, casas:{}, armas:{}, guardias:0, alquiler:{}, hijos:[]});
 
 /* ---------- Ventana de compra (concesionario, armería, agencia, portero, vecinos) ---------- */
 let panelPintar=null;
@@ -2166,11 +2173,48 @@ const TIPOS_INQUILINO=[
   {tipo:'Empresario', cara:'💼', tasa:.009, fiable:.75, desc:'Paga mucho, pero a veces no paga.'},
 ];
 const NOMBRES_INQ=['Laura','Marcos','Sofía','Hugo','Valeria','Pablo','Lucía','Daniel','Martina','Adrián','Paula','Mario','Carla','Iván','Noa','Raúl'];
-function filaAccion(C,{ico,nombre,desc,boton,accion,lujo}){
+function filaAccion(C,{ico,nombre,desc,boton,accion,lujo,off}){
   const d=document.createElement('div'); d.className='bebida'+(lujo?' lujo':'');
   d.innerHTML=`<span class="ico">${ico}</span><div><b>${nombre}</b><small>${desc}</small></div>`;
-  const b=document.createElement('button'); b.textContent=boton; b.onclick=accion;
+  const b=document.createElement('button'); b.textContent=boton; b.onclick=accion; b.disabled=!!off;
   d.appendChild(b); C.appendChild(d);
+}
+function filaBotones(C,{ico,nombre,desc,lujo,botones}){
+  const d=document.createElement('div'); d.className='bebida'+(lujo?' lujo':'');
+  d.innerHTML=`<span class="ico">${ico}</span><div><b>${nombre}</b><small>${desc}</small></div><span class="botones"></span>`;
+  const S=d.querySelector('.botones');
+  botones.forEach(o=>{ const b=document.createElement('button'); b.textContent=o.txt; b.disabled=!!o.off; b.onclick=o.accion; S.appendChild(b); });
+  C.appendChild(d);
+}
+/* ---------- Excusas de los que no pagan y adoptar a sus hijos ---------- */
+const COSTE_HIJO=1000;      // € al mes (cada minuto) por cada hijo adoptado
+const EXCUSAS_MALAS=['No me apetecía pagar.','Se me olvidó... otra vez.','Me lo gasté todo en la ruleta.','Pensé que no te darías cuenta.','El perro se comió el dinero.','Es que hoy es lunes.'];
+const EXCUSAS_BUENAS=['Me han despedido del trabajo.','He estado enfermo y no he podido trabajar.','Se me rompió el coche y tuve que arreglarlo.'];
+const NOMBRES_NINOS=['Leo','Mía','Teo','Alba','Bruno','Vega','Eric','Nora','Max','Lola','Gael','Abril','Pol','Luna'];
+function inventarExcusa(tipo){
+  const r=Math.random(), pHijos = tipo==='casa' ? .4 : .15;
+  if(r<pHijos){ const n=1+Math.floor(Math.random()*3); return {hijos:n, txt: azar2([`Tengo ${n} ${n>1?'hijos':'hijo'} y no me llega para todo.`,`${n>1?'Mis '+n+' niños necesitaban':'Mi niño necesitaba'} ropa y libros para el cole.`])}; }
+  if(r<pHijos+.25) return {hijos:0, buena:true, txt:azar2(EXCUSAS_BUENAS)};
+  return {hijos:0, txt:azar2(EXCUSAS_MALAS)};
+}
+function itemDe(tipo,ref){ return tipo==='casa' ? bienes.alquiler[ref] : (bienes.coches[ref]||{}).alquiler; }
+function abrirExcusa(tipo,ref){
+  const a=itemDe(tipo,ref); if(!a||!a.excusa) return abrirMisCosas();
+  const e=a.excusa, nombreCosa = tipo==='casa' ? CASAS_TIPO[SALA.CASAS.find(k=>k.id===ref).tipo].nombre.toLowerCase() : (COCHES.find(x=>x.id===bienes.coches[ref].id)||COCHES[1]).nombre;
+  abrirPanel('🕴️ LO QUE DICE '+a.nombre.toUpperCase(),C=>{
+    C.insertAdjacentHTML('beforeend',`<div class="negocio"><span class="cara">${a.cara}</span><div class="dice"><b>${a.nombre}:</b> “${e.txt}”</div></div>
+      <p class="nota">Te debe <b>${fmt(a.debe||0)}</b> del alquiler de tu ${nombreCosa}. ¿Qué haces?</p>`);
+    const libres=SALA.guardiasLibres, n=tipo==='casa'?2:1;
+    if(e.hijos) filaAccion(C,{ico:'👶',nombre:`Adoptar a ${e.hijos>1?'sus '+e.hijos+' hijos':'su hijo'}`,lujo:1,
+      desc:`Se vienen a vivir contigo. Cuestan ${fmt(COSTE_HIJO)} al mes cada uno (−${fmt(COSTE_HIJO*e.hijos)} al minuto). ${a.nombre} podrá pagar y le perdonas la deuda.`,boton:'ADOPTAR',
+      accion:()=>{ for(let k=0;k<e.hijos;k++) bienes.hijos.push({nombre:NOMBRES_NINOS[Math.floor(Math.random()*NOMBRES_NINOS.length)]});
+        a.debe=0; a.fiable=Math.max(a.fiable,.99); a.excusa=null; SFX.granPremio(); confeti(60);
+        aviso('👶 ¡Ya tienes '+bienes.hijos.length+(bienes.hijos.length>1?' hijos':' hijo')+'! Te seguirán a todas partes'); guardarEstado(); refrescar(); cerrarPanel(); }});
+    filaAccion(C,{ico:'🕴️',nombre:tipo==='casa'?'Echarle de la casa':'Quitarle el coche',desc:`Van ${n} guardaespaldas: cobran la deuda y ${tipo==='casa'?'la casa se queda vacía':'te traen el coche'}.`,
+      boton:'MANDAR '+n+' 🕴️',off:libres<n,accion:()=>{ a.excusa=null; if(SALA.mandar(tipo,ref)) cerrarPanel(); }});
+    filaAccion(C,{ico:'🤝',nombre:'Perdonarle la deuda',desc:'Se queda y sigue pagándote a partir de ahora.',boton:'PERDONAR',
+      accion:()=>{ a.debe=0; a.excusa=null; SFX.compra(); guardarEstado(); abrirMisCosas(); }});
+  });
 }
 function fichaCasaMia(casa){
   const D=CASAS_TIPO[casa.tipo], precio=bienes.casas[casa.id];
@@ -2179,10 +2223,20 @@ function fichaCasaMia(casa){
     const a=bienes.alquiler[casa.id];
     if(a){
       C.insertAdjacentHTML('beforeend',`<div class="negocio"><span class="cara">${a.cara}</span><div class="dice"><b>${a.nombre}</b> (${a.tipo.toLowerCase()}) vive aquí de alquiler.
-        Paga <b>${fmt(a.renta)}</b> cada minuto${a.fiable<1?', aunque a veces se retrasa':''}. Ya te ha pagado <b>${fmt(a.cobrado)}</b>.</div></div>`);
+        Paga <b>${fmt(a.renta)}</b> cada minuto${a.fiable<1?', aunque a veces se retrasa':''}. Ya te ha pagado <b>${fmt(a.cobrado)}</b>.${a.debe?` <b style="color:#ffcc33">⚠️ Te debe ${fmt(a.debe)}</b>: manda a 2 guardaespaldas desde 📋 MIS COSAS.`:''}</div></div>`);
       filaAccion(C,{ico:'🚪',nombre:'Echar a '+a.nombre,desc:'La casa se queda vacía y deja de pagarte.',boton:'ECHAR',accion:()=>{ delete bienes.alquiler[casa.id]; SFX.perder(); guardarEstado(); repintarPanel(); }});
       return;
     }
+    // tus hijos adoptados pueden vivir aquí
+    const aqui=bienes.hijos.filter(h=>h.casa===casa.id), conmigo=bienes.hijos.filter(h=>!h.casa);
+    if(aqui.length){
+      C.insertAdjacentHTML('beforeend',`<div class="negocio"><span class="cara">🏡</span><div class="dice">Aquí viven tus hijos: <b>${aqui.map(h=>h.nombre).join(', ')}</b>. Mientras vivan aquí no puedes alquilarla.</div></div>`);
+      filaAccion(C,{ico:'👶',nombre:'Que vengan conmigo',desc:'Vuelven a seguirte a todas partes.',boton:'LLAMARLOS',accion:()=>{ aqui.forEach(h=>delete h.casa); SFX.compra(); guardarEstado(); repintarPanel(); }});
+      if(conmigo.length) filaAccion(C,{ico:'🏡',nombre:'Que se queden también '+conmigo.map(h=>h.nombre).join(', '),desc:'Los que te siguen se vienen a vivir aquí.',boton:'A CASA',accion:()=>{ conmigo.forEach(h=>h.casa=casa.id); SFX.efecto(); guardarEstado(); repintarPanel(); }});
+      return;
+    }
+    if(conmigo.length) filaAccion(C,{ico:'🏡',nombre:'Que tus hijos vivan aquí',lujo:1,desc:`${conmigo.map(h=>h.nombre).join(', ')} dejan de seguirte y se quedan jugando en esta casa.`,boton:'A CASA',
+      accion:()=>{ conmigo.forEach(h=>h.casa=casa.id); SFX.efecto(); aviso('🏡 Tus hijos ya viven en tu '+D.nombre.toLowerCase()); guardarEstado(); repintarPanel(); }});
     C.insertAdjacentHTML('beforeend','<p class="nota">Está vacía. Si la alquilas, el inquilino te paga <b>cada minuto</b> (un mes del juego), estés donde estés. Elige a quién:</p>');
     if(!casa.candidatos) casa.candidatos=TIPOS_INQUILINO.map(T=>({...T, nombre:NOMBRES_INQ[Math.floor(Math.random()*NOMBRES_INQ.length)], renta:redondea(precio*T.tasa*(.9+Math.random()*.2))}));
     casa.candidatos.forEach(q=>filaAccion(C,{ico:q.cara,nombre:`${q.nombre} · ${fmt(q.renta)} al minuto`,desc:q.tipo+'. '+q.desc,boton:'ALQUILAR',
@@ -2190,14 +2244,76 @@ function fichaCasaMia(casa){
         SFX.efecto(); guardarEstado(); refrescar(); repintarPanel(); }}));
   });
 }
+/* ---------- Alquilar coches ---------- */
+const TIPOS_COCHE_ALQ=[
+  {tipo:'Turista',          cara:'🧳', tasa:.006, fiable:.98, desc:'Lo quiere para las vacaciones. Casi nunca falla.'},
+  {tipo:'Taxista',          cara:'🚕', tasa:.008, fiable:.96, desc:'Lo usa todo el día.'},
+  {tipo:'Empresa de bodas', cara:'💒', tasa:.011, fiable:.93, desc:'Paga mucho por lucirlo.'},
+];
+const candCoche={};
+function abrirAlquilerCoche(i){
+  const cc=bienes.coches[i], m=COCHES.find(x=>x.id===cc.id)||COCHES[1];
+  abrirPanel('🚗 ALQUILAR '+m.nombre.toUpperCase(),C=>{
+    C.insertAdjacentHTML('beforeend','<p class="nota">Mientras esté alquilado no lo puedes conducir. Te pagan cada minuto. Si alguno no paga, manda a un guardaespaldas a por el coche desde 📋 MIS COSAS.</p>');
+    if(!candCoche[i]) candCoche[i]=TIPOS_COCHE_ALQ.map(T=>({...T, nombre:NOMBRES_INQ[Math.floor(Math.random()*NOMBRES_INQ.length)], renta:redondea(m.precio*T.tasa*(.9+Math.random()*.2))}));
+    candCoche[i].forEach(q=>filaAccion(C,{ico:q.cara,nombre:`${q.nombre} · ${fmt(q.renta)} al minuto`,desc:q.tipo+'. '+q.desc,boton:'ALQUILAR',
+      accion:()=>{ cc.alquiler={tipo:q.tipo,cara:q.cara,nombre:q.nombre,renta:q.renta,fiable:q.fiable,cobrado:0,debe:0}; delete candCoche[i];
+        SFX.efecto(); guardarEstado(); refrescar(); abrirMisCosas(); }}));
+  });
+}
+function abrirMisCosas(){
+  abrirPanel('📋 MIS COSAS',C=>{
+    const libres=SALA.guardiasLibres, total=bienes.guardias;
+    C.insertAdjacentHTML('beforeend',`<p class="nota">🕴️ Guardaespaldas libres: <b>${libres}</b> de ${total}${total-libres?` (${total-libres} de misión)`:''}.
+      Los que mandas de misión no te protegen hasta que vuelven.${total?'':' Contrátalos en la Agencia de seguridad.'}</p>`);
+    if(bienes.hijos.length) C.insertAdjacentHTML('beforeend',`<h3 class="sec">👶 Hijos</h3><p class="nota">${bienes.hijos.map(h=>h.nombre+(h.casa?' (en su casa)':' (contigo)')).join(', ')}. Te cuestan <b>${fmt(COSTE_HIJO*bienes.hijos.length)}</b> cada minuto.</p>`);
+    C.insertAdjacentHTML('beforeend','<h3 class="sec">🏠 Casas</h3>');
+    const mias=SALA.CASAS.filter(k=>bienes.casas[k.id]);
+    if(!mias.length) C.insertAdjacentHTML('beforeend','<p class="nota">Aún no tienes casas.</p>');
+    mias.forEach(k=>{
+      const D=CASAS_TIPO[k.tipo], a=bienes.alquiler[k.id];
+      const ninosAqui=bienes.hijos.filter(h=>h.casa===k.id);
+      if(!a && ninosAqui.length) filaAccion(C,{ico:'🏡',nombre:D.nombre,desc:'Viven tus hijos: '+ninosAqui.map(h=>h.nombre).join(', ')+'.',boton:'VER',accion:()=>fichaCasaMia(k)});
+      else if(!a) filaAccion(C,{ico:'🏠',nombre:D.nombre,desc:'Vacía.',boton:'ALQUILAR',accion:()=>fichaCasaMia(k)});
+      else if(a.recuperando) filaAccion(C,{ico:'🕴️',nombre:D.nombre,desc:'Tus guardaespaldas van a cobrar a '+a.nombre+'.',boton:'EN CAMINO',off:1,accion:()=>{}});
+      else if(a.debe && a.excusa) filaAccion(C,{ico:'💬',nombre:D.nombre+' · '+a.nombre+' te debe '+fmt(a.debe),desc:'Tu guardaespaldas ya sabe por qué no paga.',boton:'VER EXCUSA',lujo:1,accion:()=>abrirExcusa('casa',k.id)});
+      else if(a.debe) filaBotones(C,{ico:'⚠️',nombre:D.nombre+' · '+a.nombre+' te debe '+fmt(a.debe),lujo:1,
+        desc:'Pregunta por qué no paga (1 guardaespaldas) o échale directamente (2).',
+        botones:[{txt:'PREGUNTAR 🕴️',off:libres<1,accion:()=>{ if(SALA.mandar('casa',k.id,'preguntar')) cerrarPanel(); }},
+                 {txt:'ECHAR 🕴️🕴️',off:libres<2,accion:()=>{ if(SALA.mandar('casa',k.id)) cerrarPanel(); }}]});
+      else filaAccion(C,{ico:a.cara,nombre:D.nombre,desc:`${a.nombre} paga ${fmt(a.renta)} al minuto.`,boton:'VER',accion:()=>fichaCasaMia(k)});
+    });
+    C.insertAdjacentHTML('beforeend','<h3 class="sec">🚗 Coches</h3>');
+    if(!bienes.coches.length) C.insertAdjacentHTML('beforeend','<p class="nota">Aún no tienes coches. Se compran en la Caja VIP.</p>');
+    bienes.coches.forEach((cc,i)=>{
+      const m=COCHES.find(x=>x.id===cc.id)||COCHES[1], a=cc.alquiler;
+      if(i===bienes.conduce) filaAccion(C,{ico:m.ico,nombre:m.nombre,desc:'Lo estás conduciendo.',boton:'ALQUILAR',off:1,accion:()=>{}});
+      else if(!a) filaAccion(C,{ico:m.ico,nombre:m.nombre,desc:'Aparcado.',boton:'ALQUILAR',accion:()=>abrirAlquilerCoche(i)});
+      else if(a.recuperando) filaAccion(C,{ico:'🕴️',nombre:m.nombre,desc:'Tu guardaespaldas va a por él.',boton:'EN CAMINO',off:1,accion:()=>{}});
+      else if(a.debe && a.excusa) filaAccion(C,{ico:'💬',nombre:m.nombre+' · '+a.nombre+' te debe '+fmt(a.debe),desc:'Tu guardaespaldas ya sabe por qué no paga.',boton:'VER EXCUSA',lujo:1,accion:()=>abrirExcusa('coche',i)});
+      else if(a.debe) filaBotones(C,{ico:'⚠️',nombre:m.nombre+' · '+a.nombre+' te debe '+fmt(a.debe),lujo:1,
+        desc:'Pregunta por qué no paga o quítale el coche (1 guardaespaldas).',
+        botones:[{txt:'PREGUNTAR 🕴️',off:libres<1,accion:()=>{ if(SALA.mandar('coche',i,'preguntar')) cerrarPanel(); }},
+                 {txt:'QUITAR 🕴️',off:libres<1,accion:()=>{ if(SALA.mandar('coche',i)) cerrarPanel(); }}]});
+      else filaAccion(C,{ico:a.cara,nombre:m.nombre,desc:`Alquilado a ${a.nombre}: ${fmt(a.renta)} al minuto.`,boton:'QUITAR',
+        accion:()=>{ delete cc.alquiler; SFX.compra(); guardarEstado(); repintarPanel(); }});
+    });
+  });
+}
 let relojAlquiler=0;
+const hayCobros = () => alquileresActivos().length>0 || (bienes.hijos||[]).length>0;
+const alquileresActivos = () => [...Object.values(bienes.alquiler||{}), ...bienes.coches.filter(c=>c.alquiler).map(c=>c.alquiler)];
 function cobrarAlquileres(){
-  const ids=Object.keys(bienes.alquiler||{}); if(!ids.length) return 0;
+  const lista=alquileresActivos(); if(!hayCobros()) return 0;
   let total=0; const morosos=[];
-  ids.forEach(id=>{ const a=bienes.alquiler[id]; if(Math.random()<a.fiable){ total+=a.renta; a.cobrado+=a.renta; } else morosos.push(a.nombre); });
+  // si no paga, se le apunta la deuda (la cobran tus guardaespaldas desde 📋 MIS COSAS)
+  lista.forEach(a=>{ if(a.recuperando) return; if(Math.random()<a.fiable){ total+=a.renta; a.cobrado+=a.renta; } else { a.debe=(a.debe||0)+a.renta; morosos.push(a.nombre); } });
   if(total){ dinero+=total; if(dinero>record){ record=dinero; guardar('rds_record',record); } animarDinero('sube'); SFX.compra(); }
+  const gastoHijos=COSTE_HIJO*(bienes.hijos||[]).length;
+  if(gastoHijos){ dinero=Math.max(0,dinero-gastoHijos); }
   guardarEstado(); refrescar();
-  aviso('🏠 Alquileres: +'+fmt(total)+(morosos.length?' · '+morosos.join(', ')+(morosos.length>1?' no han pagado':' no ha pagado')+' este mes':''), morosos.length>0);
+  if(gastoHijos) setTimeout(comprobarRuina,800);
+  aviso((lista.length?'🏠 Alquileres: +'+fmt(total):'')+(gastoHijos?(lista.length?' · ':'')+'👶 −'+fmt(gastoHijos)+' para tus hijos':'')+(morosos.length?' · '+morosos.join(', ')+(morosos.length>1?' no han pagado':' no ha pagado')+' (mira 📋 MIS COSAS)':''), morosos.length>0);
   return total;
 }
 function aviso(txt,mal){
@@ -2206,7 +2322,7 @@ function aviso(txt,mal){
 }
 setInterval(()=>{
   if(document.hidden || $('fin').classList.contains('ver')) return;
-  if(!Object.keys(bienes.alquiler||{}).length){ relojAlquiler=0; return; }
+  if(!hayCobros()){ relojAlquiler=0; return; }
   if(++relojAlquiler>=60){ relojAlquiler=0; cobrarAlquileres(); }
 },1000);
 
@@ -2270,7 +2386,7 @@ function apuestaJuego(j){
   if(j==='traga') return TR.apuesta;
   if(j==='bj') return enManoBJ() ? BJ.apuestaIni : (BJ.apuesta==='todo' ? dinero : BJ.apuesta);
   if(j==='carta') return (CA.fase==='ganada'||CA.fase==='sacando') ? CA.apuestaIni : CA.apuesta;
-  if(j==='poker') return PK.apuesta;
+  if(j==='poker') return (PK.fase!=='apostar'&&PK.fase!=='fin') ? PK.A : apuestaPoker();
   return 0;
 }
 const precioPJ=(p,A)=>redondea(Math.max(5,A*p.f));
@@ -2569,6 +2685,7 @@ const SALA = (()=>{
   const chaleco=(x,yb)=>{ c.fillStyle='#111'; c.fillRect(x-4,yb,2,6); c.fillRect(x+2,yb,2,6); c.fillStyle='#d0021b'; c.fillRect(x-1,yb,2,1); };
   function persona(p){
     if(p.oculto) return;
+    if(p.peque && !p._esc){ c.save(); c.translate(p.x,p.y); c.scale(.7,.7); c.translate(-p.x,-p.y); p._esc=1; persona(p); p._esc=0; c.restore(); return; }
     const x=Math.round(p.x), y=Math.round(p.y-(p.salto||0)), C=p.ropa, d=p.dir;
     const f = p.anda ? (Math.floor(p.paso/5)%2 ? 1 : -1) : 0;
     c.fillStyle='rgba(0,0,0,.3)'; c.fillRect(x-4,y-1,8,2);
@@ -3044,6 +3161,112 @@ const SALA = (()=>{
     arma.id==='pistola' ? tono(900,0,.08,'square',.1,200) : arma.id==='taser' ? tono(2000,0,.15,'sawtooth',.06,3000) : tono(200,0,.08,'square',.12,80);
     if(mejor) noquear(mejor,jugador);
   }
+  // --- Hijos adoptados: te siguen en fila ---
+  const ninos=[], rastro=[];
+  function actualizarNinos(dt){
+    const H=bienes.hijos||[];
+    while(ninos.length<H.length) ninos.push({x:jugador.x,y:jugador.y,dir:'d',ropa:ropaAzar(),tipo:'nino',peque:1,paso:0});
+    while(ninos.length>H.length) ninos.pop();
+    const j=jugador, u=rastro[0];
+    if(!u || Math.hypot(u.x-j.x,u.y-j.y)>3){ rastro.unshift({x:j.x,y:j.y}); if(rastro.length>80) rastro.pop(); }
+    const cc=conduciendo();
+    let k=0;                                     // posición en la fila de los que te siguen
+    ninos.forEach((n,i)=>{
+      const h=H[i], casa=h.casa && CASAS.find(c=>c.id===h.casa);
+      if(casa){                                  // vive en su casa: juega delante de la puerta
+        n.oculto=false;
+        const pz=casa.partes.puerta, cx=pz.x, cy=pz.y+16;
+        if(!n.juego || Math.hypot(n.x-cx,n.y-cy)>80){ n.x=cx+(i%3-1)*10; n.y=cy+4; n.juego={x:n.x,y:n.y,t:0}; }
+        if(t>n.juego.t){ n.juego={x:cx+(Math.random()*44-22), y:cy+Math.random()*14, t:t+1.5+Math.random()*2.5}; }
+        if(Math.hypot(n.juego.x-n.x,n.juego.y-n.y)>2) moverHacia(n,n.juego.x,n.juego.y,30,dt); else n.anda=false;
+        if(Math.random()<.0015) n.burbuja={txt:azar(['¡Pilla pilla!','¡Qué casa más chula!','¡Ven a jugar!','¡Me aburro!']),hasta:t+1.8};
+        return;
+      }
+      n.juego=null;
+      n.oculto=!!cc; if(cc){ n.x=j.x; n.y=j.y; k++; return; }
+      const idx=(k+1)*5+(escoltas.length?4:0);
+      const obj=rastro[idx] || {x:j.x-(k+1)*9, y:j.y+5};       // si aún no has andado, se ponen a tu lado
+      k++;
+      const d=Math.hypot(obj.x-n.x,obj.y-n.y);
+      if(d>120){ n.x=obj.x; n.y=obj.y; } else if(d>2) moverHacia(n,obj.x,obj.y,Math.max(60,d*4),dt); else n.anda=false;
+      if(Math.random()<.002) n.burbuja={txt:azar(['¡Mira!','¡Quiero un helado!','¡Qué guay!','¿Cuándo llegamos?']),hasta:t+1.8};
+    });
+  }
+  // --- Misiones: mandar guardaespaldas a cobrar a los que no pagan ---
+  const misiones=[];
+  const ESCONDITES=[[300,1585],[1700,1585],[2300,470],[1450,1030],[60,470]];
+  function mandar(tipo,ref,modo='cobrar'){
+    ajustarEscoltas();
+    const n = modo==='preguntar' ? 1 : tipo==='casa'?2:1, libres=escoltas.filter(g=>!g.mision&&!g.objetivo);
+    if(libres.length<n){ avisoSala('Necesitas '+n+' guardaespaldas libres.',true); return false; }
+    const m={tipo,ref,modo,fase:'ida',t0:t,guardias:libres.slice(0,n)};
+    if(tipo==='casa'){ m.casa=CASAS.find(c=>c.id===ref); m.item=bienes.alquiler[ref]; m.destino={x:m.casa.partes.puerta.x,y:m.casa.partes.puerta.y+14}; }
+    else { m.item=bienes.coches[ref].alquiler; const e=azar(ESCONDITES); m.destino={x:e[0],y:e[1]}; }
+    if(!m.item) return false;
+    m.item.recuperando=true;
+    m.guardias.forEach((g,k)=>{ g.mision=m; g.objetivo=null; g.oculto=false; if(conduciendo()){ g.x=jugador.x; g.y=jugador.y; }
+      g.ruta=camino(g.x,g.y,m.destino.x+(k?14:-6),m.destino.y); g.burbuja={txt:'¡Voy!',hasta:t+1.2}; });
+    misiones.push(m); guardarEstado();
+    avisoSala(modo==='preguntar' ? '🕴️ Tu guardaespaldas va a preguntar por qué no paga' : n>1?'🕴️🕴️ Tus guardaespaldas van a cobrar':'🕴️ Tu guardaespaldas va a por el coche');
+    return true;
+  }
+  function actualizarMisiones(dt){
+    for(let i=misiones.length-1;i>=0;i--){
+      const m=misiones[i], G=m.guardias;
+      if(m.fase==='ida'){
+        let llegan=true; G.forEach(g=>{ if(g.ruta.length){ seguir(g,dt,95); llegan=false; } else g.anda=false; });
+        if(llegan || t-m.t0>40){
+          m.fase='cobrar'; m.t0=t; G.forEach(g=>g.dir='u');
+          if(m.modo==='preguntar'){
+            m.excusa=inventarExcusa(m.tipo);
+            G[0].burbuja={txt:'¿Por qué no paga?',hasta:t+1.3};
+            if(m.tipo==='casa'){ const v=m.casa.vecino; v.oculto=false; v.dir='d'; setTimeout(()=>{ v.burbuja={txt:m.excusa.hijos?'¡Tengo hijos!':m.excusa.buena?'No puedo...':'Bah...',hasta:t+1.6}; },700); }
+          } else {
+            G[0].burbuja={txt:'¡Pague lo que debe!',hasta:t+2};
+            if(m.tipo==='casa'){ const v=m.casa.vecino; v.oculto=false; v.dir='d'; v.burbuja={txt:'¡Vale, vale! ¡Ya me voy!',hasta:t+2.4}; }
+          }
+        }
+      } else if(m.fase==='cobrar'){
+        if(t-m.t0>2.6){
+          if(m.tipo==='casa') m.casa.vecino.oculto=true;
+          else if(m.modo!=='preguntar') G[0].conduce=bienes.coches[m.ref];
+          m.fase='vuelta'; m.t0=t;
+        }
+      } else if(m.fase==='vuelta'){
+        const obj = (m.tipo==='coche' && !fuera(jugador.x,jugador.y)) ? {x:288,y:440} : jugador;
+        G.forEach(g=>{
+          if(t>(g.proxRuta||0)){ g.proxRuta=t+1; g.ruta=camino(g.x,g.y,obj.x,obj.y); }
+          seguir(g,dt,g.conduce?150:95);
+          if(g.conduce && g.ruta.length){ const o=g.ruta[0]; g.conduce.ang=Math.atan2(o.y-g.y,o.x-g.x); }
+        });
+        if(G.every(g=>Math.hypot(g.x-obj.x,g.y-obj.y)<40) || t-m.t0>45) terminarMision(m,i);
+      }
+    }
+  }
+  function terminarMision(m,i){
+    misiones.splice(i,1);
+    if(m.modo==='preguntar'){
+      m.item.recuperando=false; m.item.excusa=m.excusa;
+      m.guardias.forEach(g=>{ g.mision=null; g.conduce=null; g.ruta=[]; });
+      guardarEstado(); SFX.efecto();
+      abrirExcusa(m.tipo,m.ref);
+      return;
+    }
+    const deuda=m.item.debe||0;
+    dinero+=deuda;
+    if(m.tipo==='casa'){
+      delete bienes.alquiler[m.ref];
+      avisoSala(`🕴️ Han echado a ${m.item.nombre} y cobrado ${fmt(deuda)}. La casa está vacía.`);
+    } else {
+      const cc=bienes.coches[m.ref], g=m.guardias[0];
+      delete cc.alquiler;
+      if(fuera(g.x,g.y)){ cc.x=g.x; cc.y=g.y; } else { const q=sitioAparcar(m.ref); cc.x=q.x; cc.y=q.y; }
+      avisoSala(`🕴️ Tu guardaespaldas te devuelve tu ${cocheDe(cc).nombre} y ${fmt(deuda)}`);
+    }
+    m.guardias.forEach(g=>{ g.mision=null; g.conduce=null; g.ruta=[]; });
+    if(dinero>record){ record=dinero; guardar('rds_record',record); }
+    animarDinero('sube'); SFX.granPremio(); guardarEstado(); refrescar();
+  }
   let charlaHasta=0;
   function actualizarCalle(dt){
     const j=jugador, cc=conduciendo(), fueraYo=fuera(j.x,j.y), nv=nivelPeligro();
@@ -3087,15 +3310,18 @@ const SALA = (()=>{
         if(t-l.t0>8 || d>360){ ladrones.splice(i,1); if(l.botin) avisoSala('El ladrón se ha escapado con '+fmt(l.botin)+'.',true); }
       }
     }
-    // guardaespaldas
+    actualizarNinos(dt);
+    // guardaespaldas (los que están de misión no te protegen)
     ajustarEscoltas();
-    const libres=escoltas.filter(g=>!g.objetivo||g.objetivo.estado==='ko'||!ladrones.includes(g.objetivo));
+    actualizarMisiones(dt);
+    const libres=escoltas.filter(g=>!g.mision && (!g.objetivo||g.objetivo.estado==='ko'||!ladrones.includes(g.objetivo)));
     libres.forEach(g=>g.objetivo=null);
     for(const l of ladrones){
       if(l.estado==='ko'||escoltas.some(g=>g.objetivo===l)) continue;
       if(Math.hypot(l.x-j.x,l.y-j.y)<110){ const g=libres.shift(); if(g) g.objetivo=l; }
     }
     escoltas.forEach((g,k)=>{
+      if(g.mision) return;
       if(cc){ g.x=j.x; g.y=j.y; g.oculto=true; return; }
       g.oculto=false;
       if(g.objetivo){ const d=moverHacia(g,g.objetivo.x,g.objetivo.y,96,dt); if(d<9) noquear(g.objetivo,g); return; }
@@ -3253,7 +3479,7 @@ const SALA = (()=>{
   function volverAEntrar(){
     for(let i=gente.length-1;i>=0;i--) if(gente[i].tipo==='guardia') gente.splice(i,1);
     cine=null; Object.assign(jugador,{x:18*T,y:24*T+6,dir:'u',oculto:false,salto:0,ruta:[],auto:null,autoCoche:-1,vuelta:null,burbuja:null});
-    ladrones.length=0; escoltas.length=0; for(const k in zcache) delete zcache[k]; rejilla=null;
+    ladrones.length=0; escoltas.length=0; misiones.length=0; ninos.length=0; for(const k in zcache) delete zcache[k]; rejilla=null;
     CASAS.forEach(k=>{ k.vecino.oculto=true; k.cerrada=false; k.msg=null; k.minimo=0; k.paciencia=3; k.enfado=0; k.contra=0; });
   }
 
@@ -3309,7 +3535,7 @@ const SALA = (()=>{
     // sitio donde puedes jugar (o subir/bajar del coche)
     let z=null;
     if(cc) z=zonaCoche(bienes.conduce,true);
-    else { const i=bienes.coches.findIndex(k=>Math.hypot(k.x-j.x,k.y-j.y)<18);
+    else { const i=bienes.coches.findIndex(k=>!k.alquiler && Math.hypot(k.x-j.x,k.y-j.y)<18);
       z = i>=0 ? zonaCoche(i,false) : (zonas.find(z=>(!z.si||z.si())&&dentro(j.x,j.y,z))||null); }
     if(z!==pistaVista){
       pistaVista=z; const P=$('salaPista');
@@ -3349,8 +3575,9 @@ const SALA = (()=>{
     objetos.forEach(o=>{ if(vis(o.y)) lista.push(o); });
     gente.forEach(p=>{ if(!p.oculto && vis(p.y)) lista.push({y:p.y,dibujar:()=>persona(p)}); });
     ladrones.forEach(p=>lista.push({y:p.y,dibujar:()=>persona(p)}));
-    escoltas.forEach(p=>{ if(!p.oculto) lista.push({y:p.y,dibujar:()=>persona(p)}); });
-    bienes.coches.forEach((k,i)=>{ if(i!==bienes.conduce && vis(k.y)) lista.push({y:k.y,dibujar:()=>dibujaCocheModelo(cocheDe(k),k.x,k.y,k.ang)}); });
+    ninos.forEach(p=>{ if(!p.oculto) lista.push({y:p.y,dibujar:()=>persona(p)}); });
+    escoltas.forEach(p=>{ if(p.conduce) lista.push({y:p.y,dibujar:()=>dibujaCocheModelo(cocheDe(p.conduce),p.x,p.y,p.conduce.ang||0)}); else if(!p.oculto) lista.push({y:p.y,dibujar:()=>persona(p)}); });
+    bienes.coches.forEach((k,i)=>{ if(i!==bienes.conduce && !k.alquiler && vis(k.y)) lista.push({y:k.y,dibujar:()=>dibujaCocheModelo(cocheDe(k),k.x,k.y,k.ang)}); });
     trafico.forEach(v=>{ const q=enRecorrido(v.d); if(vis(q.y)) lista.push({y:q.y,dibujar:()=>dibujaCocheModelo(v.m,q.x,q.y,q.ang)}); });
     lista.push(cc ? {y:j.y,dibujar:()=>dibujaCocheModelo(cocheDe(cc),j.x,j.y,cc.ang)} : {y:j.y,dibujar:()=>persona(j)});
     lista.sort((a,b)=>a.y-b.y).forEach(o=>o.dibujar());
@@ -3405,7 +3632,7 @@ const SALA = (()=>{
       const d = fuera(wx,wy) ? {x:wx,y:wy} : {x:288,y:438};
       jugador.ruta=camino(jugador.x,jugador.y,d.x,d.y); jugador.auto=null; return;
     }
-    const ic=bienes.coches.findIndex(k=>Math.hypot(k.x-wx,k.y-4-wy)<14);
+    const ic=bienes.coches.findIndex(k=>!k.alquiler && Math.hypot(k.x-wx,k.y-4-wy)<14);
     if(ic>=0){
       const k=bienes.coches[ic];
       if(Math.hypot(k.x-jugador.x,k.y-jugador.y)<18) return subir(ic);
@@ -3420,6 +3647,7 @@ const SALA = (()=>{
   });
   $('btnEntrar').onclick=()=>usar();
   $('btnAtacar').onclick=()=>{ audio(); atacar(); };
+  $('btnMisCosas').onclick=()=>{ audio(); abrirMisCosas(); };
   window.addEventListener('resize',()=>{ if(anim) medir(); });
   window.addEventListener('blur',()=>teclas.clear());
   if(document.fonts) document.fonts.load('8px "Press Start 2P"').catch(()=>{});
@@ -3451,7 +3679,7 @@ const SALA = (()=>{
     decir(txt){ avisoSala(txt); }, decirVecino(casa,txt){ casa.vecino.burbuja={txt,hasta:t+2}; },
     casaVendida(casa){ casa.vecino.burbuja={txt:'¡Adiós, casa!',hasta:t+1.5}; setTimeout(()=>casa.vecino.oculto=true,1500); avisoSala('¡Ya tienes tu '+CASAS_TIPO[casa.tipo].nombre.toLowerCase()+'!'); },
     esconderVecinos, llamar,
-    atacar, ladrones, escoltas, CASAS, TIENDAS, subir, bajar, nuevoLadron, get conduciendo(){ return conduciendo(); }, fuera,
+    atacar, ladrones, escoltas, CASAS, TIENDAS, mandar, misiones, ninos, get guardiasLibres(){ ajustarEscoltas(); return escoltas.filter(g=>!g.mision).length; }, subir, bajar, nuevoLadron, get conduciendo(){ return conduciendo(); }, fuera,
   };
 })();
 
@@ -3530,7 +3758,7 @@ window.__R={RULETAS,elegirCasilla, forzar:null, get dinero(){return dinero}, set
   precioPoder, aceptar, repetir, iman,
   forzarTraga:null, bjCartas:null, rapido:false, SIMBOLOS, pagoTraga, puntos, cambiarJuego, tirar, repartir, pedir, plantarse, doblar,
   get BJ(){return BJ}, get TR(){return TR}, get juego(){return juego}, MUS, SALA, COCHES, ARMAS, CASAS_TIPO, negociar, oferta, abrirCajaVip, abrirAgencia, abrirPortero,
-  get bienes(){return bienes}, PODERES_JUEGO, prepJuego, usarPJ, pintarTiendaJuego, get invJuego(){return invJuego}, cobrarAlquileres, fichaCasaMia, CA, PK, caJugar, caCobrar, pkRepartir, pkPasar, pkApostar, pkIgualar, pkRetirarse, mejorMano, NOMBRES_MANO,
+  get bienes(){return bienes}, abrirMisCosas, abrirExcusa, inventarExcusa, abrirAlquilerCoche, PODERES_JUEGO, prepJuego, usarPJ, pintarTiendaJuego, get invJuego(){return invJuego}, cobrarAlquileres, fichaCasaMia, CA, PK, caJugar, caCobrar, pkRepartir, pkPasar, pkApostar, pkIgualar, pkRetirarse, mejorMano, NOMBRES_MANO,
   caCartas:null, pkCartas:null, BEBIDAS, precioBebida, comprarBebida, abrirBar,
   get suerte(){return suerte}, set suerte(v){suerte=v;refrescar()}};
 })();
