@@ -325,6 +325,15 @@ header h1{font-family:Bungee,Impact,sans-serif;font-size:20px;letter-spacing:1px
 #btnMisCosas{position:absolute;top:10px;right:10px;font:900 13px system-ui,sans-serif;padding:8px 12px;border-radius:10px;
   background:#1c2230ee;color:#8fd3ff;border:2px solid #4aa3ff;box-shadow:0 3px 0 #0008}
 
+#btnRanking{font-size:20px;padding:4px 8px;border-radius:8px;background:#221f2b}
+.rankForm{display:flex;gap:8px;margin:8px 0}
+.rankForm input{flex:1;min-width:0;font:inherit;font-size:16px;padding:8px 10px;border-radius:10px;border:2px solid #4aa3ff;background:#0c0f16;color:#fff;user-select:text}
+.rankForm button{font-weight:900;padding:8px 14px;border-radius:10px;background:#ffd700;color:#2a1a00}
+table.rank{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+table.rank th,table.rank td{padding:6px 4px;border-bottom:1px solid #2a3350;text-align:left}
+table.rank th{color:var(--mut);font-size:11px;text-transform:uppercase}
+table.rank tr.top td{color:#ffd700;font-weight:800}
+
 /* ---------- Fin de partida ---------- */
 #fin{position:fixed;inset:0;background:rgba(0,0,0,.86);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
 #fin.ver{display:flex}
@@ -518,6 +527,7 @@ header h1{font-family:Bungee,Impact,sans-serif;font-size:20px;letter-spacing:1px
     <div><div class="lbl">Récord</div><div class="val" id="record">100 €</div></div>
     <div><div class="lbl">Ruinas</div><div class="val" id="ruinas">0</div></div>
     <button id="btnTienda" title="Tienda">🛒 TIENDA</button>
+    <button id="btnRanking" title="Ranking">🏆</button>
     <button id="btnMusica" title="Música">🎵</button>
     <button id="btnSonido" title="Sonido">🔊</button>
   </div>
@@ -822,7 +832,7 @@ let mejoras  = Object.assign(SIN_MEJORAS(), (E && E.mejoras) || {});   // compra
 let inventario = (E && E.inventario) || {};
 let invJuego   = (E && E.invJuego) || {};                            // poderes de los otros juegos: {juego:{poder:[apuestas]}}                         // poderes comprados: {ruleta:{poder:n}}
 let suerte   = (E && E.suerte) || null;
-let bienes   = Object.assign({vip:0, coches:[], conduce:-1, casas:{}, armas:{}, guardias:0, alquiler:{}, hijos:[]}, (E && E.bienes) || {});   // coches, casas, armas...
+let bienes   = Object.assign({vip:0, coches:[], conduce:-1, casas:{}, armas:{}, guardias:0, alquiler:{}, hijos:[], banco:0, ropa:{}, aspecto:{}, mascotas:{}, mascota:null, mejorasCasa:{}, mision:{i:0,prog:0}}, (E && E.bienes) || {});   // coches, casas, armas...
 bienes.conduce = -1;                              // bebida del bar: {n, ico, nombre} para la próxima jugada
 let preparados = {escudo:false, x2:false, tapar:false};            // poderes marcados para la próxima tirada
 let jugada   = null;                                               // tirada en curso
@@ -1318,6 +1328,7 @@ function resolver(){
     nota=(nota?nota+' · ':'')+'🏦 banco +'+fmt(interes);
   }
   const neto = dinero-j.antes;
+  if(neto>0) setTimeout(()=>evento('ruleta',neto),1200);
   if(dinero>record){ record=dinero; guardar('rds_record',record); }
   historial.unshift({ruleta:R.nombre, casilla:etiqueta(g)+(j.pagado?'':' (gratis)')+(j.usados.length?' · '+j.usados.join(', '):''), neto});
   historial=historial.slice(0,30);
@@ -1345,6 +1356,7 @@ function resolver(){
 function comprobarRuina(){
   const minimo=minimoJuego();
   if(dinero>=minimo || efectos.gratis) return;
+  if((bienes.banco||0)>=minimo){ aviso('Te has quedado sin dinero encima: saca del 🏦 banco (al lado del casino)',true); return; }
   if(mejoras.seguro){
     mejoras.seguro=0; dinero=SALDO_INICIAL; guardarEstado();
     setTimeout(()=>{ SFX.efecto(); refrescar(); $('aviso').textContent='🛟 ¡El seguro te salva! Vuelves a tener '+fmt(SALDO_INICIAL)+'.'; $('aviso').className=''; },1200);
@@ -1539,6 +1551,7 @@ function resolverTraga(res,A,antes){
   historial=historial.slice(0,30);
   guardarEstado();
   const tres = res[0]===res[1] && res[1]===res[2];
+  if(tres) setTimeout(()=>evento('traga3'),1200);
   const titulo = tres ? `¡TRES ${res[0].s}!` : neto>0 ? '¡CEREZAS!' : neto===0 ? 'RECUPERAS' : 'NADA';
   const color = neto>0 ? '#3ddc84' : neto<0 ? '#ff4d4d' : '#ffffff';
   $('tragaRes').innerHTML = `<span style="color:${color}">${titulo} ${neto?conSigno(neto):''}</span><small>Tenías ${fmt(antes)} → ahora ${fmt(dinero)}${TR.suerte?' · '+TR.suerte:''}${TR.nota?' · '+TR.nota:''}</small>`;
@@ -1687,6 +1700,7 @@ const RES_BJ = {   // pago = veces la apuesta que te devuelven (contando lo apos
 };
 function terminarBJ(res){
   const R=RES_BJ[res];
+  setTimeout(()=>evento('bj'),1200);
   dinero += BJ.jugado*R.pago;
   let notaPJ='';
   if(R.pago===0 && BJ.reembolso){ const dev=Math.floor(BJ.jugado/2); dinero+=dev; notaPJ=' · ↩️ recuperas '+fmt(dev); }
@@ -2041,6 +2055,7 @@ async function pkFin(rivales){
   if(rivales.length){ pintarPoker(); await pausa(700); }
   let txt;
   if(ganadores.includes('tú')){
+    setTimeout(()=>evento('poker'),1500);
     const parte=Math.floor(PK.bote/ganadores.length); dinero+=parte;
     txt = !rivales.length ? '¡SE RETIRAN TODOS!' : ganadores.length>1 ? 'EMPATE CON '+NOMBRES_MANO[yo[0]].toUpperCase() : '¡GANAS CON '+NOMBRES_MANO[yo[0]].toUpperCase()+'!';
   } else txt = ganadores[0].toUpperCase()+' GANA CON '+NOMBRES_MANO[mejor[0]].toUpperCase();
@@ -2099,7 +2114,7 @@ const CASAS_TIPO={
   villa:  {nombre:'Villa en la playa',  base:25000000,  w:220, h:150, pared:'#ffffff', tejado:'#d9c7a0', piscina:1, playa:1, desc:'Frente al mar, con piscina y palmeras.'},
   palacio:{nombre:'Palacio',            base:120000000, w:340, h:220, pared:'#f5ecd0', tejado:'#7a1a2a', jardin:1, piscina:1, fuente:1, desc:'Torres, cúpula de oro, fuente y piscina. Lo más caro del barrio.'},
 };
-const SIN_BIENES=()=>({vip:0, coches:[], conduce:-1, casas:{}, armas:{}, guardias:0, alquiler:{}, hijos:[]});
+const SIN_BIENES=()=>({vip:0, coches:[], conduce:-1, casas:{}, armas:{}, guardias:0, alquiler:{}, hijos:[], banco:0, ropa:{}, aspecto:{}, mascotas:{}, mascota:null, mejorasCasa:{}, mision:{i:0,prog:0}});
 
 /* ---------- Ventana de compra (concesionario, armería, agencia, portero, vecinos) ---------- */
 let panelPintar=null;
@@ -2118,16 +2133,6 @@ function filaCompra(C,{ico,nombre,desc,precio,estado,accion,lujo,boton}){
   d.appendChild(b); C.appendChild(d);
 }
 const sitioAparcar = n => n<17 ? {x:340+n*36, y:436} : {x:24+((n-17)%7)*34, y:436};
-function abrirCajaVip(){
-  abrirPanel('💎 CAJA VIP',C=>{
-    C.insertAdjacentHTML('beforeend','<h3 class="sec">🚗 Coches</h3><p class="nota">Te los dejamos aparcados en la puerta del casino. Cuanto más caros, más corren.</p>');
-    COCHES.forEach((m,i)=>filaCompra(C,{ico:m.ico,nombre:m.nombre,desc:'Hasta '+m.vel+' km/h',precio:m.precio,lujo:i>=6,
-      estado:bienes.coches.some(x=>x.id===m.id)?'✔ Tuyo':'',
-      accion:()=>{ const q=sitioAparcar(bienes.coches.length); bienes.coches.push({id:m.id,x:q.x,y:q.y,ang:0}); SALA.decir('Tu '+m.nombre+' te espera en la puerta del casino'); }}));
-    C.insertAdjacentHTML('beforeend','<h3 class="sec">🔫 Armas</h3><p class="nota">Para tumbar a los ladrones en la calle (tecla Q o botón ATACAR). Si les das después de robarte, recuperas el dinero.</p>');
-    ARMAS.forEach(a=>filaCompra(C,{ico:a.ico,nombre:a.nombre,desc:a.desc,precio:a.precio,estado:bienes.armas[a.id]?'✔ Tuya':'',accion:()=>{ bienes.armas[a.id]=1; }}));
-  });
-}
 function abrirAgencia(){
   abrirPanel('🛡 AGENCIA DE SEGURIDAD',C=>{
     C.insertAdjacentHTML('beforeend',`<p class="nota">Desde que tienes el pase VIP, los ladrones te buscan en la calle, y más cuanto más dinero llevas (ahora: ${'★'.repeat(SALA.peligro)||'ninguno'}). Los guardaespaldas te siguen y paran a los ladrones antes de que te toquen.</p>`);
@@ -2221,6 +2226,7 @@ function fichaCasaMia(casa){
   const D=CASAS_TIPO[casa.tipo], precio=bienes.casas[casa.id];
   abrirPanel('🏠 TU '+D.nombre.toUpperCase(),C=>{
     C.insertAdjacentHTML('beforeend',`<p class="nota">Esta ${D.nombre.toLowerCase()} es tuya. La compraste por <b>${fmt(precio)}</b>.</p>`);
+    mejorasCasaUI(C,casa);
     const a=bienes.alquiler[casa.id];
     if(a){
       C.insertAdjacentHTML('beforeend',`<div class="negocio"><span class="cara">${a.cara}</span><div class="dice"><b>${a.nombre}</b> (${a.tipo.toLowerCase()}) vive aquí de alquiler.
@@ -2239,7 +2245,7 @@ function fichaCasaMia(casa){
     if(conmigo.length) filaAccion(C,{ico:'🏡',nombre:'Que tus hijos vivan aquí',lujo:1,desc:`${conmigo.map(h=>h.nombre).join(', ')} dejan de seguirte y se quedan jugando en esta casa.`,boton:'A CASA',
       accion:()=>{ conmigo.forEach(h=>h.casa=casa.id); SFX.efecto(); aviso('🏡 Tus hijos ya viven en tu '+D.nombre.toLowerCase()); guardarEstado(); repintarPanel(); }});
     C.insertAdjacentHTML('beforeend','<p class="nota">Está vacía. Si la alquilas, el inquilino te paga <b>cada minuto</b> (un mes del juego), estés donde estés. Elige a quién:</p>');
-    if(!casa.candidatos) casa.candidatos=TIPOS_INQUILINO.map(T=>({...T, nombre:NOMBRES_INQ[Math.floor(Math.random()*NOMBRES_INQ.length)], renta:redondea(precio*T.tasa*(.9+Math.random()*.2))}));
+    if(!casa.candidatos) casa.candidatos=TIPOS_INQUILINO.map(T=>({...T, nombre:NOMBRES_INQ[Math.floor(Math.random()*NOMBRES_INQ.length)], renta:redondea(precio*(1+bonoCasa(casa.id))*T.tasa*(.9+Math.random()*.2))}));
     casa.candidatos.forEach(q=>filaAccion(C,{ico:q.cara,nombre:`${q.nombre} · ${fmt(q.renta)} al minuto`,desc:q.tipo+'. '+q.desc,boton:'ALQUILAR',
       accion:()=>{ bienes.alquiler[casa.id]={tipo:q.tipo,cara:q.cara,nombre:q.nombre,renta:q.renta,fiable:q.fiable,cobrado:0}; casa.candidatos=null;
         SFX.efecto(); guardarEstado(); refrescar(); repintarPanel(); }}));
@@ -2267,6 +2273,7 @@ function abrirMisCosas(){
     const libres=SALA.guardiasLibres, total=bienes.guardias;
     C.insertAdjacentHTML('beforeend',`<p class="nota">🕴️ Guardaespaldas libres: <b>${libres}</b> de ${total}${total-libres?` (${total-libres} de misión)`:''}.
       Los que mandas de misión no te protegen hasta que vuelven.${total?'':' Contrátalos en la Agencia de seguridad.'}</p>`);
+    C.insertAdjacentHTML('beforeend',`<p class="nota">📜 Encargo: <b>${textoEncargo()}</b><br>🏦 En el banco: <b>${fmt(bienes.banco||0)}</b> · 💼 Patrimonio: <b>${fmt(patrimonio())}</b></p>`);
     if(bienes.hijos.length) C.insertAdjacentHTML('beforeend',`<h3 class="sec">👶 Hijos</h3><p class="nota">${bienes.hijos.map(h=>h.nombre+(h.casa?' (en su casa)':' (contigo)')).join(', ')}. Te cuestan <b>${fmt(COSTE_HIJO*bienes.hijos.length)}</b> cada minuto.</p>`);
     C.insertAdjacentHTML('beforeend','<h3 class="sec">🏠 Casas</h3>');
     const mias=SALA.CASAS.filter(k=>bienes.casas[k.id]);
@@ -2289,7 +2296,10 @@ function abrirMisCosas(){
     bienes.coches.forEach((cc,i)=>{
       const m=COCHES.find(x=>x.id===cc.id)||COCHES[1], a=cc.alquiler;
       if(i===bienes.conduce) filaAccion(C,{ico:m.ico,nombre:m.nombre,desc:'Lo estás conduciendo.',boton:'ALQUILAR',off:1,accion:()=>{}});
-      else if(!a) filaAccion(C,{ico:m.ico,nombre:m.nombre,desc:'Aparcado.',boton:'ALQUILAR',accion:()=>abrirAlquilerCoche(i)});
+      else if(!a) filaAccion(C,{ico:m.ico,nombre:m.nombre,boton:'ALQUILAR',accion:()=>abrirAlquilerCoche(i),
+        desc:(cc.y>=414&&cc.y<450&&cc.x>=16&&cc.x<960 ? '🅿️ En el parking vigilado.' : '⚠️ Aparcado en la calle: te lo pueden robar.')+' ⛽ '+Math.round(cc.gas??100)+' %'});
+      else if(a.robado && !a.recuperando) filaAccion(C,{ico:'🚨',nombre:m.nombre+' · ROBADO',desc:'Te lo robaron porque estaba fuera del parking vigilado.',boton:'1 🕴️ RECUPERARLO',off:libres<1,lujo:1,
+        accion:()=>{ if(SALA.mandar('coche',i)) cerrarPanel(); }});
       else if(a.recuperando) filaAccion(C,{ico:'🕴️',nombre:m.nombre,desc:'Tu guardaespaldas va a por él.',boton:'EN CAMINO',off:1,accion:()=>{}});
       else if(a.debe && a.excusa) filaAccion(C,{ico:'💬',nombre:m.nombre+' · '+a.nombre+' te debe '+fmt(a.debe),desc:'Tu guardaespaldas ya sabe por qué no paga.',boton:'VER EXCUSA',lujo:1,accion:()=>abrirExcusa('coche',i)});
       else if(a.debe) filaBotones(C,{ico:'⚠️',nombre:m.nombre+' · '+a.nombre+' te debe '+fmt(a.debe),lujo:1,
@@ -2303,7 +2313,7 @@ function abrirMisCosas(){
 }
 let relojAlquiler=0;
 const hayCobros = () => alquileresActivos().length>0 || (bienes.hijos||[]).length>0;
-const alquileresActivos = () => [...Object.values(bienes.alquiler||{}), ...bienes.coches.filter(c=>c.alquiler).map(c=>c.alquiler)];
+const alquileresActivos = () => [...Object.values(bienes.alquiler||{}), ...bienes.coches.filter(c=>c.alquiler&&!c.alquiler.robado).map(c=>c.alquiler)];
 function cobrarAlquileres(){
   const lista=alquileresActivos(); if(!hayCobros()) return 0;
   let total=0; const morosos=[];
@@ -2323,9 +2333,9 @@ function aviso(txt,mal){
 }
 setInterval(()=>{
   if(document.hidden || $('fin').classList.contains('ver')) return;
-  if(!hayCobros()){ relojAlquiler=0; return; }
-  if(++relojAlquiler>=60){ relojAlquiler=0; cobrarAlquileres(); }
+  if(++relojAlquiler>=60){ relojAlquiler=0; tickMinuto(); }
 },1000);
+function tickMinuto(){ cobrarAlquileres(); interesBanco(); SALA.robarCoches(); revisarEncargo(); }
 
 function oferta(casa,cant){
   if(cant>=casa.minimo){
@@ -2456,6 +2466,195 @@ function usarPJ(j,id){
   refrescar();
 }
 
+/* =====================================================================
+   ROPA, MASCOTAS, BANCO, MEJORAS DE CASAS, ENCARGOS Y RANKING
+   ===================================================================== */
+const ROPA=[
+  {id:'chandal',   hueco:'traje', nombre:'Chándal',            ico:'🏃', precio:5000,    camisa:'#2ecc71', pant:'#1f7a32'},
+  {id:'vaqueros',  hueco:'traje', nombre:'Ropa de vaquero',    ico:'🤠', precio:20000,   camisa:'#c97a3a', pant:'#2b3a8c'},
+  {id:'negro',     hueco:'traje', nombre:'Traje negro',        ico:'🕴️', precio:50000,   camisa:'#1a1a1a', pant:'#111'},
+  {id:'blanco',    hueco:'traje', nombre:'Traje blanco',       ico:'🤵', precio:200000,  camisa:'#f4f4f4', pant:'#e6e6e6'},
+  {id:'smoking',   hueco:'traje', nombre:'Esmoquin',           ico:'🎩', precio:500000,  camisa:'#111',    pant:'#111', pajarita:1},
+  {id:'dorado',    hueco:'traje', nombre:'Traje de oro',       ico:'✨', precio:2000000, camisa:'#ffd700', pant:'#c9940a', brilla:1},
+  {id:'rubio',     hueco:'pelo',  nombre:'Pelo rubio',         ico:'💇', precio:3000,    pelo:'#f2d16b'},
+  {id:'pelirrojo', hueco:'pelo',  nombre:'Pelo pelirrojo',     ico:'💇', precio:3000,    pelo:'#c0461a'},
+  {id:'azul',      hueco:'pelo',  nombre:'Pelo azul',          ico:'💇', precio:8000,    pelo:'#2b6bff'},
+  {id:'rosa',      hueco:'pelo',  nombre:'Pelo rosa',          ico:'💇', precio:8000,    pelo:'#ff5fbf'},
+  {id:'gorra',     hueco:'gorro', nombre:'Gorra',              ico:'🧢', precio:2000,    gorro:'gorra'},
+  {id:'sombrero',  hueco:'gorro', nombre:'Sombrero vaquero',   ico:'🤠', precio:20000,   gorro:'vaquero'},
+  {id:'chistera',  hueco:'gorro', nombre:'Chistera',           ico:'🎩', precio:150000,  gorro:'chistera'},
+  {id:'corona',    hueco:'gorro', nombre:'Corona de oro',      ico:'👑', precio:5000000, gorro:'corona'},
+  {id:'gafas',     hueco:'gafas', nombre:'Gafas de sol',       ico:'🕶️', precio:3000,    gafasSol:'#111'},
+  {id:'gafasoro',  hueco:'gafas', nombre:'Gafas de oro',       ico:'🕶️', precio:100000,  gafasSol:'#ffd700'},
+  {id:'cadena',    hueco:'joya',  nombre:'Cadena de oro',      ico:'📿', precio:80000,   joya:'cadena'},
+  {id:'reloj',     hueco:'joya',  nombre:'Reloj de diamantes', ico:'⌚', precio:1000000, joya:'reloj'},
+];
+const HUECOS={traje:'Traje',pelo:'Peinado',gorro:'Para la cabeza',gafas:'Gafas',joya:'Joya'};
+const MASCOTAS=[
+  {id:'raton',     nombre:'Ratón',     ico:'🐭', precio:10000,    desc:'Pequeñito y simpático.'},
+  {id:'gato',      nombre:'Gato',      ico:'🐱', precio:50000,    desc:'Va a su aire, pero te sigue.'},
+  {id:'perro',     nombre:'Perro',     ico:'🐶', precio:150000,   desc:'Ladra cuando se acerca un ladrón.', avisa:1},
+  {id:'loro',      nombre:'Loro',      ico:'🦜', precio:300000,   desc:'Va en tu hombro y grita "¡Ladrón!".', avisa:1},
+  {id:'mono',      nombre:'Mono',      ico:'🐵', precio:800000,   desc:'Muy listo: te avisa de los ladrones.', avisa:1},
+  {id:'pinguino',  nombre:'Pingüino',  ico:'🐧', precio:1500000,  desc:'Elegante como tú.'},
+  {id:'tigre',     nombre:'Tigre',     ico:'🐯', precio:5000000,  desc:'Ataca a los ladrones que se acercan.', ataca:1},
+  {id:'leon',      nombre:'León',      ico:'🦁', precio:12000000, desc:'El rey del barrio: ataca a los ladrones.', ataca:1},
+  {id:'cocodrilo', nombre:'Cocodrilo', ico:'🐊', precio:30000000, desc:'Nadie se te acerca con él al lado.', ataca:1},
+];
+function aspectoJugador(){         // ropa del personaje según lo que llevas puesto
+  const r={piel:'#f1c27d',pelo:'#4a2c14',camisa:'#ffcc33',pant:'#2b3a8c',zap:'#222'};
+  Object.values(bienes.aspecto||{}).forEach(id=>{ const it=ROPA.find(x=>x.id===id); if(!it) return;
+    ['camisa','pant','pelo','gorro','gafasSol','joya','pajarita','brilla'].forEach(k=>{ if(it[k]!==undefined) r[k]=it[k]; }); });
+  return r;
+}
+
+/* ---------- Caja VIP: coches, armas, ropa y mascotas ---------- */
+function abrirCajaVip(){
+  abrirPanel('💎 CAJA VIP',C=>{
+    C.insertAdjacentHTML('beforeend','<h3 class="sec">🚗 Coches</h3><p class="nota">Te los dejamos en el parking vigilado de la puerta del casino. Cuanto más caros, más corren.</p>');
+    COCHES.forEach((m,i)=>filaCompra(C,{ico:m.ico,nombre:m.nombre,desc:'Hasta '+m.vel+' km/h',precio:m.precio,lujo:i>=6,
+      estado:bienes.coches.some(x=>x.id===m.id)?'✔ Tuyo':'',
+      accion:()=>{ const q=sitioAparcar(bienes.coches.length); bienes.coches.push({id:m.id,x:q.x,y:q.y,ang:0,gas:100}); SALA.decir('Tu '+m.nombre+' te espera en la puerta del casino'); }}));
+    C.insertAdjacentHTML('beforeend','<h3 class="sec">🔫 Armas</h3><p class="nota">Para tumbar a los ladrones en la calle (tecla Q o botón ATACAR).</p>');
+    ARMAS.forEach(a=>filaCompra(C,{ico:a.ico,nombre:a.nombre,desc:a.desc,precio:a.precio,estado:bienes.armas[a.id]?'✔ Tuya':'',accion:()=>{ bienes.armas[a.id]=1; }}));
+    C.insertAdjacentHTML('beforeend','<h3 class="sec">👔 Ropa y aspecto</h3><p class="nota">Lo que compres te lo puedes poner y quitar cuando quieras.</p>');
+    ROPA.forEach(r=>{
+      if(bienes.ropa[r.id]){
+        const puesto=bienes.aspecto[r.hueco]===r.id;
+        filaAccion(C,{ico:r.ico,nombre:r.nombre,desc:puesto?'Lo llevas puesto.':HUECOS[r.hueco]+'. Es tuyo.',boton:puesto?'QUITAR':'PONER',
+          accion:()=>{ if(puesto) delete bienes.aspecto[r.hueco]; else bienes.aspecto[r.hueco]=r.id; SALA.aplicarAspecto(); guardarEstado(); repintarPanel(); }});
+      } else filaCompra(C,{ico:r.ico,nombre:r.nombre,desc:HUECOS[r.hueco],precio:r.precio,lujo:r.precio>=1e6,
+        accion:()=>{ bienes.ropa[r.id]=1; bienes.aspecto[r.hueco]=r.id; SALA.aplicarAspecto(); }});
+    });
+    C.insertAdjacentHTML('beforeend','<h3 class="sec">🐾 Mascotas</h3><p class="nota">Te siguen a todas partes. Solo puedes llevar una a la vez.</p>');
+    MASCOTAS.forEach(m=>{
+      if(bienes.mascotas[m.id]){
+        const va=bienes.mascota===m.id;
+        filaAccion(C,{ico:m.ico,nombre:m.nombre,desc:va?'Va contigo.':m.desc,boton:va?'DEJAR':'LLEVAR',
+          accion:()=>{ bienes.mascota = va ? null : m.id; guardarEstado(); repintarPanel(); }});
+      } else filaCompra(C,{ico:m.ico,nombre:m.nombre,desc:m.desc,precio:m.precio,lujo:m.precio>=5e6,
+        accion:()=>{ bienes.mascotas[m.id]=1; bienes.mascota=m.id; }});
+    });
+  });
+}
+
+/* ---------- Banco ---------- */
+const INTERES_BANCO=.005;           // 0,5 % cada minuto
+function abrirBanco(){
+  abrirPanel('🏦 BANCO',C=>{
+    C.insertAdjacentHTML('beforeend',`<div class="negocio"><span class="cara">🏦</span><div class="dice">En el banco: <b>${fmt(bienes.banco)}</b><br>Llevas encima: <b>${fmt(dinero)}</b></div></div>
+      <p class="nota">Lo que guardas aquí está a salvo de los ladrones y gana un <b>0,5 % cada minuto</b>. Para jugar o comprar tienes que sacarlo.</p>`);
+    [[.25,'un cuarto'],[.5,'la mitad'],[1,'todo']].forEach(([f,txt])=>{ const q=Math.floor(dinero*f);
+      filaAccion(C,{ico:'⬇️',nombre:'Guardar '+txt+': '+fmt(q),desc:'De lo que llevas encima.',boton:'GUARDAR',off:q<=0,
+        accion:()=>{ dinero-=q; bienes.banco+=q; SFX.compra(); animarDinero('baja'); guardarEstado(); refrescar(); repintarPanel(); }}); });
+    [[.25,'un cuarto'],[.5,'la mitad'],[1,'todo']].forEach(([f,txt])=>{ const q=Math.floor(bienes.banco*f);
+      filaAccion(C,{ico:'⬆️',nombre:'Sacar '+txt+': '+fmt(q),desc:'Del banco a tu bolsillo.',boton:'SACAR',off:q<=0,
+        accion:()=>{ dinero+=q; bienes.banco-=q; SFX.compra(); animarDinero('sube'); guardarEstado(); refrescar(); repintarPanel(); }}); });
+  });
+}
+function interesBanco(){
+  if(!(bienes.banco>0)) return 0;
+  const i=Math.floor(bienes.banco*INTERES_BANCO); bienes.banco+=i; guardarEstado();
+  if(i) setTimeout(()=>aviso('🏦 Intereses del banco: +'+fmt(i)),1600);
+  return i;
+}
+
+/* ---------- Mejorar casas ---------- */
+const MEJORAS_CASA=[
+  {id:'jardin',     nombre:'Jardín de lujo',     ico:'🌳', pct:.15, extra:.10, desc:'Árboles, flores y bancos.'},
+  {id:'piscina',    nombre:'Piscina nueva',      ico:'🏊', pct:.25, extra:.15, desc:'Una piscina con trampolín.'},
+  {id:'ampliacion', nombre:'Ampliación',         ico:'🏗️', pct:.40, extra:.30, desc:'Más habitaciones y otra planta.'},
+  {id:'lujo',       nombre:'Decoración de lujo', ico:'💎', pct:.60, extra:.40, desc:'Mármol, oro y lámparas de cristal.'},
+];
+const bonoCasa = id => { const m=bienes.mejorasCasa[id]||{}; return MEJORAS_CASA.reduce((s,x)=>s+(m[x.id]?x.extra:0),0); };
+function mejorasCasaUI(C,casa){
+  const precio=bienes.casas[casa.id], m=bienes.mejorasCasa[casa.id]=bienes.mejorasCasa[casa.id]||{};
+  C.insertAdjacentHTML('beforeend','<h3 class="sec">🔨 Mejorar la casa</h3><p class="nota">Cada mejora sube lo que te pagan de alquiler.</p>');
+  MEJORAS_CASA.forEach(x=>filaCompra(C,{ico:x.ico,nombre:x.nombre,desc:x.desc+' +'+Math.round(x.extra*100)+' % de alquiler.',precio:redondea(precio*x.pct),estado:m[x.id]?'✔ Hecha':'',
+    accion:()=>{ m[x.id]=1; const a=bienes.alquiler[casa.id]; if(a) a.renta=redondea(a.renta*(1+x.extra)); casa.candidatos=null; evento('mejora'); }}));
+}
+
+/* ---------- Patrimonio y ranking ---------- */
+function patrimonio(){
+  return dinero + (bienes.banco||0)
+    + Object.values(bienes.casas).reduce((s,v)=>s+v,0)
+    + bienes.coches.reduce((s,c)=>s+((COCHES.find(m=>m.id===c.id)||COCHES[1]).precio),0);
+}
+const escHtml = s => String(s).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+let borradorNombre=null;
+function abrirRanking(){
+  abrirPanel('🏆 RANKING',C=>{
+    const L=cargar('rds_ranking',[]), nombre = borradorNombre!==null ? borradorNombre : cargar('rds_nombre','');
+    C.insertAdjacentHTML('beforeend',`<p class="nota">Tu patrimonio ahora: <b>${fmt(patrimonio())}</b> (dinero, banco, casas y coches). Escribe tu nombre y guárdalo en la tabla.</p>
+      <div class="rankForm"><input id="rankNombre" maxlength="16" placeholder="Tu nombre" value="${escHtml(nombre)}"><button id="rankGuardar">GUARDAR</button></div>
+      <table class="rank"><tr><th>#</th><th>Nombre</th><th>Patrimonio</th><th>Día</th></tr>
+      ${L.map((r,i)=>`<tr${i<3?' class="top"':''}><td>${['🥇','🥈','🥉'][i]||i+1}</td><td>${escHtml(r.nombre)}</td><td>${fmt(r.patrimonio)}</td><td>${escHtml(r.fecha)}</td></tr>`).join('') || '<tr><td colspan="4">Todavía no hay nadie.</td></tr>'}</table>`);
+    const inp=$('rankNombre'); inp.oninput=()=>{ borradorNombre=inp.value; };
+    $('rankGuardar').onclick=()=>{
+      const n=inp.value.trim().slice(0,16); if(!n){ inp.focus(); return; }
+      guardar('rds_nombre',n); borradorNombre=null;
+      const L2=cargar('rds_ranking',[]); L2.push({nombre:n,patrimonio:patrimonio(),fecha:new Date().toLocaleDateString('es-ES')});
+      L2.sort((a,b)=>b.patrimonio-a.patrimonio); guardar('rds_ranking',L2.slice(0,20));
+      SFX.granPremio(); aviso('🏆 Guardado en el ranking: '+n+' · '+fmt(patrimonio())); repintarPanel();
+    };
+  });
+}
+
+/* ---------- Encargos de Don Fortunato ---------- */
+// tipo + meta = se cuenta con eventos · cond = se cumple cuando pasa algo en tu partida
+const ENCARGOS=[
+  {txt:'Gana 500 € en la ruleta',                tipo:'ruleta',   meta:500, premio:1000},
+  {txt:'Juega 10 manos de blackjack',            tipo:'bj',       meta:10,  premio:2000},
+  {txt:'Saca tres iguales en la tragaperras',    tipo:'traga3',   meta:1,   premio:5000},
+  {txt:'Gana una mano de póker',                 tipo:'poker',    meta:1,   premio:5000},
+  {txt:'Junta 50.000 € encima',                  cond:()=>dinero>=50000, premio:10000},
+  {txt:'Consigue el pase de la sala VIP',        cond:()=>!!bienes.vip, premio:100000},
+  {txt:'Cómprate un coche',                      cond:()=>bienes.coches.length>0, premio:20000},
+  {txt:'Llena el depósito en la gasolinera',     tipo:'gasolina', meta:1,   premio:10000},
+  {txt:'Atrapa a 5 ladrones',                    tipo:'ladron',   meta:5,   premio:50000},
+  {txt:'Compra una casa',                        cond:()=>Object.keys(bienes.casas).length>0, premio:50000},
+  {txt:'Alquila una casa o un coche',            cond:()=>alquileresActivos().length>0, premio:30000},
+  {txt:'Guarda 100.000 € en el banco',           cond:()=>bienes.banco>=100000, premio:20000},
+  {txt:'Gana una carrera a Toni el Rápido',      tipo:'carrera',  meta:1,   premio:100000},
+  {txt:'Cómprate ropa en la Caja VIP',           cond:()=>Object.keys(bienes.ropa).length>0, premio:20000},
+  {txt:'Cómprate una mascota',                   cond:()=>Object.keys(bienes.mascotas).length>0, premio:100000},
+  {txt:'Mejora una de tus casas',                tipo:'mejora',   meta:1,   premio:200000},
+  {txt:'Ten 10 millones en el banco',            cond:()=>bienes.banco>=1e7, premio:1000000},
+  {txt:'Llega a 100 millones de patrimonio',     cond:()=>patrimonio()>=1e8, premio:10000000},
+];
+const encargoActual = () => ENCARGOS[bienes.mision.i];
+function evento(tipo,valor=1){
+  const E2=encargoActual(); if(!E2) return;
+  if(E2.tipo===tipo){ bienes.mision.prog+=valor; guardarEstado(); }
+  revisarEncargo();
+}
+let revisando=false;
+function revisarEncargo(){
+  if(revisando) return;
+  const E2=encargoActual(); if(!E2) return;
+  if(!(E2.cond ? E2.cond() : bienes.mision.prog>=E2.meta)) return;
+  revisando=true;
+  dinero+=E2.premio; bienes.mision={i:bienes.mision.i+1,prog:0};
+  if(dinero>record){ record=dinero; guardar('rds_record',record); }
+  aviso('📜 ¡Encargo cumplido! «'+E2.txt+'» · +'+fmt(E2.premio)); SFX.granPremio(); confeti(60); animarDinero('sube');
+  guardarEstado(); refrescar();
+  revisando=false;
+  setTimeout(revisarEncargo,3500);
+}
+function textoEncargo(){
+  const E2=encargoActual(); if(!E2) return '¡Has cumplido todos los encargos!';
+  return E2.txt+(E2.meta>1?` (${Math.min(bienes.mision.prog,E2.meta).toLocaleString('es-ES')} de ${E2.meta.toLocaleString('es-ES')})`:'')+' · premio '+fmt(E2.premio);
+}
+function abrirEncargos(){
+  abrirPanel('📜 DON FORTUNATO',C=>{
+    const E2=encargoActual();
+    C.insertAdjacentHTML('beforeend',`<div class="negocio"><span class="cara">🎩</span><div class="dice">${E2?`“Tengo un encargo para ti: <b>${E2.txt.toLowerCase()}</b>. Si lo consigues, te daré <b>${fmt(E2.premio)}</b>.”`:'“Ya no tengo nada más que enseñarte. ¡Eres la leyenda del barrio!”'}</div></div>
+      <p class="nota">${E2&&E2.meta>1?`Llevas <b>${Math.min(bienes.mision.prog,E2.meta).toLocaleString('es-ES')} de ${E2.meta.toLocaleString('es-ES')}</b>. `:''}Encargos cumplidos: <b>${bienes.mision.i} de ${ENCARGOS.length}</b>. Cuando cumplas uno, el premio te llega solo.</p>`);
+    C.insertAdjacentHTML('beforeend','<h3 class="sec">Todos los encargos</h3>');
+    ENCARGOS.forEach((x,i)=>C.insertAdjacentHTML('beforeend',`<p class="nota">${i<bienes.mision.i?'✅':i===bienes.mision.i?'👉':'🔒'} ${i<=bienes.mision.i?x.txt:'???'} · ${fmt(x.premio)}</p>`));
+  });
+}
+
 /* ---------- Cambiar de juego ---------- */
 const enManoBJ = () => BJ.fase!=='apostar' && BJ.fase!=='fin';
 const ocupado  = () => girando || TR.girando || enManoBJ() || CA.fase==='sacando' || CA.fase==='ganada' || !['apostar','fin'].includes(PK.fase);
@@ -2479,6 +2678,7 @@ function cambiarJuego(j){
 function refrescarJuegos(){
   const oc=ocupado();
   $('btnSala').disabled = oc;
+  clearTimeout(revisarEncargo.t); revisarEncargo.t=setTimeout(revisarEncargo,400);
   if($('bar').classList.contains('ver')) pintarBar();
   if($('panel').classList.contains('ver')) repintarPanel();
   $('nombreJuego').textContent = {ruleta:'🎡 Ruletas', traga:'🎰 Tragaperras', bj:'🃏 Blackjack', carta:'🂡 Carta alta', poker:'🂠 Póker'}[juego] || '';
@@ -2713,6 +2913,15 @@ const SALA = (()=>{
     if(d==='r') c.fillRect(x+1,yh+2,1,1);
     if(C.gafas && d!=='u'){ c.fillStyle='#000'; c.fillRect(x-3,yh+2,6,1); }
     if(C.antifaz && d!=='u'){ c.fillStyle='#111'; c.fillRect(x-3,yh+1,6,3); c.fillStyle='#fff'; if(d!=='r') c.fillRect(x-2,yh+2,1,1); if(d!=='l') c.fillRect(x+1,yh+2,1,1); }
+    if(C.gorro==='gorra'){ c.fillStyle='#d0021b'; c.fillRect(x-3,yh-2,6,2); c.fillRect(d==='l'?x-5:x+1,yh-1,4,1); }
+    if(C.gorro==='vaquero'){ c.fillStyle='#8a5a2a'; c.fillRect(x-5,yh-1,10,1); c.fillRect(x-3,yh-4,6,3); }
+    if(C.gorro==='chistera'){ c.fillStyle='#111'; c.fillRect(x-4,yh-1,8,1); c.fillRect(x-3,yh-7,6,6); c.fillStyle='#d0021b'; c.fillRect(x-3,yh-3,6,1); }
+    if(C.gorro==='corona'){ c.fillStyle='#ffd700'; c.fillRect(x-3,yh-2,6,2); c.fillRect(x-3,yh-4,1,2); c.fillRect(x,yh-4,1,2); c.fillRect(x+2,yh-4,1,2); c.fillStyle='#ff2b55'; c.fillRect(x,yh-1,1,1); }
+    if(C.gafasSol && d!=='u'){ c.fillStyle=C.gafasSol; c.fillRect(x-3,yh+2,6,1); }
+    if(C.joya==='cadena'){ c.fillStyle='#ffd700'; c.fillRect(x-2,yb,4,1); c.fillRect(x-1,yb+1,2,1); }
+    if(C.joya==='reloj'){ c.fillStyle=Math.floor(t*3)%2?'#bff4ff':'#fff'; c.fillRect(d==='l'?x-5:x+4,yb+4,1,1); }
+    if(C.pajarita){ c.fillStyle='#fff'; c.fillRect(x-1,yb,2,3); c.fillStyle='#d0021b'; c.fillRect(x-2,yb,4,1); }
+    if(C.brilla && Math.floor(t*4)%2){ c.fillStyle='#fff'; c.fillRect(x-2,yb+2,1,1); c.fillRect(x+1,yb+4,1,1); }
     if(p.bandeja){ c.fillStyle='#ccc'; c.fillRect(x+3,yb-1,7,1); c.fillStyle='#ffcc33'; c.fillRect(x+5,yb-4,2,3); }
     if(p.burbuja && p.burbuja.hasta>t) burbuja(x,yh-4,p.burbuja.txt);
   }
@@ -3044,7 +3253,7 @@ const SALA = (()=>{
     }});
   });
   // Árboles, estanque y palmeras
-  const ARBOLES=[[990,90],[1050,140],[990,200],[1060,260],[1000,330],[1060,390],[1400,80],[1480,130],[1580,90],[1420,200],[1540,230],[1680,120],[1720,300],[1400,380],[1600,400],[1760,60],
+  const ARBOLES=[[1400,80],[1480,130],[1580,90],[1420,200],[1540,230],[1680,120],[1720,300],[1400,380],[1600,400],[1760,60],
     [1180,1080],[1220,1180],[1180,1300],[1200,1460],[1740,1080],[1760,1220],[1700,1400],[1500,1500],[1300,1500],[1620,1500]];
   ARBOLES.forEach(([x,y])=>{ solidos.push(R(x-3,y-3,6,4)); objetos.push({y,dibujar(){
     c.fillStyle='#5a3a1a'; c.fillRect(x-2,y-8,4,8);
@@ -3142,6 +3351,7 @@ const SALA = (()=>{
     avisoSala('🦹 Ladrón eliminado: +'+fmt(RECOMPENSA)+(recupera?' · recuperas '+fmt(recupera):''));
     animarDinero('sube'); guardarEstado(); refrescar();
     SFX.paroCarrete(); SFX.compra();
+    evento('ladron');
   }
   function moverHacia(p,x,y,vel,dt){
     const dx=x-p.x, dy=y-p.y, d=Math.hypot(dx,dy); if(d<1) { p.anda=false; return d; }
@@ -3169,9 +3379,10 @@ const SALA = (()=>{
     while(ninos.length<H.length) ninos.push({x:jugador.x,y:jugador.y,dir:'d',ropa:ropaAzar(),tipo:'nino',peque:1,paso:0});
     while(ninos.length>H.length) ninos.pop();
     const j=jugador, u=rastro[0];
-    if(!u || Math.hypot(u.x-j.x,u.y-j.y)>3){ rastro.unshift({x:j.x,y:j.y}); if(rastro.length>80) rastro.pop(); }
+    if(u && Math.hypot(u.x-j.x,u.y-j.y)>60) rastro.length=0;          // has aparecido en otro sitio: el rastro empieza de nuevo
+    if(!rastro[0] || Math.hypot(rastro[0].x-j.x,rastro[0].y-j.y)>3){ rastro.unshift({x:j.x,y:j.y}); if(rastro.length>80) rastro.pop(); }
     const cc=conduciendo();
-    let k=0;                                     // posición en la fila de los que te siguen
+    let k=0;                                    // posición en la fila de los que te siguen
     ninos.forEach((n,i)=>{
       const h=H[i], casa=h.casa && CASAS.find(c=>c.id===h.casa);
       if(casa){                                  // vive en su casa: juega delante de la puerta
@@ -3193,6 +3404,208 @@ const SALA = (()=>{
       if(Math.random()<.002) n.burbuja={txt:azar(['¡Mira!','¡Quiero un helado!','¡Qué guay!','¿Cuándo llegamos?']),hasta:t+1.8};
     });
   }
+  /* =====================================================================
+     BANCO, GASOLINERA, DON FORTUNATO, PARKING, MASCOTAS, POLICÍA Y CARRERAS
+     ===================================================================== */
+  // --- Banco (al lado del casino) ---
+  solidos.push(R(966,96,118,100));
+  zona(R(1005,196,40,26),R(966,80,118,120),'Banco','ENTRAR',()=>abrirBanco());
+  objetos.push({y:196,dibujar(){
+    c.fillStyle='#d9d2c0'; c.fillRect(966,96,118,100);
+    c.fillStyle='#8a7a5a'; c.fillRect(962,92,126,10);
+    c.fillStyle='#fff'; for(let k=0;k<5;k++) c.fillRect(974+k*24,112,6,70);
+    c.fillStyle='#5a2e12'; c.fillRect(1017,176,16,20);
+    c.fillStyle='#ffd700'; c.fillRect(1022,184,2,2);
+    neon('BANCO',1025,104,'#ffd700',11);
+  }});
+  // --- Gasolinera ---
+  const GAS_ZONA=R(966,300,118,64);
+  solidos.push(R(966,240,118,50), R(990,322,8,10), R(1050,322,8,10));
+  objetos.push({y:290,dibujar(){
+    c.fillStyle='#e6e6e6'; c.fillRect(966,240,118,50); c.fillStyle='#d0021b'; c.fillRect(966,240,118,8);
+    c.fillStyle='#8fd3ffaa'; c.fillRect(976,256,60,24); c.fillStyle='#5a2e12'; c.fillRect(1050,266,14,24);
+    neon('GASOLINERA',1025,244,'#fff27a',12);
+  }});
+  objetos.push({y:334,dibujar(){
+    [[990,322],[1050,322]].forEach(([x,y])=>{ c.fillStyle='#d0021b'; c.fillRect(x,y-12,8,22); c.fillStyle='#fff'; c.fillRect(x+1,y-9,6,4); c.fillStyle='#111'; c.fillRect(x+8,y-6,2,10); });
+  }});
+  objetos.push({y:368,dibujar(){ c.fillStyle='#ffffff22'; c.fillRect(966,300,118,4); c.fillStyle='#d0021b'; c.fillRect(966,298,118,3); }});
+  const zonaGas={txt:'Gasolinera',boton:'LLENAR',accion:()=>llenarDeposito()};
+  function precioLlenar(cc){ const m=cocheDe(cc); return Math.max(10,Math.round((100-(cc.gas??100))*m.vel/10)); }
+  function llenarDeposito(){
+    const cc=conduciendo(); if(!cc) return;
+    const p=precioLlenar(cc);
+    if((cc.gas??100)>=99.5){ avisoSala('⛽ El depósito ya está lleno.'); return; }
+    if(dinero<p){ avisoSala('⛽ Llenar cuesta '+fmt(p)+' y no te llega.',true); return; }
+    dinero-=p; cc.gas=100; animarDinero('baja'); SFX.compra(); guardarEstado(); refrescar();
+    avisoSala('⛽ Depósito lleno: −'+fmt(p)); evento('gasolina');
+  }
+  // --- Don Fortunato (encargos) ---
+  const fortunato={x:186,y:360,dir:'d',ropa:{piel:'#e0ac69',pelo:'#888',camisa:'#6a0d3a',pant:'#111',zap:'#111',gorro:'chistera',joya:'cadena'},tipo:'quieto'};
+  gente.push(fortunato);
+  zona(R(168,364,36,24),R(170,330,32,34),'Don Fortunato: encargos','HABLAR',()=>{ fortunato.burbuja={txt:'¡Hola, joven!',hasta:t+1.5}; abrirEncargos(); });
+  // --- Parking vigilado (las plazas de la puerta del casino) ---
+  const PARKING=R(16,414,944,36);
+  gente.push({x:948,y:440,dir:'l',ropa:{piel:'#c68642',pelo:'#111',camisa:'#ffcc33',pant:'#2b3a8c',zap:'#111',gorro:'gorra'},tipo:'quieto'});
+  // --- Carreras: Toni el Rápido ---
+  const CARRERA_ZONA=R(1860,440,70,40);
+  const RUTA=[[1880,472],[1124,472],[1124,1024],[1824,1024],[1824,472],[1880,472]];
+  const LARGO_RUTA=RUTA.slice(1).reduce((a,p,i)=>a+Math.hypot(p[0]-RUTA[i][0],p[1]-RUTA[i][1]),0);
+  function enRuta(d){
+    for(let i=1;i<RUTA.length;i++){ const a=RUTA[i-1], b=RUTA[i], l=Math.hypot(b[0]-a[0],b[1]-a[1]);
+      if(d<=l){ const q=d/l; return {x:a[0]+(b[0]-a[0])*q, y:a[1]+(b[1]-a[1])*q, ang:Math.atan2(b[1]-a[1],b[0]-a[0])}; } d-=l; }
+    const u=RUTA[RUTA.length-1]; return {x:u[0],y:u[1],ang:0};
+  }
+  const toni={x:1900,y:438,dir:'d',ropa:{piel:'#f1c27d',pelo:'#a33a1a',camisa:'#ff7f2a',pant:'#111',zap:'#111',gafasSol:'#111'},tipo:'quieto'};
+  gente.push(toni);
+  const COCHE_TONI={id:'toni',forma:'super',color:'#ff7f2a'};
+  let carrera=null;
+  const zonaCarrera={txt:'Toni el Rápido: carreras',boton:'CORRER',accion:()=>abrirCarrera()};
+  function abrirCarrera(){
+    const cc=conduciendo(); if(!cc) return;
+    abrirPanel('🏁 CARRERA CONTRA TONI',C=>{
+      C.insertAdjacentHTML('beforeend',`<div class="negocio"><span class="cara">😎</span><div class="dice"><b>Toni:</b> “¿Te atreves? Una vuelta a la manzana grande. Pasa por las 5 banderas y llega antes que yo.”</div></div>
+        <p class="nota">Si ganas, te llevas el doble de lo que apuestes. Toni corre un poco menos que tu coche, pero no se equivoca de camino.</p>`);
+      [[.1,'10 %'],[.25,'25 %'],[.5,'la mitad']].forEach(([f,txt])=>{
+        const ap=Math.max(1000,Math.floor(dinero*f));
+        filaAccion(C,{ico:'🏁',nombre:'Apostar '+fmt(ap),desc:txt+' de lo que llevas encima.',boton:'¡A CORRER!',off:dinero<ap,lujo:f>=.5,
+          accion:()=>{ cerrarPanel(); empezarCarrera(ap); }});
+      });
+    });
+  }
+  function empezarCarrera(ap){
+    const cc=conduciendo(); if(!cc||carrera) return;
+    dinero-=ap; animarDinero('baja'); guardarEstado(); refrescar();
+    jugador.x=RUTA[0][0]; jugador.y=RUTA[0][1]+10; jugador.ruta=[]; cc.ang=Math.PI; teclas.clear();
+    carrera={fase:'cuenta',t0:t,apuesta:ap,d:0,vel:cocheDe(cc).vel*.9,punto:1};
+    avisoSala('🏁 ¡Preparados!'); tono(440,0,.2,'square',.1);
+  }
+  function terminarCarrera(gana,txt){
+    const c2=carrera; carrera=null;
+    if(gana){ dinero+=c2.apuesta*2; if(dinero>record){ record=dinero; guardar('rds_record',record); } animarDinero('sube'); SFX.granPremio(); confeti(80); evento('carrera'); }
+    else SFX.perder();
+    avisoSala(txt,!gana); toni.burbuja={txt:gana?'¡Me has ganado!':'¡Ja! Otra vez será',hasta:t+2.5};
+    guardarEstado(); refrescar();
+  }
+  function actualizarCarrera(dt){
+    if(!carrera) return;
+    const j=jugador, cc=conduciendo();
+    if(!cc) return terminarCarrera(false,'🏁 Te has bajado del coche: pierdes la carrera.');
+    if(carrera.fase==='cuenta'){
+      const s=t-carrera.t0, n=3-Math.floor(s);
+      if(n!==carrera.ultimo){ carrera.ultimo=n; if(n>0){ avisoSala('🏁 '+n+'...'); tono(440,0,.15,'square',.1); } }
+      if(s>=3){ carrera.fase='corre'; avisoSala('🏁 ¡YA!'); tono(880,0,.3,'square',.12); }
+      return;
+    }
+    carrera.d+=carrera.vel*dt;
+    const p=RUTA[carrera.punto];
+    if(Math.hypot(j.x-p[0],j.y-p[1])<48){
+      carrera.punto++; tono(1200,0,.08,'square',.08);
+      if(carrera.punto>=RUTA.length) return terminarCarrera(carrera.d<LARGO_RUTA,carrera.d<LARGO_RUTA?'🏆 ¡Le ganas a Toni! +'+fmt(carrera.apuesta*2):'🏁 Toni ha llegado antes. Pierdes la apuesta.');
+    }
+    if(carrera.d>=LARGO_RUTA+40) terminarCarrera(false,'🏁 Toni ha llegado antes. Pierdes la apuesta.');
+  }
+  // --- Robo de coches aparcados fuera del parking vigilado ---
+  function robarCoches(){
+    if(!bienes.vip) return;
+    bienes.coches.forEach((cc,i)=>{
+      if(i===bienes.conduce || cc.alquiler || dentro(cc.x,cc.y,PARKING)) return;
+      if(Math.hypot(cc.x-jugador.x,cc.y-jugador.y)<250) return;
+      if(Math.random()<.2){
+        cc.alquiler={robado:1,tipo:'Ladrón',cara:'🦹',nombre:'un ladrón',renta:0,fiable:1,cobrado:0,debe:0};
+        aviso('🚨 ¡Te han robado el '+cocheDe(cc).nombre+'! Estaba fuera del parking vigilado. Recupéralo desde 📋 MIS COSAS',true);
+        guardarEstado();
+      }
+    });
+  }
+  // --- Mascotas ---
+  let mascota=null;
+  function actualizarMascota(dt){
+    const id=bienes.mascota, M=id&&MASCOTAS.find(m=>m.id===id);
+    if(!M){ mascota=null; return; }
+    const j=jugador, cc=conduciendo();
+    if(!mascota||mascota.id!==id) mascota={id,x:j.x-10,y:j.y+4,dir:'d',paso:0,anda:false,avisado:0};
+    const p=mascota;
+    if(cc){ p.oculto=true; p.x=j.x; p.y=j.y; return; }
+    p.oculto=false;
+    if(id==='loro'){ p.x=j.x+(j.dir==='l'?-6:6); p.y=j.y-1; p.vuela=Math.sin(t*6)*1.5; }
+    else {
+      if(M.ataca && !p.objetivo){ p.objetivo=ladrones.find(l=>l.estado==='caza' && Math.hypot(l.x-j.x,l.y-j.y)<90); }
+      if(p.objetivo && (p.objetivo.estado==='ko' || !ladrones.includes(p.objetivo))) p.objetivo=null;
+      if(p.objetivo){ const d=moverHacia(p,p.objetivo.x,p.objetivo.y,115,dt); if(d<10){ noquear(p.objetivo,null); p.objetivo.burbuja={txt:'¡Socorro!',hasta:t+1.2}; p.objetivo=null; tono(140,0,.25,'sawtooth',.12,60); } }
+      else {
+        const obj=rastro[3] || {x:j.x-12,y:j.y+4}, d=Math.hypot(obj.x-p.x,obj.y-p.y);
+        if(d>120){ p.x=obj.x; p.y=obj.y; } else if(d>3) moverHacia(p,obj.x,obj.y,Math.max(60,d*4),dt); else p.anda=false;
+      }
+    }
+    if(M.avisa && t>p.avisado){
+      const l=ladrones.find(l=>l.estado==='caza' && Math.hypot(l.x-j.x,l.y-j.y)<170);
+      if(l){ p.avisado=t+6; p.burbuja={txt:id==='perro'?'¡Guau, guau!':id==='loro'?'¡LADRÓN!':'¡Uh, uh, uh!',hasta:t+1.6}; avisoSala(M.ico+' ¡Cuidado, viene un ladrón!',true); }
+    }
+  }
+  function dibujaMascota(p){
+    if(p.oculto) return;
+    const x=Math.round(p.x), y=Math.round(p.y-(p.vuela||0)), f=p.anda?Math.floor(p.paso/4)%2:0, iz=p.dir==='l';
+    const Q=(dx,dy,w,h,col)=>{ c.fillStyle=col; c.fillRect(iz?x-dx-w:x+dx,y+dy,w,h); };
+    if(p.id!=='loro'){ c.fillStyle='rgba(0,0,0,.25)'; c.fillRect(x-5,y-1,10,2); }
+    switch(p.id){
+      case 'raton': Q(-3,-3,5,3,'#9a9a9a'); Q(2,-4,2,2,'#9a9a9a'); Q(3,-4,1,1,'#ff9ab0'); Q(3,-3,1,1,'#111'); Q(-5,-2,2,1,'#ff9ab0'); break;
+      case 'gato': Q(-4,-5,7,4,'#ff9a3a'); Q(2,-8,4,4,'#ff9a3a'); Q(2,-9,1,1,'#ff9a3a'); Q(5,-9,1,1,'#ff9a3a'); Q(4,-7,1,1,'#111');
+        Q(-6,-8+f,2,4,'#ff9a3a'); Q(-3,-1,1,1,'#c86a1a'); Q(1,-1,1,1,'#c86a1a'); break;
+      case 'perro': Q(-5,-6,9,4,'#8a5a2a'); Q(3,-9,5,4,'#8a5a2a'); Q(7,-7,2,2,'#3a2a1a'); Q(5,-8,1,1,'#111'); Q(2,-9,2,3,'#5a3a1a');
+        Q(-7,-8+f,2,3,'#8a5a2a'); Q(-4,-2,2,2,'#5a3a1a'); Q(2,-2,2,2,'#5a3a1a'); break;
+      case 'loro': Q(-2,-24,4,5,'#e0283a'); Q(2,-24,2,2,'#ffd700'); Q(1,-23,1,1,'#111'); Q(-3,-21,2,3,'#2ecc71'); Q(-2,-19,2,2,'#1e6fd9'); break;
+      case 'mono': Q(-3,-8,6,6,'#7a4a2a'); Q(-2,-12,5,4,'#7a4a2a'); Q(-1,-11,3,2,'#e0b080'); Q(1,-11,1,1,'#111'); Q(-6,-6,3,1,'#7a4a2a'); Q(-7,-9,1,3,'#7a4a2a');
+        Q(-3,-2,2,2+f,'#5a3a1a'); Q(1,-2,2,2,'#5a3a1a'); break;
+      case 'pinguino': Q(-3,-10,6,9,'#111'); Q(-2,-8,4,6,'#fff'); Q(0,-9,1,1,'#111'); Q(2,-7,2,1,'#ffb000'); Q(-3,-1,2,1,'#ffb000'); Q(1,-1,2,1,'#ffb000'); break;
+      case 'tigre': Q(-7,-7,13,5,'#ff8a1a'); for(let k=0;k<4;k++) Q(-5+k*3,-7,1,4,'#111'); Q(5,-11,5,5,'#ff8a1a'); Q(8,-10,1,1,'#111'); Q(9,-8,1,1,'#fff');
+        Q(-9,-9+f,2,3,'#ff8a1a'); Q(-6,-2,2,2,'#c86a1a'); Q(3,-2,2,2,'#c86a1a'); break;
+      case 'leon': Q(-7,-7,13,5,'#d9a441'); Q(3,-13,8,9,'#8a4a1a'); Q(5,-11,5,5,'#d9a441'); Q(8,-10,1,1,'#111'); Q(-9,-8+f,2,2,'#d9a441'); Q(-10,-7+f,1,1,'#8a4a1a');
+        Q(-6,-2,2,2,'#b88a31'); Q(3,-2,2,2,'#b88a31'); break;
+      case 'cocodrilo': Q(-14,-3,4,2,'#2e7d32'); Q(-10,-5,20,4,'#2e7d32'); for(let k=0;k<6;k++) Q(-8+k*3,-6,1,1,'#1b5e20'); Q(10,-5,7,3,'#2e7d32'); Q(9,-6,1,1,'#ffd700');
+        Q(11,-2,1,1,'#fff'); Q(13,-2,1,1,'#fff'); Q(15,-2,1,1,'#fff'); Q(-7,-1,2,1+f,'#1b5e20'); Q(5,-1,2,2-f,'#1b5e20'); break;
+    }
+    if(p.burbuja && p.burbuja.hasta>t) burbuja(x,y-14,p.burbuja.txt);
+  }
+  // --- Policía: si atropellas a gente que pasea ---
+  const policias=[]; let busca=0, buscaCalma=0, sirena=0;
+  const COCHE_POLI={id:'poli',forma:'compacto',color:'#f4f4f4'};
+  function subirBusca(){
+    busca=Math.min(3,busca+1); buscaCalma=t+30;
+    avisoSala('🚓 ¡La policía te busca! '+'★'.repeat(busca),true);
+  }
+  function actualizarPolicia(dt,cc,fueraYo){
+    const j=jugador;
+    // atropellar a gente que pasea
+    if(cc && (teclas.size||j.ruta.length)) gente.forEach(p=>{
+      if(p.tipo!=='paseo'||!p.fuera||p.caido) return;
+      if(Math.hypot(p.x-j.x,p.y-j.y)<12){ p.caido=t; p.burbuja={txt:'¡Ay, mi pierna!',hasta:t+1.5}; p.ruta=[]; tono(120,0,.15,'square',.15,50); subirBusca(); }
+    });
+    gente.forEach(p=>{ if(p.caido){ p.anda=false; if(t-p.caido>1.6) p.oculto=true; if(t-p.caido>12){ p.caido=0; p.oculto=false; p.x=30+Math.random()*(WW-60); p.y=438; } } });
+    if(!fueraYo){ policias.length=0; }
+    else while(policias.length<busca){
+      let ok=false;
+      for(let k=0;k<12&&!ok;k++){ const a=Math.random()*TAU, r=260+Math.random()*80, x=j.x+Math.cos(a)*r, y=j.y+Math.sin(a)*r;
+        if(fuera(x,y)&&libre(x,y)&&y<1940){ policias.push({x,y,ang:0,ruta:[],proxRuta:0,paso:0}); ok=true; } }
+      if(!ok) break;
+    }
+    policias.forEach(p=>{
+      if(t>p.proxRuta){ p.proxRuta=t+.6; p.ruta=camino(p.x,p.y,j.x,j.y); }
+      if(p.ruta.length){ const o=p.ruta[0]; p.ang=Math.atan2(o.y-p.y,o.x-p.x); seguir(p,dt,140+busca*25); }
+      if(Math.hypot(p.x-j.x,p.y-j.y)<16){
+        const multa=Math.min(dinero,Math.max(1000,Math.round(dinero*.1*busca)));
+        dinero-=multa; animarDinero('baja'); guardarEstado(); refrescar(); SFX.perder();
+        avisoSala('🚓 ¡Te ha pillado la policía! Multa de '+fmt(multa),true);
+        busca=0; policias.length=0; setTimeout(comprobarRuina,800);
+      }
+    });
+    if(busca>0 && t>buscaCalma && !policias.some(p=>Math.hypot(p.x-j.x,p.y-j.y)<260)){
+      busca--; buscaCalma=t+25; if(policias.length>busca) policias.pop();
+      avisoSala(busca?'🚓 La policía te busca menos: '+'★'.repeat(busca):'🚓 La policía ya no te busca');
+    }
+    if(policias.length && t>sirena){ sirena=t+.7; tono(Math.floor(t/.7)%2?950:700,0,.3,'triangle',.03); }
+  }
+
   // --- Misiones: mandar guardaespaldas a cobrar a los que no pagan ---
   const misiones=[];
   const ESCONDITES=[[300,1585],[1700,1585],[2300,470],[1450,1030],[60,470]];
@@ -3262,7 +3675,7 @@ const SALA = (()=>{
       const cc=bienes.coches[m.ref], g=m.guardias[0];
       delete cc.alquiler;
       if(fuera(g.x,g.y)){ cc.x=g.x; cc.y=g.y; } else { const q=sitioAparcar(m.ref); cc.x=q.x; cc.y=q.y; }
-      avisoSala(`🕴️ Tu guardaespaldas te devuelve tu ${cocheDe(cc).nombre} y ${fmt(deuda)}`);
+      avisoSala(m.item.robado ? `🕴️ ¡Tu guardaespaldas ha recuperado tu ${cocheDe(cc).nombre}!` : `🕴️ Tu guardaespaldas te devuelve tu ${cocheDe(cc).nombre} y ${fmt(deuda)}`);
     }
     m.guardias.forEach(g=>{ g.mision=null; g.conduce=null; g.ruta=[]; });
     if(dinero>record){ record=dinero; guardar('rds_record',record); }
@@ -3312,6 +3725,9 @@ const SALA = (()=>{
       }
     }
     actualizarNinos(dt);
+    actualizarMascota(dt);
+    actualizarPolicia(dt,cc,fueraYo);
+    actualizarCarrera(dt);
     // guardaespaldas (los que están de misión no te protegen)
     ajustarEscoltas();
     actualizarMisiones(dt);
@@ -3480,7 +3896,8 @@ const SALA = (()=>{
   function volverAEntrar(){
     for(let i=gente.length-1;i>=0;i--) if(gente[i].tipo==='guardia') gente.splice(i,1);
     cine=null; Object.assign(jugador,{x:18*T,y:24*T+6,dir:'u',oculto:false,salto:0,ruta:[],auto:null,autoCoche:-1,vuelta:null,burbuja:null});
-    ladrones.length=0; escoltas.length=0; misiones.length=0; ninos.length=0; for(const k in zcache) delete zcache[k]; rejilla=null;
+    ladrones.length=0; escoltas.length=0; misiones.length=0; ninos.length=0;
+    policias.length=0; busca=0; carrera=null; mascota=null; jugador.ropa=aspectoJugador(); for(const k in zcache) delete zcache[k]; rejilla=null;
     CASAS.forEach(k=>{ k.vecino.oculto=true; k.cerrada=false; k.msg=null; k.minimo=0; k.paciencia=3; k.enfado=0; k.contra=0; });
   }
 
@@ -3492,7 +3909,9 @@ const SALA = (()=>{
     let dx=0, dy=0;
     if(teclas.has('ArrowLeft')||teclas.has('KeyA')) dx--; if(teclas.has('ArrowRight')||teclas.has('KeyD')) dx++;
     if(teclas.has('ArrowUp')||teclas.has('KeyW')) dy--;   if(teclas.has('ArrowDown')||teclas.has('KeyS')) dy++;
-    const j=jugador, cc=conduciendo(), vel=cc?cocheDe(cc).vel:72, lib=cc?libreCoche:libre;
+    if(carrera && carrera.fase==='cuenta'){ dx=0; dy=0; }
+    const j=jugador, cc=conduciendo(), sinGas=cc&&(cc.gas??100)<=0, vel=cc?cocheDe(cc).vel*(sinGas?.25:1):72, lib=cc?libreCoche:libre;
+    const x0=j.x, y0=j.y;
     if(dx||dy){
       j.ruta=[]; j.auto=null; j.autoCoche=-1;
       const n=Math.hypot(dx,dy), s=vel*dt;
@@ -3506,7 +3925,13 @@ const SALA = (()=>{
       if(j.auto){ const z=j.auto; j.auto=null; if(dentro(j.x,j.y,z)) usar(z); }
       if(j.autoCoche>=0){ const i=j.autoCoche; j.autoCoche=-1; const k=bienes.coches[i]; if(k&&Math.hypot(k.x-j.x,k.y-j.y)<18) subir(i); }
     } else if(cc && j.ruta.length){ const o=j.ruta[0]; cc.ang=Math.atan2(o.y-j.y,o.x-j.x); }
-    if(cc){ cc.x=j.x; cc.y=j.y; }
+    if(cc){
+      cc.x=j.x; cc.y=j.y;
+      const dist=Math.hypot(j.x-x0,j.y-y0);
+      if(dist>0){ const antes=cc.gas??100; cc.gas=Math.max(0,antes-dist/45);
+        if(antes>0&&cc.gas<=0) avisoSala('⛽ ¡Sin gasolina! El coche va muy lento: ve a la gasolinera (al lado del banco).',true);
+        else if(antes>15&&cc.gas<=15) avisoSala('⛽ Te queda poca gasolina',true); }
+    }
     if((dx||dy||j.ruta.length) && ayudaVista){ ayudaVista=false; $('salaAyuda').style.opacity=0; }
     // gente
     for(const p of gente){
@@ -3535,7 +3960,7 @@ const SALA = (()=>{
     actualizarCalle(dt);
     // sitio donde puedes jugar (o subir/bajar del coche)
     let z=null;
-    if(cc) z=zonaCoche(bienes.conduce,true);
+    if(cc) z = dentro(j.x,j.y,GAS_ZONA) ? zonaGas : (!carrera && dentro(j.x,j.y,CARRERA_ZONA)) ? zonaCarrera : zonaCoche(bienes.conduce,true);
     else { const i=bienes.coches.findIndex(k=>!k.alquiler && Math.hypot(k.x-j.x,k.y-j.y)<18);
       z = i>=0 ? zonaCoche(i,false) : (zonas.find(z=>(!z.si||z.si())&&dentro(j.x,j.y,z))||null); }
     if(z!==pistaVista){
@@ -3544,7 +3969,7 @@ const SALA = (()=>{
     }
     // marcador de la calle
     const fueraYo=fuera(j.x,j.y), nv=nivelPeligro(), arma=[...ARMAS].reverse().find(a=>bienes.armas[a.id]);
-    const hud=((fueraYo?`🦹 ${'★'.repeat(nv)}${'☆'.repeat(5-nv)}`:'')+(bienes.guardias?` 🕴️×${bienes.guardias}`:'')+(arma?` ${arma.ico}`:'')).trim();
+    const hud=((fueraYo?`🦹 ${'★'.repeat(nv)}${'☆'.repeat(5-nv)}`:'')+(bienes.guardias?` 🕴️×${bienes.guardias}`:'')+(arma?` ${arma.ico}`:'')+(busca?` 🚓${'★'.repeat(busca)}`:'')+(cc?` ⛽${Math.round(cc.gas??100)}%`:'')+(carrera?` 🏁${carrera.punto-1}/5`:'')).trim();
     if(hud!==hudTxt){ hudTxt=hud; $('salaHud').textContent=hud; }
     const verAt=fueraYo&&!!arma&&!cc; if(verAt!==atVisible){ atVisible=verAt; $('btnAtacar').classList.toggle('oculto',!verAt); }
     // música según la zona
@@ -3577,6 +4002,10 @@ const SALA = (()=>{
     gente.forEach(p=>{ if(!p.oculto && vis(p.y)) lista.push({y:p.y,dibujar:()=>persona(p)}); });
     ladrones.forEach(p=>lista.push({y:p.y,dibujar:()=>persona(p)}));
     ninos.forEach(p=>{ if(!p.oculto) lista.push({y:p.y,dibujar:()=>persona(p)}); });
+    if(mascota && !mascota.oculto) lista.push({y:mascota.y+(mascota.id==='loro'?2:0),dibujar:()=>dibujaMascota(mascota)});
+    policias.forEach(p=>lista.push({y:p.y,dibujar:()=>{ dibujaCocheModelo(COCHE_POLI,p.x,p.y,p.ang); c.fillStyle=Math.floor(t*8)%2?'#ff2b2b':'#2b6bff'; c.fillRect(Math.round(p.x)-1,Math.round(p.y)-9,3,2); }}));
+    if(carrera){ const q=enRuta(carrera.fase==='cuenta'?0:carrera.d); lista.push({y:q.y,dibujar:()=>dibujaCocheModelo(COCHE_TONI,q.x,q.y,q.ang)}); }
+    else lista.push({y:470,dibujar:()=>dibujaCocheModelo(COCHE_TONI,1905,470,Math.PI)});
     escoltas.forEach(p=>{ if(p.conduce) lista.push({y:p.y,dibujar:()=>dibujaCocheModelo(cocheDe(p.conduce),p.x,p.y,p.conduce.ang||0)}); else if(!p.oculto) lista.push({y:p.y,dibujar:()=>persona(p)}); });
     bienes.coches.forEach((k,i)=>{ if(i!==bienes.conduce && !k.alquiler && vis(k.y)) lista.push({y:k.y,dibujar:()=>dibujaCocheModelo(cocheDe(k),k.x,k.y,k.ang)}); });
     trafico.forEach(v=>{ const q=enRecorrido(v.d); if(vis(q.y)) lista.push({y:q.y,dibujar:()=>dibujaCocheModelo(v.m,q.x,q.y,q.ang)}); });
@@ -3585,6 +4014,14 @@ const SALA = (()=>{
     ladrones.forEach(l=>{ if(l.estado!=='ko') return; for(let k=0;k<3;k++){ const a=t*6+k*2.1; c.fillStyle='#ffd700'; c.fillRect(Math.round(l.x+Math.cos(a)*6)-1,Math.round(l.y-20+Math.sin(a)*2)-1,2,2); } });
     efectos2.forEach(e=>{ c.strokeStyle=e.tipo==='taser'?'#7fe9ff':e.tipo==='pistola'?'#fff27a':'#ffffff'; c.lineWidth=e.tipo==='porra'?2:1;
       c.beginPath(); c.moveTo(e.x,e.y); c.lineTo(e.x2,e.y2); c.stroke(); });
+    if(carrera){
+      const p=RUTA[Math.min(carrera.punto,RUTA.length-1)];
+      c.strokeStyle=Math.floor(t*4)%2?'#fff27a':'#ff7f2a'; c.lineWidth=2; c.beginPath(); c.arc(p[0],p[1],22,0,TAU); c.stroke();
+      c.fillStyle='#ddd'; c.fillRect(p[0]-1,p[1]-28,2,28);
+      for(let a=0;a<3;a++) for(let b=0;b<2;b++){ c.fillStyle=(a+b)%2?'#111':'#fff'; c.fillRect(p[0]+1+a*3,p[1]-28+b*3,3,3); }
+      const an=Math.atan2(p[1]-j.y,p[0]-j.x); c.fillStyle='#fff27a';
+      for(let k=0;k<4;k++) c.fillRect(Math.round(j.x+Math.cos(an)*(18+k*3))-1,Math.round(j.y-6+Math.sin(an)*(18+k*3))-1,2,2);
+    }
     if(!fueraYo) LAMPARAS.forEach(([x,y])=>{ c.fillStyle='#ffd700'; c.fillRect(x-9,y,18,2); c.fillRect(x-1,y-14,2,14);
       for(let k=0;k<4;k++){ c.fillStyle=Math.floor(t*5+k)%3?'#fff2a0':'#ffd700'; c.fillRect(x-8+k*5,y-3,2,3); } });
     if(fueraYo){        // desde la calle se ve el tejado del casino
@@ -3594,7 +4031,8 @@ const SALA = (()=>{
       c.font='16px '+FUENTE; c.textAlign='center'; c.textBaseline='middle';
       c.shadowColor='#ff2bd6'; c.shadowBlur=10; c.fillStyle='#ffe6fb'; c.fillText('CASINO',288,190);
       c.shadowColor='#ffd700'; c.fillStyle='#fff2a0'; c.fillText('VIP',760,190); c.shadowBlur=0;
-      c.font='8px '+FUENTE; c.fillStyle='#ffcc33'; c.fillText('ENTRADA',288,372); c.fillRect(286,382,5,3); c.fillRect(287,385,3,2);
+      c.font='8px '+FUENTE; c.fillStyle='#ffcc33'; c.fillText('ENTRADA',288,372);
+      neon('P  PARKING VIGILADO',640,409,'#4aa3ff',13); c.fillRect(286,382,5,3); c.fillRect(287,385,3,2);
     }
     if(!j.anda && !cine && !cc){ const b=Math.floor(t*3)%2; c.fillStyle='#ffcc33'; c.fillRect(Math.round(j.x)-2,Math.round(j.y)-24+b,5,1); c.fillRect(Math.round(j.x)-1,Math.round(j.y)-23+b,3,1); c.fillRect(Math.round(j.x),Math.round(j.y)-22+b,1,1); }
     if(j.ruta.length){ const d=j.ruta[j.ruta.length-1]; c.strokeStyle='#ffcc33'; c.lineWidth=1; c.strokeRect(Math.round(d.x)-3,Math.round(d.y)-2,6,3); }
@@ -3657,6 +4095,7 @@ const SALA = (()=>{
   return {
     iniciar(){
       if(!fondo) pintarFondo();
+      jugador.ropa=aspectoJugador();
       if(jugador.vuelta && !cine){ Object.assign(jugador,jugador.vuelta); jugador.dir='d'; jugador.vuelta=null; }
       jugador.ruta=[]; jugador.anda=false; pistaVista=undefined;
       medir();
@@ -3680,7 +4119,9 @@ const SALA = (()=>{
     decir(txt){ avisoSala(txt); }, decirVecino(casa,txt){ casa.vecino.burbuja={txt,hasta:t+2}; },
     casaVendida(casa){ casa.vecino.burbuja={txt:'¡Adiós, casa!',hasta:t+1.5}; setTimeout(()=>casa.vecino.oculto=true,1500); avisoSala('¡Ya tienes tu '+CASAS_TIPO[casa.tipo].nombre.toLowerCase()+'!'); },
     esconderVecinos, llamar,
-    atacar, ladrones, escoltas, CASAS, TIENDAS, mandar, misiones, ninos, get guardiasLibres(){ ajustarEscoltas(); return escoltas.filter(g=>!g.mision).length; }, subir, bajar, nuevoLadron, get conduciendo(){ return conduciendo(); }, fuera,
+    atacar, ladrones, escoltas, CASAS, TIENDAS, mandar, misiones, ninos, robarCoches, empezarCarrera, policias, subirBusca, llenarDeposito,
+    get carrera(){ return carrera; }, get busca(){ return busca; }, get mascota(){ return mascota; }, aplicarAspecto(){ jugador.ropa=aspectoJugador(); },
+    get guardiasLibres(){ ajustarEscoltas(); return escoltas.filter(g=>!g.mision).length; }, subir, bajar, nuevoLadron, get conduciendo(){ return conduciendo(); }, fuera,
   };
 })();
 
@@ -3698,6 +4139,7 @@ $('btnPkRepartir').onclick=pkRepartir; $('btnPkPasar').onclick=pkPasar; $('btnPk
 $('btnPkIgualar').onclick=pkIgualar; $('btnPkRetirarse').onclick=pkRetirarse;
 $('btnCerrarBar').onclick=cerrarBar;
 $('btnCerrarPanel').onclick=cerrarPanel;
+$('btnRanking').onclick=()=>{ audio(); abrirRanking(); };
 $('panel').onclick=e=>{ if(e.target.id==='panel') cerrarPanel(); };
 $('bar').onclick=e=>{ if(e.target.id==='bar') cerrarBar(); };
 $('btnTirar').onclick=()=>tirar();
@@ -3751,7 +4193,7 @@ seleccionar(RULETAS[0]);
 juego='';
 cambiarJuego('sala');
 if(document.fonts) document.fonts.ready.then(()=>{ dibujar(cv,sel,true); });
-if(dinero<minimoJuego() && !efectos.gratis) finPartida();
+if(dinero<minimoJuego() && !efectos.gratis && !((bienes.banco||0)>=minimoJuego())) finPartida();
 
 // para pruebas: forzar la casilla que sale
 window.__R={RULETAS,elegirCasilla, forzar:null, get dinero(){return dinero}, set dinero(v){dinero=v;refrescar()},
@@ -3759,7 +4201,7 @@ window.__R={RULETAS,elegirCasilla, forzar:null, get dinero(){return dinero}, set
   precioPoder, aceptar, repetir, iman,
   forzarTraga:null, bjCartas:null, rapido:false, SIMBOLOS, pagoTraga, puntos, cambiarJuego, tirar, repartir, pedir, plantarse, doblar,
   get BJ(){return BJ}, get TR(){return TR}, get juego(){return juego}, MUS, SALA, COCHES, ARMAS, CASAS_TIPO, negociar, oferta, abrirCajaVip, abrirAgencia, abrirPortero,
-  get bienes(){return bienes}, abrirMisCosas, abrirExcusa, inventarExcusa, abrirAlquilerCoche, PODERES_JUEGO, prepJuego, usarPJ, pintarTiendaJuego, get invJuego(){return invJuego}, cobrarAlquileres, fichaCasaMia, CA, PK, caJugar, caCobrar, pkRepartir, pkPasar, pkApostar, pkIgualar, pkRetirarse, mejorMano, NOMBRES_MANO,
+  get bienes(){return bienes}, abrirMisCosas, abrirBanco, abrirRanking, abrirEncargos, abrirCajaVip, patrimonio, evento, tickMinuto, ENCARGOS, ROPA, MASCOTAS, abrirExcusa, inventarExcusa, abrirAlquilerCoche, PODERES_JUEGO, prepJuego, usarPJ, pintarTiendaJuego, get invJuego(){return invJuego}, cobrarAlquileres, fichaCasaMia, CA, PK, caJugar, caCobrar, pkRepartir, pkPasar, pkApostar, pkIgualar, pkRetirarse, mejorMano, NOMBRES_MANO,
   caCartas:null, pkCartas:null, BEBIDAS, precioBebida, comprarBebida, abrirBar,
   get suerte(){return suerte}, set suerte(v){suerte=v;refrescar()}};
 })();
