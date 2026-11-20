@@ -526,6 +526,7 @@ table.rank tr.top td{color:#ffd700;font-weight:800}
     <div><div class="lbl">Dinero</div><div class="val" id="dinero">100 €</div></div>
     <div><div class="lbl">Récord</div><div class="val" id="record">100 €</div></div>
     <div><div class="lbl">Ruinas</div><div class="val" id="ruinas">0</div></div>
+    <div><div class="lbl" id="relojDia">Día 1</div><div class="val" id="relojHora">10:00</div></div>
     <button id="btnTienda" title="Tienda">🛒 TIENDA</button>
     <button id="btnRanking" title="Ranking">🏆</button>
     <button id="btnMusica" title="Música">🎵</button>
@@ -815,7 +816,12 @@ const RULETAS = [
 
 const SALDO_INICIAL = 100;
 const TAU = Math.PI*2;
-const fmt = n => Math.round(n).toLocaleString('es-ES') + ' €';
+const fmt = n => {          // a partir de mil billones, en palabras (500 trillones €)
+  const v=Math.abs(n);
+  for(const [u,txt] of [[1e21,'mil trillones'],[1e18,'trillones'],[1e15,'mil billones']])
+    if(v>=u) return (n<0?'−':'')+(v/u).toLocaleString('es-ES',{maximumFractionDigits:2})+' '+txt+' €';
+  return Math.round(n).toLocaleString('es-ES') + ' €';
+};
 
 /* ---------- Guardado (si el navegador lo permite) ---------- */
 const guardar = (k,v)=>{ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} };
@@ -832,7 +838,9 @@ let mejoras  = Object.assign(SIN_MEJORAS(), (E && E.mejoras) || {});   // compra
 let inventario = (E && E.inventario) || {};
 let invJuego   = (E && E.invJuego) || {};                            // poderes de los otros juegos: {juego:{poder:[apuestas]}}                         // poderes comprados: {ruleta:{poder:n}}
 let suerte   = (E && E.suerte) || null;
-let bienes   = Object.assign({vip:0, coches:[], conduce:-1, casas:{}, armas:{}, guardias:0, alquiler:{}, hijos:[], banco:0, ropa:{}, aspecto:{}, mascotas:{}, mascota:null, mejorasCasa:{}, mision:{i:0,prog:0}}, (E && E.bienes) || {});   // coches, casas, armas...
+let hora     = (E && typeof E.hora==='number') ? E.hora : 10;      // reloj del juego (0-24)
+let dia      = (E && E.dia) || 1;
+let bienes   = Object.assign({vip:0, coches:[], conduce:-1, casas:{}, armas:{}, guardias:0, alquiler:{}, hijos:[], banco:0, ropa:{}, aspecto:{}, mascotas:{}, mascota:null, mejorasCasa:{}, mision:{i:0,prog:0}, casino:0, casinoCierra:1, casinoVig:0, casinoEchar:1}, (E && E.bienes) || {});   // coches, casas, armas...
 bienes.conduce = -1;                              // bebida del bar: {n, ico, nombre} para la próxima jugada
 let preparados = {escudo:false, x2:false, tapar:false};            // poderes marcados para la próxima tirada
 let jugada   = null;                                               // tirada en curso
@@ -1071,7 +1079,7 @@ function costeTirada(R){
   const t = efectos.gratis>0 ? 0 : precioTirada(R);
   return { tirada:t, extra:0, total:t };
 }
-const guardarEstado = ()=>guardar('rds_estado',{dinero,tiradas,historial,efectos,mejoras,inventario,suerte,bienes,invJuego});
+const guardarEstado = ()=>guardar('rds_estado',{dinero,tiradas,historial,efectos,mejoras,inventario,suerte,bienes,invJuego,hora,dia});
 
 /* ---------- Marcador y botón ---------- */
 function refrescar(){
@@ -2114,7 +2122,7 @@ const CASAS_TIPO={
   villa:  {nombre:'Villa en la playa',  base:25000000,  w:220, h:150, pared:'#ffffff', tejado:'#d9c7a0', piscina:1, playa:1, desc:'Frente al mar, con piscina y palmeras.'},
   palacio:{nombre:'Palacio',            base:120000000, w:340, h:220, pared:'#f5ecd0', tejado:'#7a1a2a', jardin:1, piscina:1, fuente:1, desc:'Torres, cúpula de oro, fuente y piscina. Lo más caro del barrio.'},
 };
-const SIN_BIENES=()=>({vip:0, coches:[], conduce:-1, casas:{}, armas:{}, guardias:0, alquiler:{}, hijos:[], banco:0, ropa:{}, aspecto:{}, mascotas:{}, mascota:null, mejorasCasa:{}, mision:{i:0,prog:0}});
+const SIN_BIENES=()=>({vip:0, coches:[], conduce:-1, casas:{}, armas:{}, guardias:0, alquiler:{}, hijos:[], banco:0, ropa:{}, aspecto:{}, mascotas:{}, mascota:null, mejorasCasa:{}, mision:{i:0,prog:0}, casino:0, casinoCierra:1, casinoVig:0, casinoEchar:1});
 
 /* ---------- Ventana de compra (concesionario, armería, agencia, portero, vecinos) ---------- */
 let panelPintar=null;
@@ -2226,6 +2234,8 @@ function fichaCasaMia(casa){
   const D=CASAS_TIPO[casa.tipo], precio=bienes.casas[casa.id];
   abrirPanel('🏠 TU '+D.nombre.toUpperCase(),C=>{
     C.insertAdjacentHTML('beforeend',`<p class="nota">Esta ${D.nombre.toLowerCase()} es tuya. La compraste por <b>${fmt(precio)}</b>.</p>`);
+    if(!bienes.alquiler[casa.id]) filaAccion(C,{ico:'🚪',nombre:'Entrar en casa',lujo:1,desc:'Dentro tienes tu cama para dormir por la noche sin que te roben.',boton:'ENTRAR',
+      accion:()=>{ cerrarPanel(); SALA.entrarCasa(casa); }});
     mejorasCasaUI(C,casa);
     const a=bienes.alquiler[casa.id];
     if(a){
@@ -2274,6 +2284,7 @@ function abrirMisCosas(){
     C.insertAdjacentHTML('beforeend',`<p class="nota">🕴️ Guardaespaldas libres: <b>${libres}</b> de ${total}${total-libres?` (${total-libres} de misión)`:''}.
       Los que mandas de misión no te protegen hasta que vuelven.${total?'':' Contrátalos en la Agencia de seguridad.'}</p>`);
     C.insertAdjacentHTML('beforeend',`<p class="nota">📜 Encargo: <b>${textoEncargo()}</b><br>🏦 En el banco: <b>${fmt(bienes.banco||0)}</b> · 💼 Patrimonio: <b>${fmt(patrimonio())}</b></p>`);
+    if(bienes.casino) filaAccion(C,{ico:'🎰',nombre:'Tu casino',desc:'Te da '+fmt(GANANCIA_CASINO)+' cada minuto.',boton:'GESTIONAR',lujo:1,accion:()=>abrirMiCasino()});
     if(bienes.hijos.length) C.insertAdjacentHTML('beforeend',`<h3 class="sec">👶 Hijos</h3><p class="nota">${bienes.hijos.map(h=>h.nombre+(h.casa?' (en su casa)':' (contigo)')).join(', ')}. Te cuestan <b>${fmt(COSTE_HIJO*bienes.hijos.length)}</b> cada minuto.</p>`);
     C.insertAdjacentHTML('beforeend','<h3 class="sec">🏠 Casas</h3>');
     const mias=SALA.CASAS.filter(k=>bienes.casas[k.id]);
@@ -2335,7 +2346,7 @@ setInterval(()=>{
   if(document.hidden || $('fin').classList.contains('ver')) return;
   if(++relojAlquiler>=60){ relojAlquiler=0; tickMinuto(); }
 },1000);
-function tickMinuto(){ cobrarAlquileres(); interesBanco(); SALA.robarCoches(); revisarEncargo(); }
+function tickMinuto(){ cobrarAlquileres(); interesBanco(); SALA.robarCoches(); minutoCasino(); revisarEncargo(); }
 
 function oferta(casa,cant){
   if(cant>=casa.minimo){
@@ -2526,6 +2537,9 @@ function abrirCajaVip(){
       } else filaCompra(C,{ico:r.ico,nombre:r.nombre,desc:HUECOS[r.hueco],precio:r.precio,lujo:r.precio>=1e6,
         accion:()=>{ bienes.ropa[r.id]=1; bienes.aspecto[r.hueco]=r.id; SALA.aplicarAspecto(); }});
     });
+    C.insertAdjacentHTML('beforeend','<h3 class="sec">🎰 El casino</h3>');
+    filaAccion(C,{ico:'🎰',nombre:bienes.casino?'Tu casino':'Comprar el casino',desc:bienes.casino?'Decide si cierra de noche, qué hacer con los arruinados y la vigilancia.':'Cuesta '+fmt(PRECIO_CASINO)+' (5 × 10²⁰ €).',
+      boton:bienes.casino?'GESTIONAR':'VER',lujo:1,accion:()=>abrirMiCasino()});
     C.insertAdjacentHTML('beforeend','<h3 class="sec">🐾 Mascotas</h3><p class="nota">Te siguen a todas partes. Solo puedes llevar una a la vez.</p>');
     MASCOTAS.forEach(m=>{
       if(bienes.mascotas[m.id]){
@@ -2653,6 +2667,97 @@ function abrirEncargos(){
     C.insertAdjacentHTML('beforeend','<h3 class="sec">Todos los encargos</h3>');
     ENCARGOS.forEach((x,i)=>C.insertAdjacentHTML('beforeend',`<p class="nota">${i<bienes.mision.i?'✅':i===bienes.mision.i?'👉':'🔒'} ${i<=bienes.mision.i?x.txt:'???'} · ${fmt(x.premio)}</p>`));
   });
+}
+
+/* =====================================================================
+   RELOJ: DÍA Y NOCHE (1 hora de juego = 20 segundos; un día = 8 minutos)
+   ===================================================================== */
+const HORAS_POR_SEGUNDO=1/20;
+const esNoche=()=>hora>=21||hora<6;
+const horaDeDormir=()=>hora>=20||hora<7;
+function oscuridad(){                       // 0 de día · 0,6 de noche
+  if(hora>=8&&hora<19) return 0;
+  if(hora>=19&&hora<21) return (hora-19)/2*.6;
+  if(hora>=21||hora<5) return .6;
+  if(hora<7) return (7-hora)/2*.6;
+  return 0;
+}
+const casinoCerrado=()=> (hora>=22||hora<8) && !(bienes.casino && !bienes.casinoCierra);
+function fmtHora(){ const h=Math.floor(hora), m=Math.floor((hora-h)*6)*10; return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'); }
+const cruza=(a,b,x)=> a<=b ? (x>a&&x<=b) : (x>a||x<=b);
+let cierrePendiente=false, durmioHoy=false;
+function avanzarHora(dh){
+  const a=hora; hora+=dh; if(hora>=24){ hora-=24; dia++; durmioHoy=false; }
+  const b=hora;
+  if(cruza(a,b,22)){ SALA.recalcular(); if(casinoCerrado()) cierrePendiente=true; }
+  if(cruza(a,b,8)){ SALA.recalcular(); aviso('☀️ Día '+dia+': el casino abre sus puertas'); }
+  if(cruza(a,b,21)) aviso('🌙 Se hace de noche. Vete a dormir a una casa tuya o te robarán en la calle.',true);
+  if(cruza(a,b,3)) nocheEnLaCalle();
+  if(cierrePendiente) intentarCierre();
+  pintarReloj();
+  if(Math.floor(a)!==Math.floor(b)) guardarEstado();
+}
+function intentarCierre(){
+  if(!casinoCerrado()){ cierrePendiente=false; return; }
+  if(ocupado()) return;                       // espera a que termine la jugada
+  cierrePendiente=false;
+  if(juego!=='sala') cambiarJuego('sala');
+  SALA.echarDelCasino();
+}
+function nocheEnLaCalle(){
+  if(durmioHoy || SALA.enCasa) return;
+  if(bienes.casino && !bienes.casinoCierra && SALA.enElCasino){ aviso('😴 Has dormido en tu despacho del casino.'); return; }
+  const robo=Math.floor(dinero*.25);
+  if(robo>=100){ dinero-=robo; animarDinero('baja'); guardarEstado(); refrescar(); SFX.perder(); }
+  aviso('😴 Te has quedado dormido en la calle'+(robo>=100?' y te han robado '+fmt(robo):'')+'. ¡Duerme en una casa tuya!',true);
+  setTimeout(comprobarRuina,800);
+}
+function saltarAManana(){ if(hora>=8) dia++; hora=8; durmioHoy=true; SALA.recalcular(); pintarReloj(); guardarEstado(); }
+function pintarReloj(){ $('relojDia').textContent='Día '+dia+(esNoche()?' 🌙':' ☀️'); $('relojHora').textContent=fmtHora(); }
+setInterval(()=>{ if(document.hidden || $('fin').classList.contains('ver')) return; avanzarHora(HORAS_POR_SEGUNDO); },1000);
+
+/* =====================================================================
+   SER DUEÑO DEL CASINO
+   ===================================================================== */
+const PRECIO_CASINO=5e20;                    // 5 × 10^20 €
+const GANANCIA_CASINO=1e18;                  // lo que gana el casino cada minuto
+const VIGILANCIA=[
+  {nombre:'Sin vigilancia',                     precio:0,    prob:.04},
+  {nombre:'Vigilantes en la puerta',            precio:2e19, prob:.015},
+  {nombre:'Cámaras y vigilantes',               precio:8e19, prob:.005},
+  {nombre:'Ejército privado',                   precio:2e20, prob:.001},
+];
+function abrirMiCasino(){
+  abrirPanel('🎰 EL CASINO',C=>{
+    if(!bienes.casino){
+      C.insertAdjacentHTML('beforeend',`<div class="negocio"><span class="cara">🎰</span><div class="dice">El casino está a la venta por <b>${fmt(PRECIO_CASINO)}</b> (5 × 10²⁰ €).</div></div>
+        <p class="nota">Si lo compras, cobras sus ganancias cada minuto y tomas las decisiones: si cierra de noche, si se echa a los que se arruinan y cuánta vigilancia pones contra los atracos.</p>`);
+      filaCompra(C,{ico:'🎰',nombre:'Comprar el casino',desc:'Todo el casino y la sala VIP pasan a ser tuyos.',precio:PRECIO_CASINO,lujo:1,
+        accion:()=>{ Object.assign(bienes,{casino:1,casinoCierra:1,casinoVig:0,casinoEchar:1}); confeti(150); SFX.granPremio(); aviso('🎰 ¡Ahora el casino es tuyo!'); }});
+      return;
+    }
+    const V=VIGILANCIA[bienes.casinoVig||0];
+    C.insertAdjacentHTML('beforeend',`<div class="negocio"><span class="cara">👑</span><div class="dice">Eres el dueño del casino. Te da <b>${fmt(GANANCIA_CASINO)}</b> cada minuto.</div></div>
+      <p class="nota">Vigilancia: <b>${V.nombre}</b>. Probabilidad de atraco cada minuto: <b>${(V.prob*(bienes.casinoEchar?1:1.5)*100).toLocaleString('es-ES')} %</b>.</p>`);
+    filaAccion(C,{ico:'🌙',nombre:'¿Cierra por la noche?',desc:bienes.casinoCierra?'Sí: de 22:00 a 8:00 se cierra y todos fuera.':'No: está abierto toda la noche y puedes dormir en tu despacho.',
+      boton:bienes.casinoCierra?'SÍ, CIERRA':'NO, ABIERTO',accion:()=>{ bienes.casinoCierra=bienes.casinoCierra?0:1; SALA.recalcular(); guardarEstado(); repintarPanel(); }});
+    filaAccion(C,{ico:'🕴️',nombre:'Si alguien se arruina',desc:bienes.casinoEchar?'Tus guardias lo echan a la calle.':'Le dejas quedarse (hay algo más de riesgo de atraco).',
+      boton:bienes.casinoEchar?'ECHARLO':'DEJARLE',accion:()=>{ bienes.casinoEchar=bienes.casinoEchar?0:1; guardarEstado(); repintarPanel(); }});
+    C.insertAdjacentHTML('beforeend','<h3 class="sec">🛡 Vigilancia contra atracos</h3><p class="nota">Los atracadores vienen a por ti para quedarse con el casino. Cuanta más vigilancia, menos atracos.</p>');
+    VIGILANCIA.forEach((v,k)=>{ if(!k) return;
+      filaCompra(C,{ico:['','👮','📹','🪖'][k],nombre:v.nombre,desc:'Atracos: '+(v.prob*100).toLocaleString('es-ES')+' % cada minuto.',precio:v.precio,lujo:k===3,
+        estado:(bienes.casinoVig||0)>=k?'✔ Contratada':(bienes.casinoVig||0)<k-1?'Primero la anterior':'',accion:()=>{ bienes.casinoVig=k; }}); });
+  });
+}
+function minutoCasino(){
+  if(!bienes.casino) return;
+  dinero+=GANANCIA_CASINO; if(dinero>record){ record=dinero; guardar('rds_record',record); }
+  guardarEstado(); refrescar();
+  setTimeout(()=>aviso('🎰 Ganancias de tu casino: +'+fmt(GANANCIA_CASINO)),3200);
+  if(Math.random()<.35){ const n=azar2(NOMBRES_INQ);
+    setTimeout(()=>aviso(bienes.casinoEchar?`🕴️ ${n} se ha arruinado en tu casino: tus guardias le echan a la calle`:`😢 ${n} se ha arruinado en tu casino y se queda mirando`),6400); }
+  const p=VIGILANCIA[bienes.casinoVig||0].prob*(bienes.casinoEchar?1:1.5);
+  if(Math.random()<p) SALA.atraco();
 }
 
 /* ---------- Cambiar de juego ---------- */
@@ -3342,13 +3447,14 @@ const SALA = (()=>{
   }
   function noquear(l,quien){
     if(l.estado==='ko') return;
+    if(l.hp>1){ if(t<(l.golpe||0)) return; l.hp--; l.golpe=t+.6; l.burbuja={txt:'¡Ugh!',hasta:t+.8}; SFX.paroCarrete(); return; }
     l.estado='ko'; l.t0=t; l.anda=false; l.burbuja={txt:'¡Ay!',hasta:t+1.2};
     if(quien) quien.burbuja={txt:azar(['¡Quieto!','¡Al suelo!','¡Fuera!']),hasta:t+1.2};
     // recompensa por cada ladrón eliminado (+ lo que te hubiera robado)
     const RECOMPENSA=1000, recupera=l.botin;
     dinero+=RECOMPENSA+recupera; l.botin=0;
     if(dinero>record){ record=dinero; guardar('rds_record',record); }
-    avisoSala('🦹 Ladrón eliminado: +'+fmt(RECOMPENSA)+(recupera?' · recuperas '+fmt(recupera):''));
+    avisoSala((l.atraco?'🚨 Atracador eliminado':'🦹 Ladrón eliminado')+': +'+fmt(RECOMPENSA)+(recupera?' · recuperas '+fmt(recupera):''));
     animarDinero('sube'); guardarEstado(); refrescar();
     SFX.paroCarrete(); SFX.compra();
     evento('ladron');
@@ -3370,7 +3476,15 @@ const SALA = (()=>{
     for(const l of ladrones){ if(l.estado==='ko') continue; const d=Math.hypot(l.x-jugador.x,l.y-jugador.y); if(d<=md){ md=d; mejor=l; } }
     efectos2.push({tipo:arma.id, x:jugador.x, y:jugador.y-8, x2:mejor?mejor.x:jugador.x+(jugador.dir==='l'?-18:jugador.dir==='r'?18:0), y2:mejor?mejor.y-8:jugador.y-8+(jugador.dir==='u'?-18:jugador.dir==='d'?18:0), hasta:t+.15});
     arma.id==='pistola' ? tono(900,0,.08,'square',.1,200) : arma.id==='taser' ? tono(2000,0,.15,'sawtooth',.06,3000) : tono(200,0,.08,'square',.12,80);
-    if(mejor) noquear(mejor,jugador);
+    if(mejor) return noquear(mejor,jugador);
+    // sin ladrones al alcance: el disparo va a la persona más cercana
+    let victima=null, mv=arma.alcance;
+    gente.forEach(p=>{ if(p.tipo!=='paseo'||p.caido||p.oculto) return; const d=Math.hypot(p.x-jugador.x,p.y-jugador.y); if(d<=mv){ mv=d; victima=p; } });
+    if(victima){
+      const e=efectos2[efectos2.length-1]; e.x2=victima.x; e.y2=victima.y-8;
+      victima.caido=t; victima.ruta=[]; victima.burbuja={txt:'¡Ay!',hasta:t+1.5};
+      subirBusca(); avisoSala('🚓 Has atacado a alguien que no era un ladrón: la policía te busca',true);
+    }
   }
   // --- Hijos adoptados: te siguen en fila ---
   const ninos=[], rastro=[];
@@ -3578,10 +3692,10 @@ const SALA = (()=>{
     const j=jugador;
     // atropellar a gente que pasea
     if(cc && (teclas.size||j.ruta.length)) gente.forEach(p=>{
-      if(p.tipo!=='paseo'||!p.fuera||p.caido) return;
+      if(p.tipo!=='paseo'||!p.fuera||p.caido||p.oculto) return;
       if(Math.hypot(p.x-j.x,p.y-j.y)<12){ p.caido=t; p.burbuja={txt:'¡Ay, mi pierna!',hasta:t+1.5}; p.ruta=[]; tono(120,0,.15,'square',.15,50); subirBusca(); }
     });
-    gente.forEach(p=>{ if(p.caido){ p.anda=false; if(t-p.caido>1.6) p.oculto=true; if(t-p.caido>12){ p.caido=0; p.oculto=false; p.x=30+Math.random()*(WW-60); p.y=438; } } });
+    gente.forEach(p=>{ if(p.caido){ p.anda=false; p.ruta=[]; if(t-p.caido>1.6) p.oculto=true; if(t-p.caido>12){ p.caido=0; p.oculto=false; if(p.fuera){ p.x=30+Math.random()*(WW-60); p.y=438; } } } });
     if(!fueraYo){ policias.length=0; }
     else while(policias.length<busca){
       let ok=false;
@@ -3604,6 +3718,170 @@ const SALA = (()=>{
       avisoSala(busca?'🚓 La policía te busca menos: '+'★'.repeat(busca):'🚓 La policía ya no te busca');
     }
     if(policias.length && t>sirena){ sirena=t+.7; tono(Math.floor(t/.7)%2?950:700,0,.3,'triangle',.03); }
+  }
+
+  /* =====================================================================
+     NOCHE, CASINO CERRADO, CASAS POR DENTRO Y ATRACOS
+     ===================================================================== */
+  // --- Farolas ---
+  const FAROLAS=[];
+  for(let x=40;x<WW-20;x+=200) [446,996,1556].forEach(y=>{ if(libre(x,y)) FAROLAS.push([x,y]); });
+  for(let y=540;y<1540;y+=200) [1090,1790].forEach(x=>{ if(libre(x,y)) FAROLAS.push([x,y]); });
+  FAROLAS.forEach(([x,y])=>objetos.push({y,dibujar(){
+    c.fillStyle='#333'; c.fillRect(x-1,y-22,2,22); c.fillRect(x-4,y-23,8,2);
+    c.fillStyle=oscuridad()>.1?'#fff6c2':'#9a9a9a'; c.fillRect(x-3,y-21,6,2);
+  }}));
+  function pintarNoche(){
+    const a=oscuridad(); if(a<=.01) return;
+    c.fillStyle=`rgba(8,12,40,${a})`; c.fillRect(camX,camY,vw,vh);
+    c.globalCompositeOperation='lighter';
+    const luz=(x,y,r,k)=>{ const g=c.createRadialGradient(x,y,0,x,y,r); g.addColorStop(0,`rgba(255,210,120,${k})`); g.addColorStop(1,'rgba(255,210,120,0)'); c.fillStyle=g; c.fillRect(x-r,y-r,2*r,2*r); };
+    FAROLAS.forEach(([x,y])=>{ if(x>camX-60&&x<camX+vw+60&&y>camY-60&&y<camY+vh+60) luz(x,y-16,48,a*.6); });
+    luz(jugador.x,jugador.y-6,26,a*.25);
+    const cc=conduciendo(); if(cc){ const an=cc.ang||0; luz(jugador.x+Math.cos(an)*30,jugador.y-4+Math.sin(an)*30,30,a*.55); }
+    c.globalCompositeOperation='source-over';
+  }
+  // --- Puerta del casino: cerrada por la noche ---
+  solidos.push({...R(256,CH-T,64,T), si:()=>casinoCerrado()});
+  objetos.push({y:CH,dibujar(){ if(!casinoCerrado()) return;
+    c.fillStyle='#8fd3ffaa'; c.fillRect(256,CH-T+2,64,T-2); c.fillStyle='#ffcc33'; c.fillRect(287,CH-T+2,2,T-2);
+    c.fillStyle='#d0021b'; c.fillRect(270,CH+2,36,9); c.fillStyle='#fff'; c.font='6px '+FUENTE; c.textAlign='center'; c.textBaseline='top'; c.fillText('CERRADO',288,CH+4); }});
+  function echarDelCasino(){
+    const j=jugador; if(fuera(j.x,j.y) || enCasa) return false;
+    if(conduciendo()) bajar();
+    Object.assign(j,{x:288,y:446,ruta:[],dir:'d',auto:null,vuelta:null});
+    escoltas.forEach((g,k)=>{ if(!g.mision){ g.x=j.x+(k%2?11:-11); g.y=j.y+8; } });
+    rejilla=null;
+    avisoSala('🌙 El casino cierra por la noche. Vuelve a partir de las 8:00.',true);
+    return true;
+  }
+  // --- Entrar en tus casas ---
+  let enCasa=null;
+  const TAM_CASA={adosado:[220,150],jardin:[260,170],chalet:[300,190],mansion:[380,230],villa:[360,220],palacio:[460,280]};
+  function entrarCasa(casa){
+    if(bienes.alquiler[casa.id]){ avisoSala('Ahí viven tus inquilinos.',true); return; }
+    if(conduciendo()) bajar();
+    const [W,H]=TAM_CASA[casa.tipo];
+    const lujo=['mansion','villa','palacio'].includes(casa.tipo) || !!(bienes.mejorasCasa[casa.id]||{}).lujo;
+    const m=[], M=(nombre,x,y,w,h,col)=>m.push({nombre,x,y,w,h,col});
+    M('cama',16,40,38,54,lujo?'#8c1450':'#3a5a9a'); M('mesilla',56,40,12,12,'#6b3b1a');
+    M('cocina',Math.round(W/2-70),30,56,14,'#d9d2c0'); M('nevera',Math.round(W/2-12),30,14,16,'#e6e6e6');
+    M('tele',W-76,30,40,6,'#111'); M('sofa',W-86,Math.round(H/2)+12,60,16,lujo?'#ffd700':'#8c1450');
+    M('mesa',Math.round(W/2-22),Math.round(H/2-6),44,22,'#8a5a2a');
+    if(lujo) M('piano',20,H-62,34,22,'#111');
+    if(casa.tipo==='mansion'||casa.tipo==='palacio') M('trono',W-44,H-62,18,18,'#ffd700');
+    enCasa={casa,W,H,lujo,muebles:m,ox:0,oy:0,destino:null,
+      p:{x:W/2,y:H-14,dir:'u',ropa:jugador.ropa,paso:0,anda:false},
+      ninos:bienes.hijos.filter(h=>h.casa===casa.id).map((h,i)=>({x:W/2+(i-1)*22,y:Math.round(H/2)+34,dir:'d',ropa:ropaAzar(),peque:1,paso:0,obj:null})),
+      pet: bienes.mascota ? {id:bienes.mascota,x:W/2-14,y:H-14,dir:'u',paso:0} : null};
+    teclas.clear(); jugador.ruta=[]; pistaVista=undefined; $('salaAyuda').style.opacity=0;
+    tono(500,0,.08,'triangle',.1); tono(700,.1,.1,'triangle',.1);
+  }
+  function salirCasa(){ enCasa=null; pistaVista=undefined; jugador.dir='d'; tono(700,0,.08,'triangle',.1); tono(500,.1,.1,'triangle',.1); }
+  function libreCasa(x,y){
+    const E2=enCasa; if(x<10||x>E2.W-10||y<38||y>E2.H-4) return false;
+    const k=R(x-4,y-3,8,4); return !E2.muebles.some(q=>choca(k,q));
+  }
+  function dormir(){
+    if(!horaDeDormir()){ avisoSala('😴 Aún no tienes sueño. A la cama se va de noche (desde las 20:00).'); return; }
+    saltarAManana();
+    avisoSala('☀️ ¡Buenos días! Has dormido en tu '+CASAS_TIPO[enCasa.casa.tipo].nombre.toLowerCase()+'. Es el día '+dia+'.');
+    enCasa.ninos.forEach(n=>n.burbuja={txt:'¡Buenos días!',hasta:t+2});
+    SFX.efecto();
+  }
+  const zonaCama={txt:'Tu cama',boton:'DORMIR',accion:()=>dormir()}, zonaPuerta={txt:'La puerta',boton:'SALIR',accion:()=>salirCasa()};
+  const dirDe=(dx,dy)=>Math.abs(dx)>Math.abs(dy)?(dx>0?'r':'l'):(dy>0?'d':'u');
+  function moverEnCasa(p,tx,ty,vel,dt){
+    const dx=tx-p.x, dy=ty-p.y, d=Math.hypot(dx,dy); if(d<2){ p.anda=false; return false; }
+    const s=Math.min(d,vel*dt), nx=p.x+dx/d*s, ny=p.y+dy/d*s; let mov=false;
+    if(libreCasa(nx,p.y)){ p.x=nx; mov=true; } if(libreCasa(p.x,ny)){ p.y=ny; mov=true; }
+    p.dir=dirDe(dx,dy); p.anda=mov; p.paso+=s/2.2; return mov;
+  }
+  function actualizarCasa(dt){
+    const E2=enCasa, p=E2.p;
+    let dx=0, dy=0;
+    if(teclas.has('ArrowLeft')||teclas.has('KeyA')) dx--; if(teclas.has('ArrowRight')||teclas.has('KeyD')) dx++;
+    if(teclas.has('ArrowUp')||teclas.has('KeyW')) dy--;   if(teclas.has('ArrowDown')||teclas.has('KeyS')) dy++;
+    if(dx||dy){ E2.destino=null; moverEnCasa(p,p.x+dx*20,p.y+dy*20,70,dt); }
+    else if(E2.destino){ if(!moverEnCasa(p,E2.destino.x,E2.destino.y,70,dt)) E2.destino=null; }
+    else p.anda=false;
+    E2.ninos.forEach(n=>{
+      if(!n.obj||t>n.obj.t) n.obj={x:30+Math.random()*(E2.W-60),y:50+Math.random()*(E2.H-70),t:t+2+Math.random()*3};
+      if(!moverEnCasa(n,n.obj.x,n.obj.y,30,dt)) n.obj.t=0;
+      if(Math.random()<.002) n.burbuja={txt:azar(['¡Qué bien en casa!','¡A jugar!','¿Qué hay de cenar?']),hasta:t+1.8};
+    });
+    if(E2.pet){ const q=E2.pet; if(Math.hypot(q.x-p.x,q.y-p.y)>18) moverEnCasa(q,p.x-12,p.y+2,80,dt); else q.anda=false; }
+    const cama=E2.muebles[0]; let z=null;
+    if(p.x>cama.x && p.x<cama.x+cama.w+18 && p.y<cama.y+cama.h+10) z=zonaCama;
+    else if(p.y>E2.H-24 && Math.abs(p.x-E2.W/2)<22) z=zonaPuerta;
+    if(z!==pistaVista){ pistaVista=z; const P=$('salaPista');
+      if(z){ $('salaTxt').textContent=z.txt; $('btnEntrar').textContent=z.boton; P.classList.add('ver'); } else P.classList.remove('ver'); }
+    const hud='🏠 '+CASAS_TIPO[E2.casa.tipo].nombre;
+    if(hud!==hudTxt){ hudTxt=hud; $('salaHud').textContent=hud; }
+    if(atVisible){ atVisible=false; $('btnAtacar').classList.add('oculto'); }
+  }
+  function dibujaMueble(q){
+    switch(q.nombre){
+      case 'cama': c.fillStyle='#5a3a1a'; c.fillRect(q.x,q.y,q.w,q.h); c.fillStyle='#fff'; c.fillRect(q.x+3,q.y+3,q.w-6,10); c.fillStyle=q.col; c.fillRect(q.x+3,q.y+15,q.w-6,q.h-18); c.fillStyle='#0002'; c.fillRect(q.x+3,q.y+15,q.w-6,2); break;
+      case 'sofa': c.fillStyle=q.col; c.fillRect(q.x,q.y,q.w,q.h); c.fillStyle='#0003'; c.fillRect(q.x,q.y,q.w,5); c.fillRect(q.x,q.y,5,q.h); c.fillRect(q.x+q.w-5,q.y,5,q.h); break;
+      case 'tele': c.fillStyle='#111'; c.fillRect(q.x,q.y-4,q.w,q.h+8); c.fillStyle=Math.floor(t*2)%2?'#2b6bff':'#1e4fbf'; c.fillRect(q.x+2,q.y-2,q.w-4,q.h+4); break;
+      case 'mesa': c.fillStyle='#5a3a1a'; c.fillRect(q.x-7,q.y+6,5,9); c.fillRect(q.x+q.w+2,q.y+6,5,9); c.fillStyle=q.col; c.fillRect(q.x,q.y,q.w,q.h); c.fillStyle='#fff'; c.fillRect(q.x+18,q.y+7,8,6); c.fillStyle='#d0021b'; c.fillRect(q.x+20,q.y+8,4,3); break;
+      case 'cocina': c.fillStyle=q.col; c.fillRect(q.x,q.y,q.w,q.h); c.fillStyle='#333'; c.fillRect(q.x+5,q.y+3,8,6); c.fillRect(q.x+16,q.y+3,8,6); c.fillStyle='#8fd3ff'; c.fillRect(q.x+34,q.y+3,16,7); break;
+      case 'nevera': c.fillStyle=q.col; c.fillRect(q.x,q.y-6,q.w,q.h+6); c.fillStyle='#999'; c.fillRect(q.x+q.w-3,q.y-2,1,6); c.fillRect(q.x,q.y+3,q.w,1); break;
+      case 'piano': c.fillStyle='#111'; c.fillRect(q.x,q.y,q.w,q.h); c.fillStyle='#fff'; for(let k=0;k<8;k++) c.fillRect(q.x+2+k*4,q.y+q.h-6,3,5); break;
+      case 'trono': c.fillStyle='#ffd700'; c.fillRect(q.x,q.y-8,q.w,q.h+8); c.fillStyle='#b3122a'; c.fillRect(q.x+3,q.y-4,q.w-6,q.h); break;
+      default: c.fillStyle=q.col; c.fillRect(q.x,q.y,q.w,q.h);
+    }
+  }
+  function dibujarCasa(){
+    const E2=enCasa, p=E2.p, W=E2.W, H=E2.H;
+    E2.ox = vw>=W ? Math.round((vw-W)/2) : Math.round(-Math.max(0,Math.min(W-vw,p.x-vw/2)));
+    E2.oy = vh>=H ? Math.round((vh-H)/2) : Math.round(-Math.max(0,Math.min(H-vh,p.y-vh/2)));
+    c.setTransform(1,0,0,1,0,0); c.fillStyle='#000'; c.fillRect(0,0,vw,vh);
+    c.setTransform(1,0,0,1,E2.ox,E2.oy);
+    c.fillStyle=E2.lujo?'#e8e0d0':'#a0703a'; c.fillRect(0,0,W,H);
+    if(E2.lujo){ c.fillStyle='#d4cab5'; for(let y=30;y<H;y+=16) for(let x=((y-30)/16)%2?8:0;x<W;x+=16) c.fillRect(x,y,8,8); }
+    else { c.fillStyle='#8a5a2a'; for(let y=34;y<H;y+=8) c.fillRect(0,y,W,1); }
+    c.fillStyle=E2.lujo?'#6a0d3a':'#d9c7a0'; c.fillRect(0,0,W,30); c.fillStyle='#0003'; c.fillRect(0,26,W,4);
+    const noche=oscuridad()>.2;
+    for(let x=W*.25;x<W-20;x+=W*.25){ c.fillStyle=noche?'#0b1440':'#8fd3ff'; c.fillRect(Math.round(x)-10,6,20,14); c.fillStyle='#fff'; c.fillRect(Math.round(x)-1,6,2,14);
+      if(noche){ c.fillStyle='#fff'; c.fillRect(Math.round(x)-6,9,1,1); c.fillRect(Math.round(x)+5,13,1,1); } }
+    c.fillStyle=E2.lujo?'#8c1450':'#b33a3a'; c.fillRect(Math.round(W/2-44),Math.round(H/2)-24,88,60);
+    c.fillStyle='#ffd70066'; c.fillRect(Math.round(W/2-40),Math.round(H/2)-20,80,2); c.fillRect(Math.round(W/2-40),Math.round(H/2)+32,80,2);
+    c.fillStyle='#3a2a1a'; c.fillRect(0,0,6,H); c.fillRect(W-6,0,6,H); c.fillRect(0,H-4,W/2-16,4); c.fillRect(W/2+16,H-4,W/2-16,4);
+    c.fillStyle='#ffcc33'; c.fillRect(W/2-16,H-4,2,4); c.fillRect(W/2+14,H-4,2,4);
+    [[10,H-12],[W-14,40]].forEach(([x,y])=>{ c.fillStyle='#7a3a12'; c.fillRect(x-4,y-6,8,6); c.fillStyle='#2ecc71'; c.fillRect(x-5,y-14,10,8); });
+    const lista=[];
+    E2.muebles.forEach(q=>lista.push({y:q.y+q.h,dibujar:()=>dibujaMueble(q)}));
+    lista.push({y:p.y,dibujar:()=>persona(p)});
+    E2.ninos.forEach(n=>lista.push({y:n.y,dibujar:()=>persona(n)}));
+    if(E2.pet) lista.push({y:E2.pet.y,dibujar:()=>dibujaMascota(E2.pet)});
+    lista.sort((a,b)=>a.y-b.y).forEach(o=>o.dibujar());
+    if(E2.lujo){ const x=Math.round(W/2), y=46; c.fillStyle='#ffd700'; c.fillRect(x-12,y,24,2); c.fillRect(x-1,30,2,16);
+      for(let k=0;k<5;k++){ c.fillStyle=Math.floor(t*5+k)%3?'#fff2a0':'#ffd700'; c.fillRect(x-11+k*5,y-3,2,3); } }
+    if(noche){ c.fillStyle='rgba(8,12,40,.25)'; c.fillRect(0,0,W,H); }
+  }
+  // --- Atracos a mano armada (si eres el dueño del casino) ---
+  function atraco(){
+    const j=jugador; if(enCasa || cine || juego!=='sala') return false;
+    let n=0;
+    for(let k=0;k<3;k++){
+      for(let q=0;q<15;q++){ const a=Math.random()*TAU, r=170+Math.random()*80, x=j.x+Math.cos(a)*r, y=j.y+Math.sin(a)*r;
+        if(x>20&&y>60&&x<WW-20&&y<1940&&libre(x,y)){ ladrones.push({x,y,dir:'d',ropa:{piel:azar(PIELES),pelo:'#111',camisa:'#5a0610',pant:'#111',zap:'#000',antifaz:1},
+          tipo:'ladron',atraco:true,hp:2,estado:'caza',botin:0,paso:0,ruta:[],t0:t,proxRuta:0}); n++; break; } }
+    }
+    if(!n) return false;
+    avisoSala('🚨 ¡ATRACO A MANO ARMADA! Vienen a por ti para quedarse con el casino. ¡Defiéndete!',true);
+    [700,950,700,950].forEach((f,k)=>tono(f,k*.25,.2,'square',.08));
+    return true;
+  }
+  function perderCasino(){
+    const robo=Math.floor(dinero*.5);
+    dinero-=robo; bienes.casino=0; bienes.casinoVig=0;
+    ladrones.forEach(l=>{ if(l.atraco && l.estado!=='ko'){ l.estado='huye'; l.t0=t; l.burbuja={txt:'¡El casino es nuestro!',hasta:t+2.5}; } });
+    animarDinero('baja'); SFX.ruina(); guardarEstado(); refrescar(); rejilla=null;
+    avisoSala('💀 Los atracadores te han dejado KO y se han quedado con tu casino'+(robo?' y con '+fmt(robo):''),true);
+    setTimeout(comprobarRuina,1500);
   }
 
   // --- Misiones: mandar guardaespaldas a cobrar a los que no pagan ---
@@ -3706,18 +3984,20 @@ const SALA = (()=>{
         tono(120,0,.15,'square',.15,50); continue;
       }
       if(l.estado==='caza'){
-        if(!fueraYo){ l.estado='huye'; l.t0=t; continue; }
+        if(!fueraYo && !l.atraco){ l.estado='huye'; l.t0=t; continue; }
         if(t>l.proxRuta){ l.proxRuta=t+.8; l.ruta=camino(l.x,l.y,j.x,j.y); }
-        if(l.ruta.length) seguir(l,dt,62); else moverHacia(l,j.x,j.y,62,dt);
+        const velL=l.atraco?72:62;
+        if(l.ruta.length) seguir(l,dt,velL); else moverHacia(l,j.x,j.y,velL,dt);
         const d=Math.hypot(l.x-j.x,l.y-j.y);
         const enMarcha = cc && (teclas.size || j.ruta.length);
+        if(d<9 && !enMarcha && l.atraco){ perderCasino(); continue; }
         if(d<9 && !enMarcha){
           l.botin=Math.max(1,Math.round(dinero*(.05+.02*nv)));
           dinero-=l.botin; animarDinero('baja'); guardarEstado(); refrescar(); SFX.perder();
           avisoSala('¡Un ladrón te ha robado '+fmt(l.botin)+'! Atrápalo para recuperarlo.',true);
           l.burbuja={txt:'¡Je, je!',hasta:t+1.5}; l.estado='huye'; l.t0=t; l.ruta=[];
           setTimeout(comprobarRuina,600);
-        } else if(t-l.t0>45){ l.estado='huye'; l.t0=t; }
+        } else if(t-l.t0>(l.atraco?120:45)){ l.estado='huye'; l.t0=t; }
       } else if(l.estado==='huye'){
         const ax=l.x-j.x, ay=l.y-j.y, d=Math.hypot(ax,ay)||1;
         moverHacia(l,l.x+ax/d*40,l.y+ay/d*40,84,dt);
@@ -3849,6 +4129,7 @@ const SALA = (()=>{
   let cine=null;
   function expulsar(fin){
     const j=jugador;
+    enCasa=null;
     if(conduciendo()) bajar();
     ladrones.length=0;
     j.ruta=[]; j.auto=null; teclas.clear(); j.oculto=false; j.sentado=false;
@@ -3897,7 +4178,7 @@ const SALA = (()=>{
     for(let i=gente.length-1;i>=0;i--) if(gente[i].tipo==='guardia') gente.splice(i,1);
     cine=null; Object.assign(jugador,{x:18*T,y:24*T+6,dir:'u',oculto:false,salto:0,ruta:[],auto:null,autoCoche:-1,vuelta:null,burbuja:null});
     ladrones.length=0; escoltas.length=0; misiones.length=0; ninos.length=0;
-    policias.length=0; busca=0; carrera=null; mascota=null; jugador.ropa=aspectoJugador(); for(const k in zcache) delete zcache[k]; rejilla=null;
+    policias.length=0; busca=0; carrera=null; mascota=null; jugador.ropa=aspectoJugador(); enCasa=null; for(const k in zcache) delete zcache[k]; rejilla=null;
     CASAS.forEach(k=>{ k.vecino.oculto=true; k.cerrada=false; k.msg=null; k.minimo=0; k.paciencia=3; k.enfado=0; k.contra=0; });
   }
 
@@ -3905,6 +4186,7 @@ const SALA = (()=>{
   function actualizar(dt){
     t+=dt;
     if(cine){ escena(dt); for(const w of RUEDAS) w.ang+=w.vel*dt; return; }
+    if(enCasa){ actualizarCasa(dt); return; }
     // jugador
     let dx=0, dy=0;
     if(teclas.has('ArrowLeft')||teclas.has('KeyA')) dx--; if(teclas.has('ArrowRight')||teclas.has('KeyD')) dx++;
@@ -3928,7 +4210,7 @@ const SALA = (()=>{
     if(cc){
       cc.x=j.x; cc.y=j.y;
       const dist=Math.hypot(j.x-x0,j.y-y0);
-      if(dist>0){ const antes=cc.gas??100; cc.gas=Math.max(0,antes-dist/45);
+      if(dist>0){ const antes=cc.gas??100; cc.gas=Math.max(0,antes-dist/900);
         if(antes>0&&cc.gas<=0) avisoSala('⛽ ¡Sin gasolina! El coche va muy lento: ve a la gasolinera (al lado del banco).',true);
         else if(antes>15&&cc.gas<=15) avisoSala('⛽ Te queda poca gasolina',true); }
     }
@@ -3984,6 +4266,7 @@ const SALA = (()=>{
   }
   const zonaDe=(x,y)=> fuera(x,y) ? 'calle' : x>=CW ? 'ruleta' : y<13*T ? (x<12*T?'ruleta': x<23*T?'bj':'traga') : 'sala';
   function dibujar(){
+    if(enCasa) return dibujarCasa();
     const j=jugador, cc=conduciendo();
     camX = vw>=WW ? Math.round((WW-vw)/2) : Math.round(Math.max(0,Math.min(WW-vw,j.x-vw/2)));
     camY = vh>=WH ? Math.round((WH-vh)/2) : Math.round(Math.max(0,Math.min(WH-vh,j.y-vh/2)));
@@ -4034,6 +4317,8 @@ const SALA = (()=>{
       c.font='8px '+FUENTE; c.fillStyle='#ffcc33'; c.fillText('ENTRADA',288,372);
       neon('P  PARKING VIGILADO',640,409,'#4aa3ff',13); c.fillRect(286,382,5,3); c.fillRect(287,385,3,2);
     }
+    if(fueraYo) pintarNoche();
+    gente.forEach(p=>{ if(p.caido && t-p.caido<1.6) for(let k=0;k<3;k++){ const a=t*6+k*2.1; c.fillStyle='#ffd700'; c.fillRect(Math.round(p.x+Math.cos(a)*6)-1,Math.round(p.y-20+Math.sin(a)*2)-1,2,2); } });
     if(!j.anda && !cine && !cc){ const b=Math.floor(t*3)%2; c.fillStyle='#ffcc33'; c.fillRect(Math.round(j.x)-2,Math.round(j.y)-24+b,5,1); c.fillRect(Math.round(j.x)-1,Math.round(j.y)-23+b,3,1); c.fillRect(Math.round(j.x),Math.round(j.y)-22+b,1,1); }
     if(j.ruta.length){ const d=j.ruta[j.ruta.length-1]; c.strokeStyle='#ffcc33'; c.lineWidth=1; c.strokeRect(Math.round(d.x)-3,Math.round(d.y)-2,6,3); }
   }
@@ -4065,6 +4350,7 @@ const SALA = (()=>{
     audio();
     if(cine) return;
     const r=cv.getBoundingClientRect();
+    if(enCasa){ enCasa.destino={x:(e.clientX-r.left)/r.width*vw-enCasa.ox, y:(e.clientY-r.top)/r.height*vh-enCasa.oy}; return; }
     const wx=camX+(e.clientX-r.left)/r.width*vw, wy=camY+(e.clientY-r.top)/r.height*vh;
     jugador.autoCoche=-1;
     if(conduciendo()){
@@ -4109,7 +4395,7 @@ const SALA = (()=>{
       if(cine){ e.preventDefault&&e.preventDefault(); return; }
       const mov=['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','KeyA','KeyD','KeyW','KeyS'];
       if(mov.includes(e.code)){ e.preventDefault(); abajo ? teclas.add(e.code) : teclas.delete(e.code); return; }
-      if(abajo && (e.code==='KeyQ'||e.code==='KeyF')){ e.preventDefault(); atacar(); return; }
+      if(abajo && (e.code==='KeyQ'||e.code==='KeyF')){ e.preventDefault(); if(!enCasa) atacar(); return; }
       if(abajo && ['KeyE','Space','Enter'].includes(e.code)){ e.preventDefault(); usar(); }
     },
     get zonaMusica(){ return zonaMus; },
@@ -4120,7 +4406,8 @@ const SALA = (()=>{
     casaVendida(casa){ casa.vecino.burbuja={txt:'¡Adiós, casa!',hasta:t+1.5}; setTimeout(()=>casa.vecino.oculto=true,1500); avisoSala('¡Ya tienes tu '+CASAS_TIPO[casa.tipo].nombre.toLowerCase()+'!'); },
     esconderVecinos, llamar,
     atacar, ladrones, escoltas, CASAS, TIENDAS, mandar, misiones, ninos, robarCoches, empezarCarrera, policias, subirBusca, llenarDeposito,
-    get carrera(){ return carrera; }, get busca(){ return busca; }, get mascota(){ return mascota; }, aplicarAspecto(){ jugador.ropa=aspectoJugador(); },
+    get carrera(){ return carrera; }, entrarCasa, salirCasa, echarDelCasino, atraco, get enCasa(){ return !!enCasa; }, get casaActual(){ return enCasa; },
+    get enElCasino(){ return !enCasa && !fuera(jugador.x,jugador.y); }, dormir, get busca(){ return busca; }, get mascota(){ return mascota; }, aplicarAspecto(){ jugador.ropa=aspectoJugador(); },
     get guardiasLibres(){ ajustarEscoltas(); return escoltas.filter(g=>!g.mision).length; }, subir, bajar, nuevoLadron, get conduciendo(){ return conduciendo(); }, fuera,
   };
 })();
@@ -4201,7 +4488,7 @@ window.__R={RULETAS,elegirCasilla, forzar:null, get dinero(){return dinero}, set
   precioPoder, aceptar, repetir, iman,
   forzarTraga:null, bjCartas:null, rapido:false, SIMBOLOS, pagoTraga, puntos, cambiarJuego, tirar, repartir, pedir, plantarse, doblar,
   get BJ(){return BJ}, get TR(){return TR}, get juego(){return juego}, MUS, SALA, COCHES, ARMAS, CASAS_TIPO, negociar, oferta, abrirCajaVip, abrirAgencia, abrirPortero,
-  get bienes(){return bienes}, abrirMisCosas, abrirBanco, abrirRanking, abrirEncargos, abrirCajaVip, patrimonio, evento, tickMinuto, ENCARGOS, ROPA, MASCOTAS, abrirExcusa, inventarExcusa, abrirAlquilerCoche, PODERES_JUEGO, prepJuego, usarPJ, pintarTiendaJuego, get invJuego(){return invJuego}, cobrarAlquileres, fichaCasaMia, CA, PK, caJugar, caCobrar, pkRepartir, pkPasar, pkApostar, pkIgualar, pkRetirarse, mejorMano, NOMBRES_MANO,
+  get bienes(){return bienes}, abrirMiCasino, avanzarHora, saltarAManana, get hora(){return hora}, set hora(v){hora=v}, get dia(){return dia}, minutoCasino, casinoCerrado, abrirMisCosas, abrirBanco, abrirRanking, abrirEncargos, abrirCajaVip, patrimonio, evento, tickMinuto, ENCARGOS, ROPA, MASCOTAS, abrirExcusa, inventarExcusa, abrirAlquilerCoche, PODERES_JUEGO, prepJuego, usarPJ, pintarTiendaJuego, get invJuego(){return invJuego}, cobrarAlquileres, fichaCasaMia, CA, PK, caJugar, caCobrar, pkRepartir, pkPasar, pkApostar, pkIgualar, pkRetirarse, mejorMano, NOMBRES_MANO,
   caCartas:null, pkCartas:null, BEBIDAS, precioBebida, comprarBebida, abrirBar,
   get suerte(){return suerte}, set suerte(v){suerte=v;refrescar()}};
 })();
