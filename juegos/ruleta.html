@@ -2576,7 +2576,7 @@ function interesBanco(){
 /* ---------- Mejorar casas ---------- */
 const MEJORAS_CASA=[
   {id:'jardin',     nombre:'Jardín de lujo',     ico:'🌳', pct:.15, extra:.10, desc:'Árboles, flores y bancos.'},
-  {id:'piscina',    nombre:'Piscina nueva',      ico:'🏊', pct:.25, extra:.15, desc:'Una piscina con trampolín.'},
+  {id:'piscina',    nombre:'Piscina nueva',      ico:'🏊', pct:.25, extra:.15, desc:'Piscina (o jacuzzi con trampolín si ya tenía).'},
   {id:'ampliacion', nombre:'Ampliación',         ico:'🏗️', pct:.40, extra:.30, desc:'Más habitaciones y otra planta.'},
   {id:'lujo',       nombre:'Decoración de lujo', ico:'💎', pct:.60, extra:.40, desc:'Mármol, oro y lámparas de cristal.'},
 ];
@@ -2585,7 +2585,7 @@ function mejorasCasaUI(C,casa){
   const precio=bienes.casas[casa.id], m=bienes.mejorasCasa[casa.id]=bienes.mejorasCasa[casa.id]||{};
   C.insertAdjacentHTML('beforeend','<h3 class="sec">🔨 Mejorar la casa</h3><p class="nota">Cada mejora sube lo que te pagan de alquiler.</p>');
   MEJORAS_CASA.forEach(x=>filaCompra(C,{ico:x.ico,nombre:x.nombre,desc:x.desc+' +'+Math.round(x.extra*100)+' % de alquiler.',precio:redondea(precio*x.pct),estado:m[x.id]?'✔ Hecha':'',
-    accion:()=>{ m[x.id]=1; const a=bienes.alquiler[casa.id]; if(a) a.renta=redondea(a.renta*(1+x.extra)); casa.candidatos=null; evento('mejora'); }}));
+    accion:()=>{ m[x.id]=1; const a=bienes.alquiler[casa.id]; if(a) a.renta=redondea(a.renta*(1+x.extra)); casa.candidatos=null; SALA.recalcular(); aviso(x.ico+' '+x.nombre+': ¡ya se ve en tu casa!'); evento('mejora'); }}));
 }
 
 /* ---------- Patrimonio y ranking ---------- */
@@ -3303,9 +3303,68 @@ const SALA = (()=>{
     setTimeout(()=>{ casa.vecino.oculto=false; casa.vecino.dir='d'; casa.vecino.burbuja={txt:'¿Sí?',hasta:t+1.5}; negociar(casa); },650);
   }
   function esconderVecinos(){ CASAS.forEach(k=>k.vecino.oculto=true); }
+  // --- Mejoras que se ven: piscina, jardín de lujo, ampliación y decoración de lujo ---
+  const mejora=(k,id)=>!!(bienes.mejorasCasa[k.id]||{})[id];
+  function extrasCasa(k){            // dónde va cada mejora en la parcela (o en el jardincito de delante)
+    const D=CASAS_TIPO[k.tipo], {x,y,w,h}=k, {pool,puerta}=k.partes;
+    if(k.tipo==='adosado') return {
+      pool:R(x+Math.round(w/2)+8,y+h+8,Math.round(w/2)-12,26),
+      arboles:[[x+10,y+h+34],[x+26,y+h+46]], flores:R(x+2,y+h+2,Math.round(w/2)-8,4), suelo:R(x,y+h,w,50)};
+    if(!D.piscina) return {
+      pool:R(x+Math.round(w/2)+14,y+Math.round(h*.66),Math.round(w/2)-24,Math.round(h*.24)),
+      arboles:[[x+10,y+h-8],[x+w-9,y+42]], flores:R(x+4,y+h-6,Math.round(w/2)-12,3)};
+    return {
+      jacuzzi:R(pool.x,pool.y+pool.h+8,20,14), trampolin:{x:pool.x+pool.w-8,y:pool.y-6},
+      arboles:[[x+12,y+h-10],[x+w-12,y+h-10]], flores:R(x+4,y+h-6,Math.round(w/2)-14,3), palmeras:!!D.playa};
+  }
+  CASAS.forEach(k=>{
+    const X=k.extras=extrasCasa(k);
+    if(X.pool) solidos.push({...X.pool, si:()=>mejora(k,'piscina')});
+    if(X.jacuzzi) solidos.push({...X.jacuzzi, si:()=>mejora(k,'piscina')});
+    X.arboles.forEach(([tx,ty])=>{
+      solidos.push({...R(tx-3,ty-3,6,4), si:()=>mejora(k,'jardin')});
+      objetos.push({y:ty,dibujar(){ if(!mejora(k,'jardin')) return;
+        if(X.palmeras){ c.fillStyle='#8a6a3a'; c.fillRect(tx-1,ty-20,3,20); c.fillStyle='#2ecc71'; [[-9,-22],[2,-22],[-5,-26],[-2,-18]].forEach(([dx,dy])=>c.fillRect(tx+dx,ty+dy,8,3)); return; }
+        c.fillStyle='#5a3a1a'; c.fillRect(tx-2,ty-8,4,8);
+        c.fillStyle='#1f6a2a'; c.beginPath(); c.arc(tx,ty-14,9,0,TAU); c.fill();
+        c.fillStyle='#2e8a3a'; c.beginPath(); c.arc(tx-3,ty-17,4,0,TAU); c.fill();
+        c.fillStyle='#ff5f6d'; c.fillRect(tx+3,ty-15,2,2); c.fillRect(tx-4,ty-11,2,2); }});
+    });
+    // suelo: piscina, jacuzzi, flores, setos y alfombra (por debajo de la gente)
+    objetos.push({y:k.y-1,dibujar(){
+      const pz=k.partes.puerta;
+      if(mejora(k,'jardin')){
+        if(X.suelo){ c.fillStyle='#4fa33f'; c.fillRect(X.suelo.x,X.suelo.y,X.suelo.w,X.suelo.h); c.fillStyle='#2e7d32'; c.fillRect(X.suelo.x,X.suelo.y+X.suelo.h-4,X.suelo.w,4);
+          c.fillStyle='#c9b99a'; c.fillRect(pz.x-5,X.suelo.y,10,X.suelo.h); }
+        const f=X.flores, col=['#ff5f6d','#fff27a','#c58bff','#ff9f4a'];
+        for(let q=0;q*6<f.w;q++){ c.fillStyle=col[q%4]; c.fillRect(f.x+q*6,f.y,3,3); c.fillStyle='#2e7d32'; c.fillRect(f.x+q*6+1,f.y+3,1,2); }
+      }
+      if(mejora(k,'piscina')){
+        const pl=X.pool||X.jacuzzi, P=X.pool;
+        if(P){ c.fillStyle='#e6e6e6'; c.fillRect(P.x-3,P.y-3,P.w+6,P.h+6); c.fillStyle='#2a9fd4'; c.fillRect(P.x,P.y,P.w,P.h);
+          c.fillStyle='#7fd4ff'; for(let q=0;q<3;q++) c.fillRect(P.x+4+q*Math.floor(P.w/3),P.y+4+(q%2)*6+Math.round(Math.sin(t*2+q)),6,1);
+          c.fillStyle='#fff'; c.fillRect(P.x+P.w-5,P.y+2,2,7); c.fillRect(P.x+P.w-8,P.y+2,5,1); }
+        if(X.jacuzzi){ const J=X.jacuzzi; c.fillStyle='#e6e6e6'; c.beginPath(); c.ellipse(J.x+J.w/2,J.y+J.h/2,J.w/2+3,J.h/2+3,0,0,TAU); c.fill();
+          c.fillStyle='#38c6f4'; c.beginPath(); c.ellipse(J.x+J.w/2,J.y+J.h/2,J.w/2,J.h/2,0,0,TAU); c.fill();
+          c.fillStyle='#fff'; for(let q=0;q<4;q++) c.fillRect(Math.round(J.x+4+((t*7+q*5)%12)),Math.round(J.y+4+(q%2)*5),1,1);
+          const T=X.trampolin; c.fillStyle='#fff'; c.fillRect(T.x,T.y,4,12); c.fillStyle='#1e6fd9'; c.fillRect(T.x-1,T.y,6,2); }
+      }
+      if(mejora(k,'lujo')){                       // alfombra roja hasta la puerta
+        const largo = X.suelo ? X.suelo.h : (k.y+k.h-pz.y);
+        c.fillStyle='#b3122a'; c.fillRect(pz.x-4,pz.y,8,largo); c.fillStyle='#ffd700'; c.fillRect(pz.x-5,pz.y,1,largo); c.fillRect(pz.x+4,pz.y,1,largo);
+      }
+    }});
+  });
   function dibujaCasa(k){            // solo el edificio (el jardín, la piscina y la playa están en el fondo)
     const D=CASAS_TIPO[k.tipo], {b}=k.partes, mia=!!bienes.casas[k.id];
-    const techo=Math.round(b.h*.58);
+    const techo=Math.round(b.h*.58), amplia=mejora(k,'ampliacion'), lujoD=mejora(k,'lujo');
+    if(amplia){                       // otra planta encima, con ventanas y chimenea
+      c.fillStyle='rgba(0,0,0,.25)'; c.fillRect(b.x+8,b.y-4,b.w-12,4);
+      c.fillStyle=D.pared; c.fillRect(b.x+6,b.y-14,b.w-12,16);
+      c.fillStyle='#8fd3ff'; for(let q=b.x+12;q<b.x+b.w-14;q+=16) c.fillRect(q,b.y-10,6,6);
+      c.fillStyle=D.tejado; c.fillRect(b.x+3,b.y-22,b.w-6,9); c.fillStyle='#0003'; c.fillRect(b.x+3,b.y-15,b.w-6,2);
+      c.fillStyle='#7a3a2a'; c.fillRect(b.x+b.w-18,b.y-30,7,10); c.fillStyle='#ccc'; c.fillRect(b.x+b.w-17,b.y-34+Math.round(Math.sin(t*2)),3,3);
+    }
     c.fillStyle='rgba(0,0,0,.25)'; c.fillRect(b.x+4,b.y+b.h-2,b.w,5);
     c.fillStyle=D.tejado; c.fillRect(b.x,b.y,b.w,techo);
     c.fillStyle='#0003'; for(let yy=b.y+3;yy<b.y+techo;yy+=4) c.fillRect(b.x,yy,b.w,1);
@@ -3322,8 +3381,14 @@ const SALA = (()=>{
       const vx=b.x+8+q*(b.w-16)/cols; if(f===filas-1 && Math.abs(vx+3-(b.x+b.w/2))<10) continue;
       c.fillRect(Math.round(vx),b.y+techo+5+f*14,7,6);
     }
-    const lujo = k.tipo==='mansion'||k.tipo==='palacio'||k.tipo==='villa';
+    const lujo = k.tipo==='mansion'||k.tipo==='palacio'||k.tipo==='villa'||lujoD;
     c.fillStyle= lujo ? '#ffd700' : '#5a2e12'; c.fillRect(b.x+b.w/2-5,b.y+b.h-12,10,12);
+    if(lujoD){                        // bordes dorados y farolillos en la puerta
+      c.fillStyle='#ffd700'; c.fillRect(b.x,b.y,b.w,2); c.fillRect(b.x,b.y+techo-2,b.w,2); c.fillRect(b.x,b.y,2,b.h); c.fillRect(b.x+b.w-2,b.y,2,b.h);
+      const brillo=Math.floor(t*3)%2?'#fff6c2':'#ffd700';
+      c.fillStyle='#333'; c.fillRect(b.x+b.w/2-11,b.y+b.h-12,2,8); c.fillRect(b.x+b.w/2+9,b.y+b.h-12,2,8);
+      c.fillStyle=brillo; c.fillRect(b.x+b.w/2-12,b.y+b.h-14,4,3); c.fillRect(b.x+b.w/2+8,b.y+b.h-14,4,3);
+    }
     c.fillStyle='#0004'; c.fillRect(b.x+b.w/2,b.y+b.h-12,1,12);
     if(mia){ const alq=bienes.alquiler&&bienes.alquiler[k.id]; c.fillStyle='#ccc'; c.fillRect(b.x+6,b.y-16,1,18); c.fillStyle=alq?'#ffd700':'#2ecc71'; c.fillRect(b.x+7,b.y-16,10,6); c.fillStyle=alq?'#2ecc71':'#ffd700'; c.fillRect(b.x+10,b.y-14,3,2); }
   }
