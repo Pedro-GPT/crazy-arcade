@@ -2113,6 +2113,20 @@ const COCHES=[        // cuanto más vale, más corre (velocidad en km/h de jueg
   {id:'rolls',    nombre:'Rolls-Royce Phantom',   ico:'🚘', precio:500000,   vel:245, color:'#2a2a3a', forma:'limo'},
   {id:'bugatti',  nombre:'Bugatti Chiron',        ico:'🏎️', precio:3000000,  vel:290, color:'#1a3a8a', forma:'super'},
   {id:'oro',      nombre:'Superdeportivo de oro', ico:'🏆', precio:10000000, vel:330, color:'#ffd700', forma:'super'},
+  // motos (concesionario de motos)
+  {id:'vespa',    nombre:'Vespa',                 ico:'🛵', precio:3000,     vel:110, color:'#7fd4c4', forma:'moto', tipo:'moto'},
+  {id:'cbr',      nombre:'Honda CBR 600',         ico:'🏍️', precio:12000,    vel:170, color:'#d0021b', forma:'moto', tipo:'moto'},
+  {id:'ninja',    nombre:'Kawasaki Ninja',        ico:'🏍️', precio:20000,    vel:195, color:'#3ddc3d', forma:'moto', tipo:'moto'},
+  {id:'s1000',    nombre:'BMW S 1000 RR',         ico:'🏍️', precio:28000,    vel:225, color:'#e6e6e6', forma:'moto', tipo:'moto'},
+  {id:'harley',   nombre:'Harley-Davidson',       ico:'🏍️', precio:30000,    vel:175, color:'#222222', forma:'moto', tipo:'moto'},
+  {id:'ducati',   nombre:'Ducati Panigale',       ico:'🏍️', precio:40000,    vel:240, color:'#e3000f', forma:'moto', tipo:'moto'},
+  {id:'motooro',  nombre:'Moto de oro',           ico:'🏆', precio:2000000,  vel:310, color:'#ffd700', forma:'moto', tipo:'moto'},
+  // barcos (puerto deportivo): solo van por el mar y no gastan gasolina
+  {id:'motoagua', nombre:'Moto de agua',          ico:'🚤', precio:15000,    vel:150, color:'#ffcc33', forma:'motoagua', tipo:'barco', agua:1},
+  {id:'lancha',   nombre:'Lancha',                ico:'🚤', precio:80000,    vel:170, color:'#1e6fd9', forma:'lancha',   tipo:'barco', agua:1},
+  {id:'velero',   nombre:'Velero',                ico:'⛵', precio:150000,   vel:110, color:'#ffffff', forma:'velero',   tipo:'barco', agua:1},
+  {id:'yate',     nombre:'Yate',                  ico:'🛥️', precio:2000000,  vel:130, color:'#ffffff', forma:'yate',     tipo:'barco', agua:1},
+  {id:'megayate', nombre:'Megayate de lujo',      ico:'🛳️', precio:50000000, vel:150, color:'#ffd700', forma:'megayate', tipo:'barco', agua:1},
 ];
 const ARMAS=[
   {id:'porra',   nombre:'Porra',   ico:'🏏', precio:1500,  alcance:24,  recarga:.5, desc:'Hay que acercarse mucho.'},
@@ -2309,11 +2323,12 @@ function abrirMisCosas(){
                  {txt:'2 🕴️ ECHARLOS Y COBRAR',off:libres<2,accion:()=>{ if(SALA.mandar('casa',k.id)) cerrarPanel(); }}]});
       else filaAccion(C,{ico:a.cara,nombre:D.nombre,desc:`${a.nombre} paga ${fmt(a.renta)} al minuto.`,boton:'VER',accion:()=>fichaCasaMia(k)});
     });
-    C.insertAdjacentHTML('beforeend','<h3 class="sec">🚗 Coches</h3>');
-    if(!bienes.coches.length) C.insertAdjacentHTML('beforeend','<p class="nota">Aún no tienes coches. Se compran en la Caja VIP.</p>');
+    C.insertAdjacentHTML('beforeend','<h3 class="sec">🚗 Coches, motos y barcos</h3>');
+    if(!bienes.coches.length) C.insertAdjacentHTML('beforeend','<p class="nota">Aún no tienes ninguno. Los coches se compran en la Caja VIP, las motos en el concesionario y los barcos en el puerto.</p>');
     bienes.coches.forEach((cc,i)=>{
       const m=COCHES.find(x=>x.id===cc.id)||COCHES[1], a=cc.alquiler;
       if(i===bienes.conduce) filaAccion(C,{ico:m.ico,nombre:m.nombre,desc:'Lo estás conduciendo.',boton:'ALQUILAR',off:1,accion:()=>{}});
+      else if(m.agua) filaAccion(C,{ico:m.ico,nombre:m.nombre,desc:'⚓ En el mar. Los barcos no se alquilan.',boton:'TUYO',off:1,accion:()=>{}});
       else if(!a) filaAccion(C,{ico:m.ico,nombre:m.nombre,boton:'ALQUILAR',accion:()=>abrirAlquilerCoche(i),
         desc:(cc.y>=414&&cc.y<450&&cc.x>=16&&cc.x<960 ? '🅿️ En el parking vigilado.' : '⚠️ Aparcado en la calle: te lo pueden robar.')+' ⛽ '+Math.round(cc.gas??100)+' %'});
       else if(a.robado && !a.recuperando) filaAccion(C,{ico:'🚨',nombre:m.nombre+' · ROBADO',desc:'Te lo robaron porque estaba fuera del parking vigilado.',boton:'1 🕴️ RECUPERARLO',off:libres<1,lujo:1,
@@ -2526,11 +2541,29 @@ function aspectoJugador(){         // ropa del personaje según lo que llevas pu
   return r;
 }
 
+/* ---------- Concesionario de motos y puerto deportivo ---------- */
+function abrirMotos(){
+  abrirPanel('🏍️ CONCESIONARIO DE MOTOS',C=>{
+    C.insertAdjacentHTML('beforeend','<p class="nota">Te dejamos la moto en la puerta. Se conduce igual que un coche y gasta gasolina. Aparcada fuera del parking vigilado te la pueden robar.</p>');
+    COCHES.filter(m=>m.tipo==='moto').forEach(m=>filaCompra(C,{ico:m.ico,nombre:m.nombre,desc:'Hasta '+m.vel+' km/h',precio:m.precio,lujo:m.precio>=1e6,
+      estado:bienes.coches.some(x=>x.id===m.id)?'✔ Tuya':'',
+      accion:()=>{ const q=SALA.sitioMoto(); bienes.coches.push({id:m.id,x:q.x,y:q.y,ang:Math.PI/2,gas:100}); SALA.decir('Tu '+m.nombre+' te espera en la puerta'); }}));
+  });
+}
+function abrirPuerto(){
+  abrirPanel('⚓ PUERTO DEPORTIVO',C=>{
+    C.insertAdjacentHTML('beforeend','<p class="nota">Tu barco queda amarrado en el muelle. Anda hasta el muelle, súbete y navega por el mar. Los barcos no gastan gasolina y nadie te los roba. Para bajarte, acércate al muelle o a la playa.</p>');
+    COCHES.filter(m=>m.tipo==='barco').forEach(m=>filaCompra(C,{ico:m.ico,nombre:m.nombre,desc:'Hasta '+m.vel+' km/h por el mar',precio:m.precio,lujo:m.precio>=1e6,
+      estado:bienes.coches.some(x=>x.id===m.id)?'✔ Tuyo':'',
+      accion:()=>{ const q=SALA.sitioBarco(); bienes.coches.push({id:m.id,x:q.x,y:q.y,ang:Math.PI/2,gas:100}); SALA.decir('Tu '+m.nombre+' está amarrado en el muelle'); }}));
+  });
+}
+
 /* ---------- Caja VIP: coches, armas, ropa y mascotas ---------- */
 function abrirCajaVip(){
   abrirPanel('💎 CAJA VIP',C=>{
     C.insertAdjacentHTML('beforeend','<h3 class="sec">🚗 Coches</h3><p class="nota">Te los dejamos en el parking vigilado de la puerta del casino. Cuanto más caros, más corren.</p>');
-    COCHES.forEach((m,i)=>filaCompra(C,{ico:m.ico,nombre:m.nombre,desc:'Hasta '+m.vel+' km/h',precio:m.precio,lujo:i>=6,
+    COCHES.filter(m=>!m.tipo).forEach((m,i)=>filaCompra(C,{ico:m.ico,nombre:m.nombre,desc:'Hasta '+m.vel+' km/h',precio:m.precio,lujo:i>=6,
       estado:bienes.coches.some(x=>x.id===m.id)?'✔ Tuyo':'',
       accion:()=>{ const q=sitioAparcar(bienes.coches.length); bienes.coches.push({id:m.id,x:q.x,y:q.y,ang:0,gas:100}); SALA.decir('Tu '+m.nombre+' te espera en la puerta del casino'); }}));
     C.insertAdjacentHTML('beforeend','<h3 class="sec">🔫 Armas</h3><p class="nota">Para tumbar a los ladrones en la calle (tecla Q o botón ATACAR).</p>');
@@ -2698,7 +2731,7 @@ function avanzarHora(dh){
   const b=hora;
   if(cruza(a,b,22)){ SALA.recalcular(); if(casinoCerrado()) cierrePendiente=true; }
   if(cruza(a,b,8)){ SALA.recalcular(); aviso('☀️ Día '+dia+': el casino abre sus puertas'); }
-  if(cruza(a,b,21)) aviso('🌙 Se hace de noche. Vete a dormir a una casa tuya o te robarán en la calle.',true);
+  if(cruza(a,b,21)) { if(!bienes.guardias && !Object.keys(bienes.casas).length && (bienes.nochesFuera||0)>=1) aviso('🌙 Se hace de noche y llevas un día sin dormir: esta noche te quedarás dormido en la calle y te robarán.',true); else aviso('🌙 Se hace de noche.'); }
   if(cruza(a,b,3)) nocheEnLaCalle();
   if(cierrePendiente) intentarCierre();
   pintarReloj();
@@ -2712,14 +2745,21 @@ function intentarCierre(){
   SALA.echarDelCasino();
 }
 function nocheEnLaCalle(){
-  if(durmioHoy || SALA.enCasa) return;
-  if(bienes.casino && !bienes.casinoCierra && SALA.enElCasino){ aviso('😴 Has dormido en tu despacho del casino.'); return; }
+  if(durmioHoy || SALA.enCasa){ bienes.nochesFuera=0; return; }
+  if(bienes.casino && !bienes.casinoCierra && SALA.enElCasino){ bienes.nochesFuera=0; aviso('😴 Has dormido en tu despacho del casino.'); return; }
+  const noches = bienes.nochesFuera = (bienes.nochesFuera||0)+1;
+  guardarEstado();
+  if(bienes.guardias>0){ aviso('🕴️ Llevas la noche por ahí, pero tus guardaespaldas te cuidan: no te pasa nada.'); return; }
+  if(Object.keys(bienes.casas).length || noches<2){            // un día por ahí, o tienes casa: no pasa nada
+    aviso('🌙 Noche por ahí fuera'+(Object.keys(bienes.casas).length?'':'. Si mañana tampoco duermes, te quedarás dormido en la calle.'));
+    return;
+  }
   const robo=Math.floor(dinero*.25);
   if(robo>=100){ dinero-=robo; animarDinero('baja'); guardarEstado(); refrescar(); SFX.perder(); }
-  aviso('😴 Te has quedado dormido en la calle'+(robo>=100?' y te han robado '+fmt(robo):'')+'. ¡Duerme en una casa tuya!',true);
+  aviso('😴 Te has quedado dormido en la calle'+(robo>=100?' y te han robado '+fmt(robo):'')+'. Cómprate una casa o contrata guardaespaldas.',true);
   setTimeout(comprobarRuina,800);
 }
-function saltarAManana(){ if(hora>=8) dia++; hora=8; durmioHoy=true; SALA.recalcular(); pintarReloj(); guardarEstado(); }
+function saltarAManana(){ if(hora>=8) dia++; hora=8; durmioHoy=true; bienes.nochesFuera=0; SALA.recalcular(); pintarReloj(); guardarEstado(); }
 function pintarReloj(){ $('relojDia').textContent='Día '+dia+(esNoche()?' 🌙':' ☀️'); $('relojHora').textContent=fmtHora(); }
 setInterval(()=>{ if(document.hidden || enPausa || $('fin').classList.contains('ver')) return; avanzarHora(HORAS_POR_SEGUNDO); },1000);
 
@@ -2971,7 +3011,7 @@ const MUS = (()=>{
    y entra en cada juego. El mundo mide 36×26 baldosas de 16 píxeles.
    ===================================================================== */
 const SALA = (()=>{
-  const T=16, COLS=150, FILAS=130, WW=COLS*T, WH=FILAS*T;   // mundo entero: casino, sala VIP y barrio
+  const T=16, COLS=150, FILAS=150, WW=COLS*T, WH=FILAS*T;   // mundo entero: casino, sala VIP y barrio
   const CW=576, CH=416;                                         // el casino ocupa la esquina de arriba a la izquierda
   const cv=$('sala'), c=cv.getContext('2d');
   const FUENTE='"Press Start 2P",monospace';
@@ -2981,7 +3021,8 @@ const SALA = (()=>{
   const R=(x,y,w,h)=>({x,y,w,h});
   const choca=(a,b)=>a.x<b.x+b.w && b.x<a.x+a.w && a.y<b.y+b.h && b.y<a.y+a.h;
   const dentro=(px,py,r)=>px>=r.x && px<r.x+r.w && py>=r.y && py<r.y+r.h;
-  const solidos=[ R(0,0,WW,3*T), R(0,0,T,CH), R(0,CH,4,WH-CH), R(WW-4,0,4,WH), R(0,1960,WW,WH-1960),
+  const solidos=[ R(0,0,WW,3*T), R(0,0,T,CH), R(0,CH,4,WH-CH), R(WW-4,0,4,WH),
+    R(0,1960,1520,WH-1960), R(1552,1960,WW-1552,WH-1960), R(1520,2160,32,WH-2160),   // mar (con el muelle del puerto)
     R(CW-T,0,T,224), R(CW-T,256,T,CH-256),         // pared derecha del casino (con la puerta VIP)
     R(0,CH-T,256,T), R(320,CH-T,960-320,T),        // pared de abajo (puerta principal abierta)
     R(944,0,16,CH),                                // pared derecha de la sala VIP
@@ -3415,6 +3456,7 @@ const SALA = (()=>{
   }
   // Agencia de seguridad (los guardaespaldas se contratan aquí)
   const TIENDAS=[
+    {id:'motos',   x:1180,y:110, w:180, h:96, pared:'#3a3a3a', tejado:'#d0021b', letrero:'MOTOS', col:'#ff7f2a', txt:'Concesionario de motos', boton:'ENTRAR', accion:()=>abrirMotos()},
     {id:'escolta', x:1180,y:300, w:160, h:110, pared:'#2a3a6a', tejado:'#111a33', letrero:'SEGURIDAD', col:'#4aa3ff', txt:'Agencia de seguridad', boton:'ENTRAR', accion:()=>abrirAgencia()},
   ];
   TIENDAS.forEach(s=>{
@@ -3443,13 +3485,63 @@ const SALA = (()=>{
     c.fillStyle='#2ecc71'; [[-10,-24],[2,-24],[-6,-28],[-2,-20]].forEach(([dx,dy])=>c.fillRect(x+dx,y+dy,9,3)); }}); });
   solidos.push(R(1380,1200,200,110));     // estanque del parque
 
+  // --- Puerto deportivo (en la playa, con un muelle que entra en el mar) ---
+  const MUELLE=R(1520,1950,32,210);
+  solidos.push(R(1460,1840,140,60));
+  zona(R(1510,1900,40,26),R(1460,1830,140,70),'Puerto deportivo','ENTRAR',()=>abrirPuerto());
+  objetos.push({y:1900,dibujar(){
+    c.fillStyle='#f4f4f4'; c.fillRect(1460,1852,140,48); c.fillStyle='#1e6fd9'; c.fillRect(1456,1840,148,14);
+    c.fillStyle='#8fd3ffaa'; c.fillRect(1470,1864,44,22); c.fillRect(1546,1864,44,22); c.fillStyle='#5a2e12'; c.fillRect(1522,1880,16,20);
+    c.fillStyle='#fff'; c.fillRect(1596,1810,2,34); c.fillStyle='#d0021b'; c.fillRect(1598,1810,10,6);
+    neon('PUERTO',1530,1845,'#bfe6ff',14);
+  }});
+  objetos.push({y:1949,dibujar(){            // el muelle (por debajo de la gente)
+    c.fillStyle='#7a5530'; c.fillRect(MUELLE.x,MUELLE.y,MUELLE.w,MUELLE.h);
+    c.fillStyle='#5e3f22'; for(let y=MUELLE.y;y<MUELLE.y+MUELLE.h;y+=6) c.fillRect(MUELLE.x,y,MUELLE.w,1);
+    c.fillStyle='#3a2612'; for(let y=MUELLE.y+20;y<MUELLE.y+MUELLE.h;y+=48){ c.fillRect(MUELLE.x-2,y,3,3); c.fillRect(MUELLE.x+MUELLE.w-1,y,3,3); }
+  }});
+  const libreBarco=(x,y)=>{ const k=R(x-7,y-5,14,8); return k.y>=1962 && k.x>=4 && k.x+k.w<=WW-4 && k.y+k.h<=WH-4 && !choca(k,MUELLE); };
+  function sitioBarco(){
+    const n=bienes.coches.filter(k=>cocheDe(k).agua).length;
+    if(n<8) return {x:n%2?1564:1508, y:1985+Math.floor(n/2)*48};
+    return {x:1300+((n-8)%8)*60, y:2240+Math.floor((n-8)/8)*50};
+  }
+  function sitioMoto(){
+    const n=bienes.coches.filter(k=>cocheDe(k).tipo==='moto').length;
+    return {x:1196+(n%8)*20, y:250+Math.floor(n/8)%2*18};
+  }
+
   // --- Coches ---
   const cocheDe = cc => COCHES.find(m=>m.id===cc.id) || COCHES[1];
-  const DIM={patinete:[12,5],compacto:[18,10],deportivo:[21,10],suv:[20,13],super:[23,11],limo:[32,12]};
+  const DIM={moto:[14,5],motoagua:[13,7],lancha:[22,9],velero:[24,9],yate:[34,12],megayate:[46,16],patinete:[12,5],compacto:[18,10],deportivo:[21,10],suv:[20,13],super:[23,11],limo:[32,12]};
   function dibujaCocheModelo(m,x,y,ang){
     c.save(); c.translate(Math.round(x),Math.round(y-4)); c.rotate(ang);
     const [L,A] = m.forma ? DIM[m.forma] : [m.largo,m.ancho];
     c.fillStyle='rgba(0,0,0,.3)'; c.fillRect(-L/2+1,-A/2+2,L,A);
+    if(m.forma==='moto'){
+      c.fillStyle='rgba(0,0,0,.3)'; c.fillRect(-L/2+1,-1,L,4);
+      c.fillStyle='#111'; c.fillRect(-L/2,-1,4,3); c.fillRect(L/2-4,-1,4,3);
+      c.fillStyle=m.color; c.fillRect(-L/2+3,-2,L-6,4); c.fillStyle='#333'; c.fillRect(-2,-1,5,2);
+      c.fillStyle='#ccc'; c.fillRect(L/2-4,-3,1,6); c.fillStyle='#fff8b0'; c.fillRect(L/2-1,0,1,1);
+      if(m.id==='motooro'&&Math.floor(t*3)%2){ c.fillStyle='#fff'; c.fillRect(0,-2,1,1); }
+      c.restore(); return;
+    }
+    if(m.agua){
+      const yo=bienes.conduce>=0&&bienes.coches[bienes.conduce]&&bienes.coches[bienes.conduce].id===m.id;
+      if(yo&&jugador.anda){ c.fillStyle='#ffffffaa'; c.fillRect(-L/2-8,-1,7,2); c.fillRect(-L/2-5,-A/2,4,1); c.fillRect(-L/2-5,A/2-1,4,1); }
+      const casco=(col)=>{ c.fillStyle=col; c.beginPath(); c.moveTo(-L/2,-A/2); c.lineTo(L/2-A/2,-A/2); c.lineTo(L/2,0); c.lineTo(L/2-A/2,A/2); c.lineTo(-L/2,A/2); c.closePath(); c.fill(); };
+      if(m.forma==='motoagua'){ casco(m.color); c.fillStyle='#111'; c.fillRect(-3,-1,5,2); c.fillStyle='#ccc'; c.fillRect(2,-3,1,6); }
+      else if(m.forma==='lancha'){ casco('#f4f4f4'); c.fillStyle=m.color; c.fillRect(-L/2,-A/2,L-6,2); c.fillRect(-L/2,A/2-2,L-6,2); c.fillStyle='#8fd3ffdd'; c.fillRect(1,-A/2+2,3,A-4); c.fillStyle='#c9a26a'; c.fillRect(-L/2+2,-A/2+3,8,A-6); }
+      else if(m.forma==='velero'){ casco('#f4f4f4'); c.fillStyle='#c9a26a'; c.fillRect(-L/2+2,-A/2+2,L-10,A-4); c.fillStyle='#5a3a1a'; c.fillRect(-1,-1,2,2);
+        c.fillStyle='#fff'; c.beginPath(); c.moveTo(0,0); c.lineTo(-L/2+2,-A/2-6); c.lineTo(-L/2+2,0); c.closePath(); c.fill(); c.fillStyle='#d0021b'; c.fillRect(-L/2+2,-A/2-6,2,2); }
+      else { casco(m.forma==='megayate'?'#fffdf2':'#f4f4f4');
+        c.fillStyle=m.forma==='megayate'?'#ffd700':'#1e3a6a'; c.fillRect(-L/2,-1,L-A/2,1);
+        c.fillStyle='#e6e6e6'; c.fillRect(-L/2+4,-A/2+3,L-A-4,A-6); c.fillStyle='#8fd3ffdd'; c.fillRect(L/2-A-4,-A/2+3,2,A-6);
+        c.fillStyle='#fff'; c.fillRect(-L/2+8,-A/2+5,L/2-6,A-10);
+        if(m.forma==='megayate'){ c.fillStyle='#2a9fd4'; c.fillRect(-L/2+3,-A/2+3,6,4); c.fillStyle='#d0021b'; c.beginPath(); c.arc(-L/2+14,0,3,0,TAU); c.fill(); c.fillStyle='#fff'; c.fillRect(-L/2+13,-1,2,2);
+          if(Math.floor(t*3)%2){ c.fillStyle='#fff'; c.fillRect(0,-A/2+1,1,1); } } }
+      c.restore(); return;
+    }
     if(m.forma==='patinete'){
       c.fillStyle='#333'; c.fillRect(-L/2,-1,L,2); c.fillStyle=m.color; c.fillRect(-L/2+1,-2,L-4,4); c.fillStyle='#ccc'; c.fillRect(L/2-2,-3,1,6);
       c.restore(); return;
@@ -3475,6 +3567,16 @@ const SALA = (()=>{
   }
   function bajar(){
     const cc=conduciendo(); if(!cc) return;
+    if(cocheDe(cc).agua){                     // del barco solo te bajas al muelle o a la playa
+      let mejor=null, md=1e9;
+      for(let r=10;r<=40;r+=6) for(let a=0;a<16;a++){ const x=jugador.x+Math.cos(a/16*TAU)*r, y=jugador.y+Math.sin(a/16*TAU)*r;
+        if(libre(x,y)){ const d=Math.hypot(x-jugador.x,y-jugador.y); if(d<md){ md=d; mejor={x,y}; } } }
+      if(!mejor){ avisoSala('⚓ Acércate al muelle o a la playa para bajarte del barco.',true); return; }
+      cc.x=jugador.x; cc.y=jugador.y; jugador.x=mejor.x; jugador.y=mejor.y;
+      bienes.conduce=-1; jugador.dir='d'; jugador.ruta=[]; guardarEstado(); pistaVista=undefined;
+      escoltas.forEach((g,k)=>{ g.x=jugador.x+(k%2?10:-10); g.y=jugador.y+(k<2?8:-8); });
+      return;
+    }
     cc.x=jugador.x; cc.y=jugador.y;
     for(const [dx,dy] of [[0,14],[0,-14],[14,0],[-14,0],[12,12],[-12,12],[12,-12],[-12,-12],[0,22],[22,0]]){
       if(libre(cc.x+dx,cc.y+dy)){ jugador.x=cc.x+dx; jugador.y=cc.y+dy; break; } }
@@ -3695,7 +3797,7 @@ const SALA = (()=>{
   function robarCoches(){
     if(!bienes.vip) return;
     bienes.coches.forEach((cc,i)=>{
-      if(i===bienes.conduce || cc.alquiler || dentro(cc.x,cc.y,PARKING)) return;
+      if(i===bienes.conduce || cc.alquiler || cocheDe(cc).agua || dentro(cc.x,cc.y,PARKING)) return;
       if(Math.hypot(cc.x-jugador.x,cc.y-jugador.y)<250) return;
       if(Math.random()<.2){
         cc.alquiler={robado:1,tipo:'Ladrón',cara:'🦹',nombre:'un ladrón',renta:0,fiable:1,cobrado:0,debe:0};
@@ -4264,7 +4366,7 @@ const SALA = (()=>{
     if(teclas.has('ArrowLeft')||teclas.has('KeyA')) dx--; if(teclas.has('ArrowRight')||teclas.has('KeyD')) dx++;
     if(teclas.has('ArrowUp')||teclas.has('KeyW')) dy--;   if(teclas.has('ArrowDown')||teclas.has('KeyS')) dy++;
     if(carrera && carrera.fase==='cuenta'){ dx=0; dy=0; }
-    const j=jugador, cc=conduciendo(), sinGas=cc&&(cc.gas??100)<=0, vel=cc?cocheDe(cc).vel*(sinGas?.25:1):72, lib=cc?libreCoche:libre;
+    const j=jugador, cc=conduciendo(), sinGas=cc&&(cc.gas??100)<=0, vel=cc?cocheDe(cc).vel*(sinGas?.25:1):72, barco=cc&&cocheDe(cc).agua, lib=barco?libreBarco:cc?libreCoche:libre;
     const x0=j.x, y0=j.y;
     if(dx||dy){
       j.ruta=[]; j.auto=null; j.autoCoche=-1;
@@ -4279,10 +4381,11 @@ const SALA = (()=>{
       if(j.auto){ const z=j.auto; j.auto=null; if(dentro(j.x,j.y,z)) usar(z); }
       if(j.autoCoche>=0){ const i=j.autoCoche; j.autoCoche=-1; const k=bienes.coches[i]; if(k&&Math.hypot(k.x-j.x,k.y-j.y)<18) subir(i); }
     } else if(cc && j.ruta.length){ const o=j.ruta[0]; cc.ang=Math.atan2(o.y-j.y,o.x-j.x); }
+    if(barco && !libreBarco(j.x,j.y)){ j.x=x0; j.y=y0; j.ruta=[]; j.anda=false; }
     if(cc){
       cc.x=j.x; cc.y=j.y;
       const dist=Math.hypot(j.x-x0,j.y-y0);
-      if(dist>0){ const antes=cc.gas??100; cc.gas=Math.max(0,antes-dist/900);
+      if(dist>0 && !barco){ const antes=cc.gas??100; cc.gas=Math.max(0,antes-dist/900);
         if(antes>0&&cc.gas<=0) avisoSala('⛽ ¡Sin gasolina! El coche va muy lento: ve a la gasolinera (al lado del banco).',true);
         else if(antes>15&&cc.gas<=15) avisoSala('⛽ Te queda poca gasolina',true); }
     }
@@ -4323,7 +4426,7 @@ const SALA = (()=>{
     }
     // marcador de la calle
     const fueraYo=fuera(j.x,j.y), nv=nivelPeligro(), arma=[...ARMAS].reverse().find(a=>bienes.armas[a.id]);
-    const hud=((fueraYo?`🦹 ${'★'.repeat(nv)}${'☆'.repeat(5-nv)}`:'')+(bienes.guardias?` 🕴️×${bienes.guardias}`:'')+(arma?` ${arma.ico}`:'')+(busca?` 🚓${'★'.repeat(busca)}`:'')+(cc?` ⛽${Math.round(cc.gas??100)}%`:'')+(carrera?` 🏁${carrera.punto-1}/5`:'')).trim();
+    const hud=((fueraYo?`🦹 ${'★'.repeat(nv)}${'☆'.repeat(5-nv)}`:'')+(bienes.guardias?` 🕴️×${bienes.guardias}`:'')+(arma?` ${arma.ico}`:'')+(busca?` 🚓${'★'.repeat(busca)}`:'')+(cc&&!cocheDe(cc).agua?` ⛽${Math.round(cc.gas??100)}%`:'')+(carrera?` 🏁${carrera.punto-1}/5`:'')).trim();
     if(hud!==hudTxt){ hudTxt=hud; $('salaHud').textContent=hud; }
     const verAt=fueraYo&&!!arma&&!cc; if(verAt!==atVisible){ atVisible=verAt; $('btnAtacar').classList.toggle('oculto',!verAt); }
     // música según la zona
@@ -4425,6 +4528,7 @@ const SALA = (()=>{
     if(enCasa){ enCasa.destino={x:(e.clientX-r.left)/r.width*vw-enCasa.ox, y:(e.clientY-r.top)/r.height*vh-enCasa.oy}; return; }
     const wx=camX+(e.clientX-r.left)/r.width*vw, wy=camY+(e.clientY-r.top)/r.height*vh;
     jugador.autoCoche=-1;
+    if(conduciendo() && cocheDe(conduciendo()).agua){ jugador.ruta=[{x:wx,y:wy}]; jugador.auto=null; return; }
     if(conduciendo()){
       const d = fuera(wx,wy) ? {x:wx,y:wy} : {x:288,y:438};
       jugador.ruta=camino(jugador.x,jugador.y,d.x,d.y); jugador.auto=null; return;
@@ -4475,7 +4579,7 @@ const SALA = (()=>{
     decirCamarero(txt){ camarero.burbuja={txt,hasta:t+2.5}; },
     jugador, zonas, gente, camino, libre,
     recalcular(){ rejilla=null; }, get peligro(){ return nivelPeligro(); },
-    decir(txt){ avisoSala(txt); }, decirVecino(casa,txt){ casa.vecino.burbuja={txt,hasta:t+2}; },
+    decir(txt){ avisoSala(txt); }, sitioBarco, sitioMoto, decirVecino(casa,txt){ casa.vecino.burbuja={txt,hasta:t+2}; },
     casaVendida(casa){ casa.vecino.burbuja={txt:'¡Adiós, casa!',hasta:t+1.5}; setTimeout(()=>casa.vecino.oculto=true,1500); avisoSala('¡Ya tienes tu '+CASAS_TIPO[casa.tipo].nombre.toLowerCase()+'!'); },
     esconderVecinos, llamar,
     atacar, ladrones, escoltas, CASAS, TIENDAS, mandar, misiones, ninos, robarCoches, empezarCarrera, policias, subirBusca, llenarDeposito,
