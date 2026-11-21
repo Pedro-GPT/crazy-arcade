@@ -26,6 +26,10 @@ header h1{font-family:Bungee,Impact,sans-serif;font-size:20px;letter-spacing:1px
 .marcador .val{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
 #dinero.sube{color:var(--ok)} #dinero.baja{color:var(--bad)}
 #btnSonido{font-size:20px;padding:4px 8px;border-radius:8px;background:#221f2b}
+#btnPausa{font-size:20px;padding:4px 8px;border-radius:8px;background:#221f2b}
+#pausa{position:fixed;inset:0;z-index:200;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#000c;color:#ffd700;font:bold 48px system-ui,sans-serif;letter-spacing:4px;cursor:pointer}
+#pausa.ver{display:flex}
+#pausa small{font-size:16px;text-align:center;padding:0 16px;color:#fff;letter-spacing:1px;font-weight:normal}
 
 /* ---------- Escenario ---------- */
 #escenario{position:relative;display:flex;flex-direction:column;align-items:center;padding:14px 16px 18px;
@@ -531,8 +535,10 @@ table.rank tr.top td{color:#ffd700;font-weight:800}
     <button id="btnRanking" title="Ranking">🏆</button>
     <button id="btnMusica" title="Música">🎵</button>
     <button id="btnSonido" title="Sonido">🔊</button>
+    <button id="btnPausa" title="Pausa (P)">⏸</button>
   </div>
 </header>
+<div id="pausa">⏸ PAUSA<small>Toca la pantalla o pulsa P para seguir</small></div>
 
 <nav id="juegos" class="oculto">
   <button id="btnSala">🚪 Volver a la sala</button>
@@ -849,6 +855,7 @@ let ruinas   = cargar('rds_ruinas', 0);                            // veces arru
 let sel      = RULETAS[0];
 let girando  = false;
 let sonido   = cargar('rds_sonido', true);
+let enPausa  = false;
 const rot = {};                     // giro actual de cada ruleta (radianes)
 RULETAS.forEach(R=>{ rot[R.id]=0; R.W=R.segs.reduce((s,g)=>s+g.w,0); });
 
@@ -2343,7 +2350,7 @@ function aviso(txt,mal){
   clearTimeout(aviso.t); aviso.t=setTimeout(()=>a.classList.remove('ver'),3200);
 }
 setInterval(()=>{
-  if(document.hidden || $('fin').classList.contains('ver')) return;
+  if(document.hidden || enPausa || $('fin').classList.contains('ver')) return;
   if(++relojAlquiler>=60){ relojAlquiler=0; tickMinuto(); }
 },1000);
 function tickMinuto(){ cobrarAlquileres(); interesBanco(); SALA.robarCoches(); minutoCasino(); revisarEncargo(); }
@@ -2714,7 +2721,7 @@ function nocheEnLaCalle(){
 }
 function saltarAManana(){ if(hora>=8) dia++; hora=8; durmioHoy=true; SALA.recalcular(); pintarReloj(); guardarEstado(); }
 function pintarReloj(){ $('relojDia').textContent='Día '+dia+(esNoche()?' 🌙':' ☀️'); $('relojHora').textContent=fmtHora(); }
-setInterval(()=>{ if(document.hidden || $('fin').classList.contains('ver')) return; avanzarHora(HORAS_POR_SEGUNDO); },1000);
+setInterval(()=>{ if(document.hidden || enPausa || $('fin').classList.contains('ver')) return; avanzarHora(HORAS_POR_SEGUNDO); },1000);
 
 /* =====================================================================
    SER DUEÑO DEL CASINO
@@ -4389,7 +4396,7 @@ const SALA = (()=>{
   }
   function bucle(ahora){
     const dt=Math.min(.05,Math.max(0,(ahora-ultimo)/1000)); ultimo=ahora;
-    actualizar(dt); dibujar();
+    if(!enPausa){ actualizar(dt); dibujar(); }
     anim=requestAnimationFrame(bucle);
   }
   function medir(){
@@ -4454,6 +4461,7 @@ const SALA = (()=>{
       if(!anim){ ultimo=performance.now(); anim=requestAnimationFrame(bucle); }
     },
     parar(){ if(anim) cancelAnimationFrame(anim); anim=null; teclas.clear(); },
+    soltarTeclas(){ teclas.clear(); jugador.ruta=[]; },
     expulsar, volverAEntrar, get enEscena(){ return !!cine; }, get faseEscena(){ return cine&&cine.fase; },
     avanzar(seg){ for(let k=0;k<seg*30;k++) actualizar(1/30); },     // para pruebas
     tecla(e,abajo){
@@ -4500,12 +4508,23 @@ $('btnRepartir').onclick=repartir;
 $('btnPedir').onclick=pedir;
 $('btnPlantarse').onclick=()=>plantarse();
 $('btnDoblar').onclick=doblar;
+function pausar(si){
+  enPausa = si===undefined ? !enPausa : !!si;
+  $('pausa').classList.toggle('ver',enPausa);
+  $('btnPausa').textContent = enPausa ? '▶' : '⏸';
+  if(enPausa){ MUS.parar(); SALA.soltarTeclas&&SALA.soltarTeclas(); }
+  else if(musicaArrancada) MUS.poner(pistaActual());
+}
+$('btnPausa').onclick=e=>{ e.stopPropagation(); pausar(); };
+$('pausa').onclick=()=>pausar(false);
 let musicaArrancada=false;
 const arrancarMusica=()=>{ if(musicaArrancada) return; musicaArrancada=true; audio(); MUS.poner(pistaActual()); };
 document.addEventListener('pointerdown',arrancarMusica);
 document.addEventListener('keydown',arrancarMusica);
-document.addEventListener('visibilitychange',()=>{ if(document.hidden) MUS.parar(); else if(musicaArrancada) MUS.poner(pistaActual()); });
+document.addEventListener('visibilitychange',()=>{ if(document.hidden) MUS.parar(); else if(musicaArrancada && !enPausa) MUS.poner(pistaActual()); });
 document.addEventListener('keydown',e=>{
+  if(enPausa){ e.preventDefault(); if(e.code==='KeyP'||e.code==='Escape') pausar(false); return; }
+  if(e.code==='KeyP' && !(e.target&&/INPUT|TEXTAREA/.test(e.target.tagName))){ e.preventDefault(); pausar(true); return; }
   if($('tienda').classList.contains('ver')){ if(e.code==='Escape') cerrarTienda(); return; }
   if($('bar').classList.contains('ver')){ if(e.code==='Escape') cerrarBar(); return; }
   if($('panel').classList.contains('ver')){ if(e.code==='Escape') cerrarPanel(); return; }
