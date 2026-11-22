@@ -9,3 +9,11 @@ CREATE TABLE IF NOT EXISTS sesiones (
   ultimo   INTEGER NOT NULL,         -- último aviso recibido
   segundos INTEGER NOT NULL DEFAULT 0 -- tiempo con la pestaña visible
 );
+
+-- Ranking de la Ruleta de la Suerte: una fila por partida, con su mejor patrimonio.
+CREATE TABLE IF NOT EXISTS ranking (
+  partida    TEXT PRIMARY KEY,       -- código aleatorio guardado en el navegador de esa partida
+  nombre     TEXT NOT NULL,
+  patrimonio REAL NOT NULL,
+  fecha      INTEGER NOT NULL        -- milisegundos, reloj del servidor
+);

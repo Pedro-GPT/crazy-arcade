@@ -521,6 +521,7 @@ table.rank tr.top td{color:#ffd700;font-weight:800}
   #decision .txt{font-size:14px}
   .t-dificil #cartelNombre{font-size:34px}
 }
+.rank tr.yo td{background:#3a2a00;color:#ffe680;font-weight:bold}
 </style>
 </head>
 <body>
@@ -2125,8 +2126,8 @@ const COCHES=[        // cuanto más vale, más corre (velocidad en km/h de jueg
   {id:'motoagua', nombre:'Moto de agua',          ico:'🚤', precio:15000,    vel:150, color:'#ffcc33', forma:'motoagua', tipo:'barco', agua:1},
   {id:'lancha',   nombre:'Lancha',                ico:'🚤', precio:80000,    vel:170, color:'#1e6fd9', forma:'lancha',   tipo:'barco', agua:1},
   {id:'velero',   nombre:'Velero',                ico:'⛵', precio:150000,   vel:110, color:'#ffffff', forma:'velero',   tipo:'barco', agua:1},
-  {id:'yate',     nombre:'Yate',                  ico:'🛥️', precio:2000000,  vel:130, color:'#ffffff', forma:'yate',     tipo:'barco', agua:1},
-  {id:'megayate', nombre:'Megayate de lujo',      ico:'🛳️', precio:50000000, vel:150, color:'#ffd700', forma:'megayate', tipo:'barco', agua:1},
+  {id:'yate',     nombre:'Yate',                  ico:'🛥️', precio:2e12,  vel:130, color:'#ffffff', forma:'yate',     tipo:'barco', agua:1},
+  {id:'megayate', nombre:'Megayate de lujo',      ico:'🛳️', precio:5e13, vel:150, color:'#ffd700', forma:'megayate', tipo:'barco', agua:1},
 ];
 const ARMAS=[
   {id:'porra',   nombre:'Porra',   ico:'🏏', precio:1500,  alcance:24,  recarga:.5, desc:'Hay que acercarse mucho.'},
@@ -2636,22 +2637,43 @@ function patrimonio(){
 }
 const escHtml = s => String(s).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
 let borradorNombre=null;
+// Ranking online: todas las partidas (de cualquier persona y aparato) en la misma tabla.
+const RANKING_URL='https://crazy-arcade-visitas.crazy-arcade-visitas.workers.dev/ranking';
+function idPartida(){
+  let id=cargar('rds_partida','');
+  if(!/^[a-z0-9-]{8,40}$/i.test(id)){ id='p-'+Math.random().toString(36).slice(2,12)+Date.now().toString(36); guardar('rds_partida',id); }
+  return id;
+}
+let rankingOnline=null, rankingEstado='';      // lista que llegó del servidor · '' | 'cargando' | 'error'
+function pedirRanking(envio){
+  rankingEstado='cargando'; if(envio) repintarPanel();
+  const peticion = envio
+    ? fetch(RANKING_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(envio)})
+    : fetch(RANKING_URL+'?p='+encodeURIComponent(idPartida()));
+  peticion.then(r=>{ if(!r.ok) throw 0; return r.json(); })
+    .then(d=>{ rankingOnline=d.ranking; rankingEstado=''; if(envio){ SFX.granPremio(); aviso('🏆 Guardado en el ranking: '+envio.n+' · '+fmt(envio.v)); } })
+    .catch(()=>{ rankingEstado='error'; if(envio) aviso('🏆 No se ha podido guardar: hace falta internet. Inténtalo otra vez.',true); })
+    .finally(()=>{ if($('panel').classList.contains('ver') && $('panelTit').textContent.includes('RANKING')) repintarPanel(); });
+}
 function abrirRanking(){
+  rankingOnline=null; rankingEstado='cargando';
   abrirPanel('🏆 RANKING',C=>{
-    const L=cargar('rds_ranking',[]), nombre = borradorNombre!==null ? borradorNombre : cargar('rds_nombre','');
-    C.insertAdjacentHTML('beforeend',`<p class="nota">Tu patrimonio ahora: <b>${fmt(patrimonio())}</b> (dinero, banco, casas y coches). Escribe tu nombre y guárdalo en la tabla.</p>
-      <div class="rankForm"><input id="rankNombre" maxlength="16" placeholder="Tu nombre" value="${escHtml(nombre)}"><button id="rankGuardar">GUARDAR</button></div>
-      <table class="rank"><tr><th>#</th><th>Nombre</th><th>Patrimonio</th><th>Día</th></tr>
-      ${L.map((r,i)=>`<tr${i<3?' class="top"':''}><td>${['🥇','🥈','🥉'][i]||i+1}</td><td>${escHtml(r.nombre)}</td><td>${fmt(r.patrimonio)}</td><td>${escHtml(r.fecha)}</td></tr>`).join('') || '<tr><td colspan="4">Todavía no hay nadie.</td></tr>'}</table>`);
+    const nombre = borradorNombre!==null ? borradorNombre : cargar('rds_nombre','');
+    const L=rankingOnline||[];
+    const filas = rankingEstado==='cargando' && !rankingOnline ? '<tr><td colspan="4">Cargando el ranking…</td></tr>'
+      : rankingEstado==='error' && !rankingOnline ? '<tr><td colspan="4">No se puede ver el ranking ahora (¿hay internet?).</td></tr>'
+      : L.map((r,i)=>`<tr class="${i<3?'top':''}${r.yo?' yo':''}"><td>${['🥇','🥈','🥉'][i]||i+1}</td><td>${escHtml(r.nombre)}${r.yo?' (tú)':''}</td><td>${fmt(r.patrimonio)}</td><td>${new Date(r.fecha).toLocaleDateString('es-ES')}</td></tr>`).join('')
+        || '<tr><td colspan="4">Todavía no hay nadie.</td></tr>';
+    C.insertAdjacentHTML('beforeend',`<p class="nota">Ranking de todas las partidas: las tuyas y las de cualquier otra persona. Tu patrimonio ahora: <b>${fmt(patrimonio())}</b> (dinero, banco, casas, coches, motos y barcos). Cada partida sale una vez, con su mejor marca.</p>
+      <div class="rankForm"><input id="rankNombre" maxlength="16" placeholder="Tu nombre" value="${escHtml(nombre)}"><button id="rankGuardar"${rankingEstado==='cargando'?' disabled':''}>GUARDAR</button></div>
+      <table class="rank"><tr><th>#</th><th>Nombre</th><th>Patrimonio</th><th>Fecha</th></tr>${filas}</table>`);
     const inp=$('rankNombre'); inp.oninput=()=>{ borradorNombre=inp.value; };
     $('rankGuardar').onclick=()=>{
       const n=inp.value.trim().slice(0,16); if(!n){ inp.focus(); return; }
       guardar('rds_nombre',n); borradorNombre=null;
-      const L2=cargar('rds_ranking',[]); L2.push({nombre:n,patrimonio:patrimonio(),fecha:new Date().toLocaleDateString('es-ES')});
-      L2.sort((a,b)=>b.patrimonio-a.patrimonio); guardar('rds_ranking',L2.slice(0,20));
-      SFX.granPremio(); aviso('🏆 Guardado en el ranking: '+n+' · '+fmt(patrimonio())); repintarPanel();
+      pedirRanking({p:idPartida(),n,v:Math.floor(patrimonio())});
     };
-  });
+  });  pedirRanking();
 }
 
 /* ---------- Encargos de Don Fortunato ---------- */
@@ -2741,12 +2763,13 @@ function intentarCierre(){
   if(!casinoCerrado()){ cierrePendiente=false; return; }
   if(ocupado()) return;                       // espera a que termine la jugada
   cierrePendiente=false;
+  if(bienes.casino){ if(SALA.enElCasino) aviso('🌙 Tu casino ha cerrado: dentro solo quedáis tú y tus guardias.'); return; }   // al dueño no le echan
   if(juego!=='sala') cambiarJuego('sala');
   SALA.echarDelCasino();
 }
 function nocheEnLaCalle(){
   if(durmioHoy || SALA.enCasa){ bienes.nochesFuera=0; return; }
-  if(bienes.casino && !bienes.casinoCierra && SALA.enElCasino){ bienes.nochesFuera=0; aviso('😴 Has dormido en tu despacho del casino.'); return; }
+  if(bienes.casino && SALA.enElCasino){ bienes.nochesFuera=0; aviso('😴 Has dormido en tu despacho del casino.'); return; }
   const noches = bienes.nochesFuera = (bienes.nochesFuera||0)+1;
   guardarEstado();
   if(bienes.guardias>0){ aviso('🕴️ Llevas la noche por ahí, pero tus guardaespaldas te cuidan: no te pasa nada.'); return; }
@@ -3557,6 +3580,14 @@ const SALA = (()=>{
     if(m.id==='oro'&&Math.floor(t*3)%2){ c.fillStyle='#fff'; c.fillRect(-2,-A/2,2,1); }
     c.restore();
   }
+  // En la moto, el patinete y la moto de agua se ve a quien conduce (en los coches va dentro)
+  const ABIERTOS={moto:1,patinete:1,motoagua:1};
+  function conJinete(m,p,ang){
+    dibujaCocheModelo(m,p.x,p.y,ang);
+    if(!ABIERTOS[m.forma]) return;
+    const a=ang||0, dir=Math.abs(Math.cos(a))>=Math.abs(Math.sin(a)) ? (Math.cos(a)>0?'r':'l') : (Math.sin(a)>0?'d':'u');
+    persona({...p, dir, anda:false, burbuja:null, sentado:m.forma!=='patinete', y:p.y-(m.forma==='patinete'?3:1)});
+  }
   const conduciendo = () => bienes.conduce>=0 ? bienes.coches[bienes.conduce] : null;
   const INTERIOR_COCHE=R(0,0,960,426);
   const libreCoche=(x,y)=>{ const k=R(x-7,y-6,14,8); return !dentro(x,y,INTERIOR_COCHE) && !solidos.some(s=>(!s.si||s.si())&&choca(k,s)); };
@@ -3653,7 +3684,7 @@ const SALA = (()=>{
     if(mejor) return noquear(mejor,jugador);
     // sin ladrones al alcance: el disparo va a la persona más cercana
     let victima=null, mv=arma.alcance;
-    gente.forEach(p=>{ if(p.tipo!=='paseo'||p.caido||p.oculto) return; const d=Math.hypot(p.x-jugador.x,p.y-jugador.y); if(d<=mv){ mv=d; victima=p; } });
+    gente.forEach(p=>{ if(p.tipo!=='paseo'||p.caido||p.oculto||vaciado(p)) return; const d=Math.hypot(p.x-jugador.x,p.y-jugador.y); if(d<=mv){ mv=d; victima=p; } });
     if(victima){
       const e=efectos2[efectos2.length-1]; e.x2=victima.x; e.y2=victima.y-8;
       victima.caido=t; victima.ruta=[]; victima.burbuja={txt:'¡Ay!',hasta:t+1.5};
@@ -3732,6 +3763,7 @@ const SALA = (()=>{
   const fortunato={x:186,y:360,dir:'d',ropa:{piel:'#e0ac69',pelo:'#888',camisa:'#6a0d3a',pant:'#111',zap:'#111',gorro:'chistera',joya:'cadena'},tipo:'quieto'};
   gente.push(fortunato);
   zona(R(168,364,36,24),R(170,330,32,34),'Don Fortunato: encargos','HABLAR',()=>{ fortunato.burbuja={txt:'¡Hola, joven!',hasta:t+1.5}; abrirEncargos(); });
+  zonas[zonas.length-1].si=()=>!casinoCerrado();      // de noche Don Fortunato no está
   // --- Parking vigilado (las plazas de la puerta del casino) ---
   const PARKING=R(16,414,944,36);
   gente.push({x:948,y:440,dir:'l',ropa:{piel:'#c68642',pelo:'#111',camisa:'#ffcc33',pant:'#2b3a8c',zap:'#111',gorro:'gorra'},tipo:'quieto'});
@@ -3916,7 +3948,10 @@ const SALA = (()=>{
     c.globalCompositeOperation='source-over';
   }
   // --- Puerta del casino: cerrada por la noche ---
-  solidos.push({...R(256,CH-T,64,T), si:()=>casinoCerrado()});
+  solidos.push({...R(256,CH-T,64,T), si:()=>casinoCerrado() && !bienes.casino});
+  // con el casino cerrado no queda nadie dentro (salvo tú y tus guardias)
+  const CASINO_ENTERO=R(0,0,960,CH);
+  const vaciado=p=>{ if(p.enCasino===undefined) p.enCasino=!p.fuera && dentro(p.x,p.y,CASINO_ENTERO); return p.enCasino && casinoCerrado(); };
   objetos.push({y:CH,dibujar(){ if(!casinoCerrado()) return;
     c.fillStyle='#8fd3ffaa'; c.fillRect(256,CH-T+2,64,T-2); c.fillStyle='#ffcc33'; c.fillRect(287,CH-T+2,2,T-2);
     c.fillStyle='#d0021b'; c.fillRect(270,CH+2,36,9); c.fillStyle='#fff'; c.font='6px '+FUENTE; c.textAlign='center'; c.textBaseline='top'; c.fillText('CERRADO',288,CH+4); }});
@@ -4392,6 +4427,7 @@ const SALA = (()=>{
     if((dx||dy||j.ruta.length) && ayudaVista){ ayudaVista=false; $('salaAyuda').style.opacity=0; }
     // gente
     for(const p of gente){
+      if(vaciado(p)){ p.anda=false; continue; }
       if(p.tipo==='paseo'){
         if(p.ruta.length) seguir(p,dt,p.bandeja?44:32);
         else { p.anda=false; p.espera-=dt; if(p.espera<=0){ p.espera=2+Math.random()*5;
@@ -4457,17 +4493,17 @@ const SALA = (()=>{
     const vis=y=>y>camY-30 && y<camY+vh+160;
     const lista=[];
     objetos.forEach(o=>{ if(vis(o.y)) lista.push(o); });
-    gente.forEach(p=>{ if(!p.oculto && vis(p.y)) lista.push({y:p.y,dibujar:()=>persona(p)}); });
+    gente.forEach(p=>{ if(!p.oculto && !vaciado(p) && vis(p.y)) lista.push({y:p.y,dibujar:()=>persona(p)}); });
     ladrones.forEach(p=>lista.push({y:p.y,dibujar:()=>persona(p)}));
     ninos.forEach(p=>{ if(!p.oculto) lista.push({y:p.y,dibujar:()=>persona(p)}); });
     if(mascota && !mascota.oculto) lista.push({y:mascota.y+(mascota.id==='loro'?2:0),dibujar:()=>dibujaMascota(mascota)});
     policias.forEach(p=>lista.push({y:p.y,dibujar:()=>{ dibujaCocheModelo(COCHE_POLI,p.x,p.y,p.ang); c.fillStyle=Math.floor(t*8)%2?'#ff2b2b':'#2b6bff'; c.fillRect(Math.round(p.x)-1,Math.round(p.y)-9,3,2); }}));
     if(carrera){ const q=enRuta(carrera.fase==='cuenta'?0:carrera.d); lista.push({y:q.y,dibujar:()=>dibujaCocheModelo(COCHE_TONI,q.x,q.y,q.ang)}); }
     else lista.push({y:470,dibujar:()=>dibujaCocheModelo(COCHE_TONI,1905,470,Math.PI)});
-    escoltas.forEach(p=>{ if(p.conduce) lista.push({y:p.y,dibujar:()=>dibujaCocheModelo(cocheDe(p.conduce),p.x,p.y,p.conduce.ang||0)}); else if(!p.oculto) lista.push({y:p.y,dibujar:()=>persona(p)}); });
+    escoltas.forEach(p=>{ if(p.conduce) lista.push({y:p.y,dibujar:()=>conJinete(cocheDe(p.conduce),p,p.conduce.ang||0)}); else if(!p.oculto) lista.push({y:p.y,dibujar:()=>persona(p)}); });
     bienes.coches.forEach((k,i)=>{ if(i!==bienes.conduce && !k.alquiler && vis(k.y)) lista.push({y:k.y,dibujar:()=>dibujaCocheModelo(cocheDe(k),k.x,k.y,k.ang)}); });
     trafico.forEach(v=>{ const q=enRecorrido(v.d); if(vis(q.y)) lista.push({y:q.y,dibujar:()=>dibujaCocheModelo(v.m,q.x,q.y,q.ang)}); });
-    lista.push(cc ? {y:j.y,dibujar:()=>dibujaCocheModelo(cocheDe(cc),j.x,j.y,cc.ang)} : {y:j.y,dibujar:()=>persona(j)});
+    lista.push(cc ? {y:j.y,dibujar:()=>conJinete(cocheDe(cc),j,cc.ang)} : {y:j.y,dibujar:()=>persona(j)});
     lista.sort((a,b)=>a.y-b.y).forEach(o=>o.dibujar());
     ladrones.forEach(l=>{ if(l.estado!=='ko') return; for(let k=0;k<3;k++){ const a=t*6+k*2.1; c.fillStyle='#ffd700'; c.fillRect(Math.round(l.x+Math.cos(a)*6)-1,Math.round(l.y-20+Math.sin(a)*2)-1,2,2); } });
     efectos2.forEach(e=>{ c.strokeStyle=e.tipo==='taser'?'#7fe9ff':e.tipo==='pistola'?'#fff27a':'#ffffff'; c.lineWidth=e.tipo==='porra'?2:1;

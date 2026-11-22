@@ -125,3 +125,34 @@ test('permite al dashboard enviar la clave desde el navegador', async () => {
   assert.equal(r.status, 204);
   assert.equal(r.headers.get('Access-Control-Allow-Headers'), 'Authorization');
 });
+
+const ranking = (cuerpo, origen = ORIGEN) => mf.dispatchFetch(`${URL_BASE}/ranking`, {
+  method: 'POST', headers: { 'Content-Type': 'text/plain', Origin: origen }, body: JSON.stringify(cuerpo)
+});
+const verRanking = (p = '') => mf.dispatchFetch(`${URL_BASE}/ranking?p=${p}`, { headers: { Origin: ORIGEN } });
+
+test('ranking: partidas distintas se ordenan por patrimonio y cada una ve la suya', async () => {
+  await (await mf.getD1Database('DB')).exec('DELETE FROM ranking');
+  assert.equal((await ranking({ p: 'partida-pedro-1', n: 'Pedro', v: 1e18 })).status, 200);
+  const r = await (await ranking({ p: 'partida-otro-22', n: 'Hermano', v: 1e21 })).json();
+  assert.deepEqual(r.ranking.map(x => x.nombre), ['Hermano', 'Pedro']);
+  const mia = await (await verRanking('partida-pedro-1')).json();
+  assert.deepEqual(mia.ranking.map(x => x.yo), [false, true]);
+});
+
+test('ranking: una partida tiene una sola fila y se queda su mejor marca', async () => {
+  await (await mf.getD1Database('DB')).exec('DELETE FROM ranking');
+  await ranking({ p: 'partida-pedro-1', n: 'Pedro', v: 5000 });
+  await ranking({ p: 'partida-pedro-1', n: 'Pedro', v: 100 });
+  const r = await (await ranking({ p: 'partida-pedro-1', n: 'Perico', v: 9000 })).json();
+  assert.equal(r.ranking.length, 1);
+  assert.equal(r.ranking[0].patrimonio, 9000);
+  assert.equal(r.ranking[0].nombre, 'Perico');
+});
+
+test('ranking: rechaza datos malos y otros orígenes', async () => {
+  assert.equal((await ranking({ p: 'x', n: 'Pedro', v: 1 })).status, 400);
+  assert.equal((await ranking({ p: 'partida-pedro-1', n: '', v: 1 })).status, 400);
+  assert.equal((await ranking({ p: 'partida-pedro-1', n: 'Pedro', v: -5 })).status, 400);
+  assert.equal((await ranking({ p: 'partida-pedro-1', n: 'Pedro', v: 1 }, 'https://malo.example')).status, 403);
+});

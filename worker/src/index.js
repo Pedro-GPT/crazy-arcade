@@ -47,6 +47,36 @@ async function guardarEvento(request, env, origen) {
   return responder(null, 204, origen);
 }
 
+// Ranking de la Ruleta de la Suerte: una fila por partida (código aleatorio de cada navegador).
+// Se queda la mejor marca de cada partida; se enseñan las 20 mejores.
+const RANKING_TOP = 20;
+const GUARDAR_RANKING = `
+  INSERT INTO ranking (partida, nombre, patrimonio, fecha) VALUES (?1, ?2, ?3, ?4)
+  ON CONFLICT(partida) DO UPDATE SET
+    nombre = ?2,
+    fecha = CASE WHEN ?3 > patrimonio THEN ?4 ELSE fecha END,
+    patrimonio = MAX(patrimonio, ?3)`;
+
+async function listaRanking(env, partida, origen) {
+  const { results } = await env.DB
+    .prepare('SELECT partida, nombre, patrimonio, fecha FROM ranking ORDER BY patrimonio DESC, fecha ASC LIMIT ?1')
+    .bind(RANKING_TOP).all();
+  const lista = results.map(r => ({ nombre: r.nombre, patrimonio: r.patrimonio, fecha: r.fecha, yo: r.partida === partida }));
+  return responder({ ranking: lista }, 200, origen);
+}
+
+async function guardarRanking(request, env, origen) {
+  const texto = await request.text();
+  if (texto.length > MAX_CUERPO) return responder({ error: 'demasiado grande' }, 413, origen);
+  let e;
+  try { e = JSON.parse(texto); } catch { return responder({ error: 'json' }, 400, origen); }
+  const nombre = limpiarNombre(e && e.n), v = Number(e && e.v);
+  const valido = e && ID.test(e.p) && nombre && [...nombre].length <= 16 && Number.isFinite(v) && v >= 0 && v < 1e300;
+  if (!valido) return responder({ error: 'datos' }, 400, origen);
+  await env.DB.prepare(GUARDAR_RANKING).bind(e.p, nombre, v, Date.now()).run();
+  return listaRanking(env, e.p, origen);
+}
+
 async function huella(texto) {
   return crypto.subtle.digest('SHA-256', new TextEncoder().encode(texto));
 }
@@ -80,6 +110,11 @@ export default {
     }
     if (request.method === 'POST' && pathname === '/evento') return guardarEvento(request, env, origen);
     if (request.method === 'GET' && pathname === '/datos') return entregarDatos(request, env, origen);
+    if (request.method === 'POST' && pathname === '/ranking') return guardarRanking(request, env, origen);
+    if (request.method === 'GET' && pathname === '/ranking') {
+      const p = new URL(request.url).searchParams.get('p') || '';
+      return listaRanking(env, ID.test(p) ? p : null, origen);
+    }
     return responder({ error: 'no existe' }, 404, origen);
   }
 };
