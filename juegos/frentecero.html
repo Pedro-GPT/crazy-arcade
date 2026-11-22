@@ -75,6 +75,9 @@ table.puntos th.n{text-align:right}
 #hudTiempo{font-size:28px;font-weight:700;letter-spacing:.06em}
 #hudBajas{font-size:14px;color:var(--tenue);letter-spacing:.08em}
 #hudBajas b{color:var(--texto);font-size:17px}
+#hudEquipos{font-size:14px;letter-spacing:.08em;color:var(--tenue)}
+#hudEquipos b{font-size:20px;color:var(--texto)}
+#hudEquipos .az{color:#5d8dff} #hudEquipos .ro{color:#ff5b4a}
 #killfeed{position:absolute;right:22px;top:16px;text-align:right;font-size:14px}
 #killfeed div{background:rgba(10,14,18,.55);padding:4px 10px;margin-bottom:4px}
 #killfeed .yo{color:var(--ambar2)}
@@ -127,7 +130,13 @@ table.puntos th.n{text-align:right}
 <div id="pantallaInicio" class="pantalla">
   <div class="caja">
     <h1>FRENTE <span>CERO</span></h1>
-    <p class="sub">Todos contra todos · 5 bots · 20 bajas o 5 minutos</p>
+    <div class="ajuste">Modo
+      <select id="selModo">
+        <option value="tct">Todos contra todos</option>
+        <option value="5v5">5 contra 5 (rojos contra azules)</option>
+      </select>
+    </div>
+    <p class="sub" id="subModo"></p>
     <p class="resumen">Principal: <b id="resP"></b> · Secundaria: <b id="resS"></b></p>
     <button class="btn" id="bJugar">Jugar</button>
     <button class="btn" id="bOnline">Online</button>
@@ -199,6 +208,12 @@ table.puntos th.n{text-align:right}
     <div id="netSala" class="oculto">
       <div class="codigo">Código de la partida: <b id="netCodigoTxt"></b></div>
       <div id="netLista"></div>
+      <div class="ajuste" id="netModoFila">Modo
+        <select id="netModo">
+          <option value="tct">Todos contra todos</option>
+          <option value="5v5">5 contra 5 (los equipos se completan con bots)</option>
+        </select>
+      </div>
       <div class="ajuste" id="netBotsFila">Bots en la partida
         <select id="netBots"><option>0</option><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select>
       </div>
@@ -234,7 +249,10 @@ table.puntos th.n{text-align:right}
 <div id="hud" class="oculto">
   <div id="mirilla" class="oculto"></div>
   <div id="danoVineta"></div>
-  <div id="hudTL"><div id="hudTiempo">5:00</div><div id="hudBajas">BAJAS <b id="hudBajasN">0</b> / 20</div></div>
+  <div id="hudTL"><div id="hudTiempo">5:00</div>
+    <div id="hudBajas">BAJAS <b id="hudBajasN">0</b> / <span id="hudObjetivo">20</span></div>
+    <div id="hudEquipos" class="oculto"><span class="az">AZUL <b id="ptsAzul">0</b></span> <span class="ro"><b id="ptsRojo">0</b> ROJO</span> <small>a <span id="hudObjetivoEq">50</span></small></div>
+  </div>
   <div id="killfeed"></div>
   <div id="mira"><i class="mt"></i><i class="mb"></i><i class="ml"></i><i class="mr"></i><i class="mp"></i></div>
   <div id="marcador"><i></i><i></i><i></i><i></i></div>
@@ -286,7 +304,7 @@ const WEAPONS = {
   ak: {
     nombre: 'AK-47', corto: 'AK', tipo: 'principal', modo: 'auto',
     dano: 33, danoMin: 24, distMin: 20, distMax: 60, perdigones: 1,
-    cadencia: 600, cargador: 30, reserva: 120, recarga: 2.4,
+    cadencia: 600, cargador: 30, reserva: 120, recarga: 1.55,
     dispersion: 2.0, factorApuntar: 0.22, bloom: 0.35, bloomMax: 2.6,
     retroV: 1.35, retroH: 0.55, recuperacion: 6,
     fovApuntar: 55, tApuntar: 0.2, velMovimiento: 0.94,
@@ -296,7 +314,7 @@ const WEAPONS = {
   m4: {
     nombre: 'M4', corto: 'M4', tipo: 'principal', modo: 'auto',
     dano: 27, danoMin: 20, distMin: 22, distMax: 65, perdigones: 1,
-    cadencia: 750, cargador: 30, reserva: 150, recarga: 2.1,
+    cadencia: 750, cargador: 30, reserva: 150, recarga: 1.35,
     dispersion: 1.6, factorApuntar: 0.2, bloom: 0.22, bloomMax: 1.8,
     retroV: 0.7, retroH: 0.25, recuperacion: 9,
     fovApuntar: 55, tApuntar: 0.18, velMovimiento: 0.97,
@@ -306,7 +324,7 @@ const WEAPONS = {
   mp5: {
     nombre: 'MP5', corto: 'MP5', tipo: 'principal', modo: 'auto',
     dano: 20, danoMin: 11, distMin: 10, distMax: 32, perdigones: 1,
-    cadencia: 900, cargador: 30, reserva: 150, recarga: 1.9,
+    cadencia: 900, cargador: 30, reserva: 150, recarga: 1.25,
     dispersion: 2.4, factorApuntar: 0.35, bloom: 0.18, bloomMax: 2.0,
     retroV: 0.45, retroH: 0.32, recuperacion: 11,
     fovApuntar: 62, tApuntar: 0.14, velMovimiento: 1.0,
@@ -316,7 +334,7 @@ const WEAPONS = {
   escopeta: {
     nombre: 'Escopeta de corredera', corto: 'ESC', tipo: 'principal', modo: 'cerrojo',
     dano: 16, danoMin: 3, distMin: 6, distMax: 24, perdigones: 8,
-    cadencia: 72, cargador: 8, reserva: 32, recarga: 3.0,
+    cadencia: 72, cargador: 8, reserva: 32, recarga: 2.0,
     dispersion: 5.0, factorApuntar: 0.75, bloom: 0, bloomMax: 0,
     retroV: 4.5, retroH: 1.3, recuperacion: 6,
     fovApuntar: 62, tApuntar: 0.2, velMovimiento: 0.95,
@@ -326,7 +344,7 @@ const WEAPONS = {
   francotirador: {
     nombre: 'Rifle de cerrojo', corto: 'FRA', tipo: 'principal', modo: 'cerrojo',
     dano: 105, danoMin: 90, distMin: 50, distMax: 150, perdigones: 1,
-    cadencia: 50, cargador: 5, reserva: 25, recarga: 3.2,
+    cadencia: 50, cargador: 5, reserva: 25, recarga: 2.1,
     dispersion: 6.0, factorApuntar: 0.0, bloom: 0, bloomMax: 0,
     retroV: 5.5, retroH: 1.0, recuperacion: 5,
     fovApuntar: 18, tApuntar: 0.3, velMovimiento: 0.88,
@@ -336,7 +354,7 @@ const WEAPONS = {
   pistolaLigera: {
     nombre: 'Pistola ligera', corto: 'PL', tipo: 'secundaria', modo: 'semi',
     dano: 24, danoMin: 15, distMin: 14, distMax: 40, perdigones: 1,
-    cadencia: 420, cargador: 12, reserva: 48, recarga: 1.5,
+    cadencia: 420, cargador: 12, reserva: 48, recarga: 1.0,
     dispersion: 1.5, factorApuntar: 0.35, bloom: 0.4, bloomMax: 2.0,
     retroV: 1.0, retroH: 0.35, recuperacion: 10,
     fovApuntar: 62, tApuntar: 0.12, velMovimiento: 1.05,
@@ -347,7 +365,7 @@ const WEAPONS = {
   pistolaPesada: {
     nombre: 'Pistola pesada', corto: 'PP', tipo: 'secundaria', modo: 'semi',
     dano: 52, danoMin: 38, distMin: 15, distMax: 45, perdigones: 1,
-    cadencia: 200, cargador: 7, reserva: 28, recarga: 1.9,
+    cadencia: 200, cargador: 7, reserva: 28, recarga: 1.25,
     dispersion: 1.8, factorApuntar: 0.3, bloom: 0.9, bloomMax: 3.0,
     retroV: 3.4, retroH: 0.9, recuperacion: 7,
     fovApuntar: 60, tApuntar: 0.14, velMovimiento: 1.0,
@@ -376,6 +394,13 @@ const JUEGO = {
   regeneracion: { espera: 5, porSegundo: 12 }, // vida que se recupera sin recibir daño
   numerosDano: true
 };
+// Modos de juego. objetivo = bajas para ganar (en equipos, bajas del bando rival entre todo el equipo)
+const MODOS = {
+  tct:   { nombre: 'Todos contra todos', mapa: () => crearMapa(),       duracion: 300, objetivo: 20, equipos: false },
+  '5v5': { nombre: '5 contra 5',         mapa: () => crearMapaMuelle(), duracion: 600, objetivo: 50, equipos: true, porEquipo: 5 }
+};
+let MODO = MODOS.tct, claveModo = 'tct';
+const PUNTOS = { azul: 0, rojo: 0 };   // bajas de cada equipo (modo por equipos)
 const JUGADOR_CFG = {
   vida: 100, radio: 0.4, alturaOjo: 1.62, alturaOjoAgachado: 1.05,
   velAndar: 4.6, velCorrer: 6.9, velAgachado: 2.3, factorApuntar: 0.6, aceleracion: 14
@@ -384,13 +409,13 @@ const JUGADOR_CFG = {
 const DISPERSION_MOV = { quieto: 1, andando: 1.6, corriendo: 2.6, agachado: 0.6 };
 
 const BOT_CFG = {
-  nombres: ['Cuervo', 'Lince', 'Vega', 'Toro', 'Niebla'],
+  nombres: ['Cuervo', 'Lince', 'Vega', 'Toro', 'Niebla', 'Halcón', 'Roca', 'Sombra', 'Rayo', 'Duna'],
   colores: [0x3b6ea5, 0xa5473b, 0x5a9a4a, 0x9a7a2a, 0x7a4a9a],
   vida: 100, velocidad: 4.0, velCombate: 2.6, radio: 0.35,
   vista: 55, campoVision: 140, oido: 9,      // metros, grados, metros
   reaccion: [0.35, 0.75],                    // segundos antes de empezar a disparar
   dano: 11, cadencia: 540, rafaga: [3, 6], pausaRafaga: [0.35, 0.9],
-  cargador: 25, recarga: 2.4,
+  cargador: 25, recarga: 1.6,
   error: 2.6,                                // grados de imprecisión base
   probCabeza: 0.12,                          // probabilidad de apuntar a la cabeza
   distPreferida: [7, 22],
@@ -428,7 +453,8 @@ function conoAleatorio(dir, ang, out) {
 }
 
 // Ajustes del jugador guardados
-const AJUSTES = Object.assign({ sens: 1, numeros: true, principal: 'ak', secundaria: 'pistolaLigera', calidad: 'media' }, cargar('fc_ajustes', {}));
+const AJUSTES = Object.assign({ sens: 1, numeros: true, principal: 'ak', secundaria: 'pistolaLigera', calidad: 'media', modo: 'tct' }, cargar('fc_ajustes', {}));
+if (!MODOS[AJUSTES.modo]) AJUSTES.modo = 'tct';
 if (!WEAPONS[AJUSTES.principal]) AJUSTES.principal = 'ak';
 if (!WEAPONS[AJUSTES.secundaria]) AJUSTES.secundaria = 'pistolaLigera';
 JUEGO.numerosDano = AJUSTES.numeros;
@@ -938,6 +964,411 @@ function renderizar(conArma) {
 }
 
 /* =====================================================================
+   COCHES DE FAST AND FUÑIUS (solo decorado: no se conducen)
+   ---------------------------------------------------------------------
+   Código copiado tal cual del otro juego (index.html): perfiles de cada
+   modelo, carrocería generada por código (getBody), faros, alerones,
+   escapes y ruedas. Va dentro de una función para no mezclar nombres.
+   ===================================================================== */
+const COCHES_FF = (() => {
+const IS_MOBILE = false, PW = 512, PH = 256, sq = x => x * x;
+function canvasTex(w, h, draw) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c); t.anisotropy = ANISO; t.encoding = THREE.sRGBEncoding; return t;
+}
+// ---- Copiado de Fast and Fuñius (index.html): perfiles de los coches, carrocería y detalles ----
+function knots(arr){
+  return z=>{
+    const n=arr.length; if (z<=arr[0][0]) return arr[0][1]; if (z>=arr[n-1][0]) return arr[n-1][1];
+    let i=0; while (z>arr[i+1][0]) i++;
+    const p0=arr[Math.max(0,i-1)][1], p1=arr[i][1], p2=arr[i+1][1], p3=arr[Math.min(n-1,i+2)][1];
+    const t=(z-arr[i][0])/(arr[i+1][0]-arr[i][0]), t2=t*t, t3=t2*t;
+    return 0.5*((2*p1)+(-p0+p2)*t+(2*p0-5*p1+4*p2-p3)*t2+(-p0+3*p1-3*p2+p3)*t3);
+  };
+}
+const louver = (z,f) => Math.floor((z+3)*f)&1;
+const MODELS = [
+  {name:'Corsa Lunga', kind:'Gran turismo italiano', desc:'Elegante, de capó largo y líneas curvas, con cola rematada en un pequeño alerón integrado.',
+   ZR:-2.4, ZF:2.5, wz:[1.52,-1.36], wr:0.35, wx:0.82, tireW:[1,1.05],
+   halfW:[[-2.4,.82],[-2.2,.92],[-1.6,.99],[-1.3,1.0],[-0.8,.96],[0,.93],[0.8,.94],[1.5,.97],[2.0,.93],[2.35,.82],[2.5,.62]],
+   bot:[[-2.4,.3],[-2.1,.2],[-1.7,.18],[1.8,.18],[2.3,.2],[2.5,.26]],
+   sh:[[-2.4,.8],[-2.0,.85],[-1.3,.86],[-0.6,.82],[0.2,.80],[0.9,.80],[1.5,.78],[2.0,.72],[2.3,.62],[2.5,.48]],
+   roof:[[-2.5,.5],[-2.2,.82],[-1.7,.97],[-1.1,1.13],[-0.6,1.21],[-0.2,1.19],[0.15,1.05],[0.45,.84],[0.8,.6],[2.5,.3]],
+   gw:[[-2.1,.55],[-1.4,.66],[-0.6,.7],[0.0,.7],[0.5,.76]],
+   bumpF:.03, bumpR:.05, box:.1, hoodDip:.015, glassZMin:-1.95, roofPaint:[-1.0,-0.1], doors:[0.35,-0.85],
+   dark:(z,ax,y,S)=> (z>2.28&&ax<0.42&&y>S.b+0.05&&y<S.b+0.24)||(z>2.0&&y<S.b+0.08)||(z<-2.3&&y<0.5),
+   recess:(z,ax,y,S)=> z>0.85&&z<1.05&&y>0.5&&y<0.64&&ax>S.w*0.9,
+   lights:'oval', tail:'tube', wing:'duck', exhaust:[[-.5,.32],[-.38,.32],[.38,.32],[.5,.32]]},
+  {name:'Fendente', kind:'Superdeportivo en cuña', desc:'Muy bajo, ancho y angular, con puertas de tijera y pilotos LED en toda la trasera.',
+   ZR:-2.32, ZF:2.36, wz:[1.40,-1.36], wr:0.353, wx:0.82, tireW:[1,1.05],
+   halfW:[[-2.32,0.84],[-2.15,0.93],[-1.7,0.985],[-1.36,1.0],[-0.9,0.975],[-0.3,0.95],[0.4,0.95],[1.0,0.975],[1.4,0.985],[1.85,0.95],[2.15,0.86],[2.36,0.66]],
+   bot:[[-2.32,0.27],[-2.0,0.19],[-1.6,0.17],[1.7,0.17],[2.1,0.18],[2.36,0.21]],
+   sh:[[-2.32,0.84],[-2.0,0.89],[-1.36,0.9],[-0.8,0.85],[0,0.79],[0.6,0.75],[1.0,0.72],[1.4,0.705],[1.8,0.62],[2.1,0.5],[2.36,0.38]],
+   roof:[[-2.4,0.4],[-1.95,0.86],[-1.45,0.99],[-0.9,1.1],[-0.45,1.15],[-0.05,1.14],[0.3,1.01],[0.72,0.79],[1.0,0.55],[2.4,0.3]],
+   gw:[[-1.95,0.5],[-1.3,0.66],[-0.6,0.70],[0.2,0.70],[0.75,0.74]],
+   bumpF:.045, bumpR:.035, box:0, hoodDip:.025, glassZMin:-1.65, roofPaint:[-0.85,0.1], doors:[0.62,-0.62], scissor:true,
+   dark:(z,ax,y,S)=> (z>1.95&&y<S.b+0.17&&ax>0.16)||(z>2.2&&y<S.b+0.13)||(z>-2.05&&z<-1.5&&ax<0.55&&y>S.sS-0.06&&louver(z,24))||(z<-2.22&&y<0.6),
+   recess:(z,ax,y,S)=> z>-1.2&&z<-0.45&&y>0.42&&y<S.sS-0.1&&ax>S.w*0.9,
+   lights:'slant', tail:'tube', wing:'wedge', exhaust:[[-.17,.36],[.17,.36]]},
+  {name:'Kreisel 9', kind:'Deportivo con motor trasero', desc:'Silueta redondeada, aletas delanteras altas con faros redondos y cola caída sobre el motor.',
+   ZR:-2.2, ZF:2.25, wz:[1.2,-1.18], wr:0.345, wx:0.8, tireW:[1,1.08],
+   halfW:[[-2.2,.8],[-1.9,.92],[-1.2,.99],[-0.6,.93],[0,.91],[0.6,.9],[1.2,.95],[1.8,.9],[2.1,.8],[2.25,.6]],
+   bot:[[-2.2,.32],[-1.9,.22],[-1.5,.19],[1.6,.19],[2.0,.21],[2.25,.28]],
+   sh:[[-2.2,.68],[-1.8,.77],[-1.2,.83],[-0.6,.81],[0,.79],[0.6,.77],[1.2,.79],[1.7,.71],[2.05,.58],[2.25,.44]],
+   roof:[[-2.3,.4],[-2.1,.66],[-1.6,.88],[-1.0,1.1],[-0.4,1.26],[0.05,1.26],[0.4,1.12],[0.75,.86],[1.0,.7],[2.3,.3]],
+   gw:[[-1.9,.5],[-1.0,.66],[-0.3,.68],[0.4,.70],[0.8,.74]],
+   bumpF:.09, bumpR:.06, box:0, hoodDip:.075, glassZMin:-1.5, roofPaint:[-0.75,0.25], doors:[0.75,-0.5],
+   dark:(z,ax,y,S)=> (z>-2.05&&z<-1.7&&ax<0.4&&y>S.sS-0.1&&louver(z,30))||(z>2.1&&y<S.b+0.12&&ax>0.15)||(z<-2.12&&y<0.42),
+   lights:'round', tail:'bar', wing:'german', exhaust:[[-.25,.3],[.25,.3]]},
+  {name:'Vortex X', kind:'Hiperdeportivo', desc:'Aerodinámica agresiva: tomas enormes, aleta dorsal y un gran alerón trasero sobre una carrocería muy esculpida.',
+   ZR:-2.45, ZF:2.5, wz:[1.5,-1.42], wr:0.36, wx:0.86, tireW:[1.05,1.2],
+   halfW:[[-2.45,.9],[-2.25,1.0],[-1.6,1.04],[-1.4,1.05],[-0.9,.98],[-0.2,.93],[0.5,.95],[1.1,1.0],[1.5,1.03],[2.0,.97],[2.3,.85],[2.5,.62]],
+   bot:[[-2.45,.24],[-2.1,.16],[-1.6,.14],[1.8,.14],[2.2,.15],[2.5,.17]],
+   sh:[[-2.45,.86],[-2.1,.88],[-1.42,.88],[-0.8,.8],[0,.74],[0.6,.68],[1.1,.66],[1.5,.66],[1.9,.56],[2.25,.42],[2.5,.3]],
+   roof:[[-2.5,.4],[-2.0,.84],[-1.5,.96],[-0.95,1.06],[-0.5,1.09],[-0.1,1.07],[0.25,.96],[0.65,.74],[1.0,.5],[2.5,.25]],
+   gw:[[-1.9,.45],[-1.3,.6],[-0.5,.66],[0.2,.66],[0.65,.72]],
+   bumpF:.07, bumpR:.07, box:0, hoodDip:.045, glassZMin:-1.45, roofPaint:[-0.75,0.05], doors:[0.55,-0.35],
+   dark:(z,ax,y,S)=> (z>1.85&&y<S.b+0.22&&ax>0.12)||(z>1.3&&z<1.8&&ax>0.22&&ax<0.5&&y>S.sS-0.05)||(z>-2.2&&z<-1.6&&ax<0.6&&y>S.sS-0.06&&louver(z,26))||(z<-2.32&&y<0.62),
+   recess:(z,ax,y,S)=> z>-1.3&&z<-0.35&&y>0.3&&y<S.sS-0.08&&ax>S.w*0.85, recessK:0.9,
+   lights:'strip', tail:'tube', wing:'hyper', fin:true, exhaust:[[-.12,.45],[.12,.45]]},
+  {name:'Thunder V8', kind:'Gran turismo V8', desc:'Capó larguísimo, habitáculo retrasado con techo oscuro y fastback, parrilla hexagonal, toma en trapecio, faros afilados y cuatro escapes.',
+   ZR:-2.4, ZF:2.5, wz:[1.52,-1.45], wr:0.375, wx:0.84, tireW:[1.05,1.15], gt:true, capPaint:true,
+   halfW:[[-2.4,.52],[-2.34,.68],[-2.24,.82],[-2.08,.92],[-1.85,.97],[-1.45,.98],[-0.9,.965],[-0.2,.955],[0.5,.955],[1.1,.96],[1.6,.96],[2.0,.94],[2.2,.89],[2.35,.8],[2.44,.68],[2.5,.52]],   // en planta, óvalo: puntas redondas y laterales casi rectos
+   bot:[[-2.4,.3],[-2.15,.22],[-1.8,.19],[1.85,.19],[2.3,.21],[2.5,.22]],
+   sh:[[-2.4,.84],[-2.25,.9],[-2.0,.92],[-1.45,.9],[-0.8,.86],[0,.83],[0.8,.8],[1.5,.77],[1.95,.74],[2.3,.7],[2.5,.65]],
+   roof:[[-2.5,.5],[-2.3,.86],[-2.05,.92],[-1.7,1.03],[-1.3,1.15],[-0.9,1.26],[-0.5,1.3],[-0.1,1.27],[0.25,1.12],[0.55,.96],[0.8,.82],[2.5,.4]],
+   gw:[[-2.0,.48],[-1.4,.62],[-0.7,.68],[0.1,.68],[0.75,.74]],
+   bumpF:.045, bumpR:.06, box:.25, hoodDip:-.015, glassZMin:-2.02, roofPaint:[9,9], doors:[0.55,-0.95],
+   dark:(z,ax,y,S)=> (z<-2.27&&y<0.42&&ax<S.w*0.82)||(z>2.0&&y<S.b+0.04),
+   lights:'gt', tail:'split', wing:null, exhaust:[[-.5,.29],[-.38,.29],[.38,.29],[.5,.29]],
+   rimColor:0x2b2e34, rimLip:0x3d4148, spokeOff:[-0.2,0.2]},
+];
+const K = 32;
+const BODIES = [];
+function getBody(m){
+  if (BODIES[m]) return BODIES[m];
+  const sp = MODELS[m];
+  const halfW=knots(sp.halfW), botH=knots(sp.bot), shH=knots(sp.sh), roofH=knots(sp.roof), gwH=knots(sp.gw);
+  const ZR=sp.ZR, ZF=sp.ZF, WZF=sp.wz[0], WZR=sp.wz[1], WR=sp.wr, box=sp.box||0, dip=sp.hoodDip;
+  function info(z){
+    const w=halfW(z), b=botH(z), s0=shH(z);
+    const bump = sp.bumpF*Math.exp(-sq((z-WZF)/0.36)) + sp.bumpR*Math.exp(-sq((z-WZR)/0.45));
+    const sS=s0+bump, rt=Math.max(s0, roofH(z)), c=clamp((rt-s0)/0.22,0,1), g=gwH(z);
+    const cp=[[0,b],[w*0.78,b],[w*lerp(.985,1,box), b+lerp(.09,.03,box)],[w,(b+sS)*0.5+lerp(.04,0,box)],[w*lerp(.975,.995,box), sS-lerp(.07,.025,box)],[w*lerp(.88,.95,box), sS],
+      [lerp(w*0.58,g,c), sS-(1-c)*0.03*(1-box)+c*0.025],
+      [lerp(w*0.28,g*0.84,c), lerp(s0-dip*0.8, rt-0.05, c)],
+      [0, lerp(s0-dip, rt, c)]];
+    const spl = new THREE.SplineCurve(cp.map(p=>new THREE.Vector2(p[0],p[1])));
+    const pts=[]; for (let k=0;k<=K;k++) pts.push(spl.getPoint(k/K));
+    return {pts, w, b, sS, s0, rt, c, g};
+  }
+  function topY(z, x){
+    const {pts}=info(z);
+    for (let k=K;k>4;k--){ const a=pts[k], b=pts[k-1]; if (x>=a.x && x<=b.x){ const t=(x-a.x)/((b.x-a.x)||1); return lerp(a.y,b.y,t); } }
+    return pts[K].y;
+  }
+  const M=120, R=2*K+1, pos=[], uv=[], col=[], glass=[], yc=[];
+  const doorI = sp.doors ? sp.doors.map(z=>Math.round((z-ZR)/(ZF-ZR)*(M-1))) : [];
+  for (let i=0;i<M;i++){
+    const z = lerp(ZR, ZF, i/(M-1));
+    const S = info(z); yc.push((S.b + S.pts[K].y)/2);
+    for (let j=0;j<R;j++){
+      const k = j<=K ? j : 2*K-j, side = j<=K ? -1 : 1;
+      let ax = S.pts[k].x, y = S.pts[k].y, dark=false, gl=false, seam=false;
+      if (!sp.noArches && k<19) for (const zw of [WZF, WZR]){
+        const d = Math.hypot(z-zw, y-WR), Rr = WR+0.1;
+        if (ax>0.55 && d<Rr){ ax=Math.min(ax,0.62); dark=true; }
+        else if (ax>0.8 && d<Rr+0.07) ax+=0.016;
+      }
+      if (sp.scoop && k>=K-8 && ax<sp.scoop.w && z>sp.scoop.z0 && z<sp.scoop.z1){
+        const t=Math.min(1,(z-sp.scoop.z0)/0.15,(sp.scoop.z1-z)/0.15)*(1-sq(ax/sp.scoop.w)); y+=sp.scoop.h*Math.max(0,t);
+        if (z>sp.scoop.z1-0.06) dark=true;
+      }
+      if (y < S.b+0.015) dark=true;
+      if (sp.dark && sp.dark(z,ax,y,S,k)) dark=true;
+      if (sp.recess && sp.recess(z,ax,y,S,k)){ dark=true; ax*=sp.recessK||0.94; }
+      if (S.c>0.25 && y>S.sS+0.03 && ax<S.g+0.02 && z>sp.glassZMin &&
+          !(z>sp.roofPaint[0] && z<sp.roofPaint[1] && ax<S.g*0.6 && y>S.rt-0.07)) gl=true;
+      if (doorI.includes(i) && k>=4 && k<=19 && !dark) seam=true;
+      pos.push(side*ax, y, z); uv.push((z-ZR)/(ZF-ZR), j/(R-1));
+      const cv = dark?0.05:seam?0.32:1; col.push(cv,cv,cv); glass.push(gl?1:0);
+    }
+  }
+  const nV = pos.length/3, fi=nV, ri=nV+1;
+  const cF = info(ZF), cR = info(ZR);
+  pos.push(0,(cF.b+cF.pts[K].y)/2,ZF+0.012, 0,(cR.b+cR.pts[K].y)/2,ZR-0.012);
+  uv.push(1,0.5, 0,0.5); { const cf=sp.capPaint?1:0.05; col.push(cf,cf,cf, 0.05,0.05,0.05); } glass.push(0,0);
+  const P3 = i => new THREE.Vector3(pos[i*3],pos[i*3+1],pos[i*3+2]);
+  const paintIdx=[], glassIdx=[], e1=new THREE.Vector3(), e2=new THREE.Vector3();
+  const tri = (a,b,c,want)=>{
+    const A=P3(a); e1.subVectors(P3(b),A); e2.subVectors(P3(c),A);
+    const t = e1.cross(e2).dot(want)<0 ? [a,c,b] : [a,b,c];
+    (glass[a]&&glass[b]&&glass[c] ? glassIdx : paintIdx).push(...t);
+  };
+  const want = new THREE.Vector3();
+  for (let i=0;i<M-1;i++) for (let j=0;j<R-1;j++){
+    const a=i*R+j, b=(i+1)*R+j, c=i*R+j+1, d=(i+1)*R+j+1;
+    want.set((pos[a*3]+pos[d*3])/2, (pos[a*3+1]+pos[d*3+1])/2-(yc[i]+yc[i+1])/2, 0);
+    if (want.lengthSq()<1e-6) want.set(0,1,0);
+    tri(a,b,c,want); tri(b,d,c,want);
+  }
+  for (let j=0;j<R-1;j++){ tri(fi,(M-1)*R+j,(M-1)*R+j+1,new THREE.Vector3(0,0,1)); tri(ri,j,j+1,new THREE.Vector3(0,0,-1)); }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos,3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv,2));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col,3));
+  g.setIndex([...paintIdx, ...glassIdx]);
+  g.addGroup(0, paintIdx.length, 0); g.addGroup(paintIdx.length, glassIdx.length, 1);
+  g.computeVertexNormals(); g.userData.shared=true;
+  return BODIES[m] = {geo:g, pos:new Float32Array(pos), uv:new Float32Array(uv), count:nV, info, topY, halfW, shH, botH};
+}
+const SHARED = (function(){
+  const mark = g => { g.userData.shared=true; return g; };
+  const hl = new THREE.Shape();
+  hl.moveTo(-0.2,-0.028); hl.bezierCurveTo(-0.05,-0.05,0.12,-0.05,0.22,-0.02); hl.bezierCurveTo(0.25,0.0,0.22,0.03,0.17,0.035);
+  hl.bezierCurveTo(0.05,0.03,-0.1,0.02,-0.19,0.02); hl.bezierCurveTo(-0.23,0.01,-0.23,-0.02,-0.2,-0.028);
+  const headG = new THREE.ExtrudeGeometry(hl,{depth:0.012,bevelEnabled:true,bevelThickness:0.008,bevelSize:0.006,bevelSegments:3,curveSegments:16});
+  const af = new THREE.Shape();
+  af.moveTo(-0.19,0); af.bezierCurveTo(-0.19,0.035,-0.08,0.045,0.05,0.03); af.lineTo(0.19,0.008); af.lineTo(0.19,-0.004); af.bezierCurveTo(0.05,-0.012,-0.12,-0.02,-0.19,0);
+  const wingG = new THREE.ExtrudeGeometry(af,{depth:1.72,bevelEnabled:false,curveSegments:20}); wingG.rotateY(Math.PI/2); wingG.translate(-0.86,0,0);
+  const ep = new THREE.Shape(); ep.moveTo(-0.25,-0.11); ep.lineTo(0.2,-0.08); ep.quadraticCurveTo(0.26,0,0.2,0.08); ep.lineTo(-0.22,0.07); ep.quadraticCurveTo(-0.28,-0.02,-0.25,-0.11);
+  const plateG = new THREE.ExtrudeGeometry(ep,{depth:0.012,bevelEnabled:false,curveSegments:10}); plateG.rotateY(Math.PI/2);
+  const st = new THREE.Shape(); st.moveTo(-0.07,0); st.lineTo(0.06,0); st.quadraticCurveTo(0.03,0.14,0.035,0.25); st.lineTo(-0.03,0.25); st.quadraticCurveTo(-0.05,0.12,-0.07,0);
+  const stalkG = new THREE.ExtrudeGeometry(st,{depth:0.02,bevelEnabled:true,bevelThickness:0.004,bevelSize:0.004,bevelSegments:1}); stalkG.rotateY(Math.PI/2);
+  const fs = new THREE.Shape(); fs.moveTo(0,0); fs.lineTo(1.15,-0.24); fs.lineTo(1.15,-0.12); fs.quadraticCurveTo(0.5,0.02,0.1,0.13); fs.lineTo(0,0.1);
+  const finG = new THREE.ExtrudeGeometry(fs,{depth:0.014,bevelEnabled:false,curveSegments:10}); finG.rotateY(Math.PI/2); finG.translate(-0.007,0,0);
+  const prof = [[0.238,-0.125],[0.30,-0.136],[0.334,-0.128],[0.347,-0.11],[0.352,-0.06],[0.353,0],[0.352,0.06],[0.347,0.11],[0.334,0.128],[0.30,0.136],[0.238,0.125]];
+  const tireG = new THREE.LatheGeometry(prof.map(p=>new THREE.Vector2(p[0],p[1])), IS_MOBILE?36:56); tireG.rotateZ(-Math.PI/2);
+  const barrelG = new THREE.CylinderGeometry(0.238,0.238,0.24,40,1,true); barrelG.rotateZ(Math.PI/2);
+  const lipG = new THREE.TorusGeometry(0.232,0.011,8,48); lipG.rotateY(Math.PI/2);
+  const sp = new THREE.Shape(); sp.moveTo(0.05,-0.022); sp.lineTo(0.226,-0.012); sp.lineTo(0.226,0.012); sp.lineTo(0.05,0.022); sp.lineTo(0.05,-0.022);
+  const spokeG = new THREE.ExtrudeGeometry(sp,{depth:0.03,bevelEnabled:true,bevelThickness:0.006,bevelSize:0.005,bevelSegments:2}); spokeG.rotateY(Math.PI/2);
+  const hubG = new THREE.CylinderGeometry(0.052,0.06,0.045,24); hubG.rotateZ(Math.PI/2);
+  const discG = new THREE.CylinderGeometry(0.178,0.178,0.026,40); discG.rotateZ(Math.PI/2);
+  const cal = new THREE.Shape(); cal.absarc(0,0,0.205,0.3,1.25,false); cal.absarc(0,0,0.128,1.25,0.3,true);
+  const calG = new THREE.ExtrudeGeometry(cal,{depth:0.06,bevelEnabled:true,bevelThickness:0.01,bevelSize:0.01,bevelSegments:2,curveSegments:16}); calG.rotateY(Math.PI/2);
+  const roundG = new THREE.CylinderGeometry(0.105,0.105,0.04,28);
+  const ringG = new THREE.TorusGeometry(0.105,0.012,8,32);
+  const treadTex = canvasTex(8,256,(g,w,h)=>{ g.fillStyle='#202022'; g.fillRect(0,0,w,h); g.fillStyle='#0b0b0c';
+    for (const v of [0.38,0.46,0.54,0.62]) g.fillRect(0,h*(1-v)-2,w,3); g.fillStyle='#2a2a2c'; g.fillRect(0,h*0.12,w,4); g.fillRect(0,h*0.86,w,4); });
+  const aoTex = canvasTex(128,256,(g,w,h)=>{ const r=g.createRadialGradient(w/2,h/2,10,w/2,h/2,w*0.62); r.addColorStop(0,'rgba(0,0,0,.6)'); r.addColorStop(1,'rgba(0,0,0,0)');
+    g.save(); g.scale(1,h/w); g.fillStyle=r; g.fillRect(0,0,w,w); g.restore(); });
+  const o = {headG, wingG, plateG, stalkG, finG, tireG, barrelG, lipG, spokeG, hubG, discG, calG, roundG, ringG};
+  for (const k in o) mark(o[k]);
+  o.treadTex=treadTex; o.aoTex=aoTex;
+  return o;
+})();
+const KEEP_TEX = new Set([SHARED.treadTex, SHARED.aoTex]);
+function buildCarFF(m, paintHex, parent){
+  const spec = MODELS[m], B = getBody(m), g = new THREE.Group(); g.rotation.order='YXZ';
+  const ZR=spec.ZR, ZF=spec.ZF;
+  const pc = document.createElement('canvas'); pc.width=PW; pc.height=PH;
+  const pctx = pc.getContext('2d'); pctx.fillStyle=paintHex; pctx.fillRect(0,0,PW,PH);
+  const paintTex = new THREE.CanvasTexture(pc); paintTex.anisotropy = ANISO;
+  const PBR = IS_MOBILE ? THREE.MeshStandardMaterial : THREE.MeshPhysicalMaterial;
+  const cc = o => { if (IS_MOBILE){ delete o.clearcoat; delete o.clearcoatRoughness; } return o; };
+  const paint = new PBR(cc({map:paintTex, vertexColors:true, metalness:0.55, roughness:0.28, clearcoat:1, clearcoatRoughness:0.05, envMapIntensity:1.1}));
+  const glass = new PBR(cc({color:0x0a0e14, metalness:0.15, roughness:0.03, clearcoat:1, clearcoatRoughness:0.02, envMapIntensity:1.7}));
+  const carbon = new THREE.MeshStandardMaterial({color:0x141518, metalness:0.35, roughness:0.42});
+  const chrome = new THREE.MeshStandardMaterial({color:0xe6e8ea, metalness:1, roughness:0.12});
+  const headM = new THREE.MeshStandardMaterial({color:0xffffff, emissive:0xf4f7ff, emissiveIntensity:1.5, metalness:0.2, roughness:0.15});
+  const tailM = new THREE.MeshStandardMaterial({color:0x400000, emissive:0xff1a10, emissiveIntensity:0.6});
+  const body = new THREE.Mesh(B.geo, [paint, glass]); body.castShadow = true; g.add(body);
+  const add = (geo, mat, x,y,z, rx=0,ry=0,rz=0, par=g) => { const o=new THREE.Mesh(geo,mat); o.position.set(x,y,z); o.rotation.set(rx,ry,rz); o.castShadow=true; par.add(o); return o; };
+  const rod = (a,b,r,mat) => { const v=new THREE.Vector3().subVectors(b,a), L=v.length(); const o=new THREE.Mesh(new THREE.CylinderGeometry(r,r,L,8), mat);
+    o.position.copy(a).addScaledVector(v,0.5); o.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), v.normalize()); g.add(o); return o; };
+  const slopeAt = (z,x) => Math.atan2(B.topY(z-0.1,x)-B.topY(z+0.1,x), 0.2);
+  const zEdge = (x, front) => { let z=front?ZF:ZR; const st=front?-0.004:0.004; while (Math.abs(z-(front?ZF:ZR))<0.6 && B.halfW(z)<x) z+=st; return z; };   // dónde llega la carrocería a esa anchura (morro o cola redondeados)
+  const edgeAng = (x, front) => { const a=zEdge(x-0.03,front), b=zEdge(x+0.03,front); return Math.atan2(b-a, 0.06); };   // giro de la superficie en planta
+
+  for (const s of [1,-1]){
+    // Faros
+    if (spec.lights==='slant'){
+      const z=ZF-0.36, y=B.topY(z,0.6);
+      const hg=new THREE.Group(); hg.position.set(s*0.6,y-0.004,z); hg.rotation.y=s*0.35;
+      const hm=new THREE.Mesh(SHARED.headG, headM); hm.rotation.x=-Math.PI/2+slopeAt(z,0.6); hm.scale.x=s; hg.add(hm); g.add(hg);
+    } else if (spec.lights==='oval'){
+      const z=ZF-0.42, x=0.62, y=B.topY(z,x);
+      const o=add(new THREE.SphereGeometry(0.1,20,12), headM, s*x, y-0.012, z, slopeAt(z,x)); o.scale.set(1.9,0.42,1.25);
+    } else if (spec.lights==='round'){
+      const z=ZF-0.44, x=0.6, y=B.topY(z,x), a=0.95;
+      add(SHARED.roundG, headM, s*x, y-0.01, z, a);
+      add(SHARED.ringG, chrome, s*x, y-0.01+Math.cos(a)*0.021, z+Math.sin(a)*0.021, a-Math.PI/2);
+    } else if (spec.lights==='strip'){
+      const pts=[[0.4,ZF-0.16],[0.62,ZF-0.3],[0.86,ZF-0.56]].map(([x,z])=>new THREE.Vector3(s*x, B.topY(z,x)+0.004, z));
+      g.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),24,0.018,6,false), headM));
+    } else if (spec.lights==='blade'){
+      const zAt = x => { let z=ZF; while (z>ZF-0.6 && B.halfW(z)<x) z-=0.005; return z; };
+      const z=ZF-0.3, x=0.58, y=B.topY(z,x);
+      const hg=new THREE.Group(); hg.position.set(s*x,y-0.004,z); hg.rotation.y=s*0.42;
+      const hm=new THREE.Mesh(SHARED.headG, headM); hm.rotation.x=-Math.PI/2+slopeAt(z,x); hm.scale.set(s*1.1,1,0.7); hg.add(hm); g.add(hg);
+      const xc=0.8, zc=zAt(xc-0.04)+0.012;
+      const pts=[[0.36,ZF-0.18],[0.62,ZF-0.32],[xc,ZF-0.42]].map(([px,pz])=>new THREE.Vector3(s*px, B.topY(pz,px)+0.006, pz));
+      pts.push(new THREE.Vector3(s*(xc-0.02), B.botH(zc)+0.27, zc), new THREE.Vector3(s*(xc-0.06), B.botH(zc)+0.12, zc+0.02));
+      g.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),40,0.012,6,false), headM));
+    } else if (spec.lights==='quad'){
+      for (const x of [0.66,0.44]){ add(new THREE.CircleGeometry(0.075,20), headM, s*x, 0.66, ZF+0.014); add(SHARED.ringG, chrome, s*x, 0.66, ZF+0.016).scale.setScalar(0.72); }
+    } else if (spec.lights==='gt'){   // faros afilados en las esquinas del morro, subiendo hacia fuera y doblando sobre la aleta
+      const hx=0.6, hz=zEdge(hx,true), ha=-s*edgeAng(hx,true);   // siguen la curva del morro
+      const hous=add(new THREE.BoxGeometry(0.4,0.075,0.1), carbon, s*hx, 0.585, hz-0.03, 0, ha, s*0.13);
+      const lamp=add(new THREE.BoxGeometry(0.37,0.042,0.02), headM, 0, 0.006, 0.045, 0,0,0, hous); lamp.castShadow=false;
+      add(new THREE.BoxGeometry(0.2,0.008,0.012), headM, s*(hx+0.03), 0.548, zEdge(hx+0.03,true)+0.004, 0, ha, s*0.13);   // luz diurna
+    }
+    // Retrovisores
+    if (!spec.f1 && spec.doors){
+      const mz=spec.doors[0]-0.12, mx=B.halfW(mz)+0.1, my=B.shH(mz)+0.16;
+      const mh=add(new THREE.SphereGeometry(0.1,20,14), paint, s*mx, my, mz); mh.scale.set(0.8,0.42,0.56);
+      add(new THREE.CircleGeometry(0.055,18), chrome, s*mx, my, mz-0.058, 0, Math.PI).scale.set(1.3,0.62,1);
+      add(new THREE.CylinderGeometry(0.012,0.016,0.16,8), carbon, s*(mx-0.11), my-0.03, mz+0.03, 0,0,Math.PI/2);
+    }
+  }
+  // Morro del gran turismo: parrilla hexagonal, toma inferior en trapecio y tomas bajo los faros
+  if (spec.gt){
+    const holeM = new THREE.MeshStandardMaterial({color:0x07080a, roughness:0.6, metalness:0.2, polygonOffset:true, polygonOffsetFactor:-2});
+    const meshM = new THREE.MeshStandardMaterial({color:0x22252a, roughness:0.45, metalness:0.6, polygonOffset:true, polygonOffsetFactor:-3});
+    const flat = (pts, mat, dz) => { const sh=new THREE.Shape(pts.map(([x,y])=>new THREE.Vector2(x,y))); const o=new THREE.Mesh(new THREE.ShapeGeometry(sh), mat); o.position.z=ZF+dz; g.add(o); return o; };
+    flat([[-0.46,0.45],[-0.37,0.565],[0.37,0.565],[0.46,0.45],[0.37,0.345],[-0.37,0.345]], holeM, 0.006);          // parrilla hexagonal
+    for (let r=0;r<4;r++) for (let c=-4;c<=4;c++){ const x=c*0.08+(r%2)*0.04, y=0.375+r*0.05; if (Math.abs(x)>0.36-Math.abs(y-0.455)*0.8) continue;   // panal
+      const cell=new THREE.Mesh(new THREE.CircleGeometry(0.024,6), meshM); cell.position.set(x,y,ZF+0.009); g.add(cell); }
+    flat([[-0.3,0.325],[0.3,0.325],[0.43,0.235],[-0.43,0.235]], holeM, 0.006);                                    // toma inferior en trapecio
+    for (const s of [1,-1]){ const xc=0.58, o=flat([[-0.08,0.43],[0.07,0.47],[0.09,0.3],[-0.06,0.26]].map(([x,y])=>[s*x,y]), holeM, 0);   // tomas bajo los faros, sobre la curva del morro
+      o.position.set(s*xc, 0, zEdge(xc,true)+0.005); o.rotation.y=-s*edgeAng(xc,true); }
+    add(new THREE.BoxGeometry(0.62,0.012,0.012), chrome, 0, 0.345, ZF+0.012);                                       // filo bajo la parrilla
+  }
+  // Escapes
+  for (const [x,y] of spec.exhaust){
+    add(new THREE.CylinderGeometry(0.05,0.05,0.12,20,1,true), chrome, x, y, ZR-0.03, Math.PI/2);
+    add(new THREE.CircleGeometry(0.045,16), carbon, x, y, ZR-0.04, 0, Math.PI);
+  }
+  // Pilotos traseros
+  const rz=ZR+0.05, ty=B.shH(rz)-0.07, tk=B.halfW(ZR+0.22)-0.08;
+  if (spec.tail==='tube'){
+    const tc = new THREE.CatmullRomCurve3([[-tk,ty-0.06,ZR+0.22],[-tk*0.85,ty,ZR+0.02],[-tk*0.35,ty+0.01,ZR-0.012],[tk*0.35,ty+0.01,ZR-0.012],[tk*0.85,ty,ZR+0.02],[tk,ty-0.06,ZR+0.22]].map(p=>new THREE.Vector3(...p)));
+    g.add(new THREE.Mesh(new THREE.TubeGeometry(tc,80,0.022,8,false), tailM));
+  } else if (spec.tail==='bar'){
+    add(new THREE.BoxGeometry(2*tk,0.06,0.03), tailM, 0, ty-0.02, ZR-0.012);
+  } else if (spec.tail==='split'){   // dos pilotos finos, uno a cada lado, que doblan hacia la aleta trasera
+    for (const s of [1,-1]){ const pts=[0.3,0.45,0.6,0.72,0.82,0.88].map((x,i)=>new THREE.Vector3(s*x, ty+0.012*i/5, zEdge(x,false)-0.008));   // siguen la cola redondeada
+      const tl=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),24,0.024,8,false), tailM); g.add(tl); }
+    add(new THREE.BoxGeometry(0.5,0.05,0.02), carbon, 0, ty, zEdge(0.25,false)-0.006);
+  } else if (spec.tail==='quad4'){
+    for (const s of [1,-1]) for (const x of [0.51,0.74]){
+      add(new THREE.CylinderGeometry(0.065,0.065,0.03,28), tailM, s*x, 0.78, ZR-0.008, Math.PI/2);
+      add(new THREE.TorusGeometry(0.068,0.01,8,28), carbon, s*x, 0.78, ZR-0.022);
+    }
+  } else if (spec.tail==='rain'){
+    add(new THREE.BoxGeometry(0.14,0.06,0.04), tailM, 0, 0.36, ZR-0.03);
+  }
+  // Parachoques cromados
+  if (spec.bumpers){
+    add(new THREE.BoxGeometry(2*B.halfW(ZF)-0.04,0.07,0.07), chrome, 0, B.botH(ZF)+0.07, ZF+0.025);
+    add(new THREE.BoxGeometry(2*B.halfW(ZR)-0.04,0.07,0.07), chrome, 0, B.botH(ZR)+0.1, ZR-0.025);
+  }
+  // Alerones
+  const wing = new THREE.Group(); g.add(wing);
+  const W = (geo, mat, sx,sy,sz, x=0,y=0,z=0, rx=0) => { const o=new THREE.Mesh(geo,mat); o.scale.set(sx,sy,sz); o.position.set(x,y,z); o.rotation.x=rx; o.castShadow=true; wing.add(o); return o; };
+  if (spec.wing==='wedge'){
+    wing.position.set(0,1.12,-2.02); wing.rotation.x=-0.08;
+    W(SHARED.wingG, carbon, 1,1,1); for (const s of [1,-1]) W(SHARED.plateG, carbon, 1,1,1, s*0.866-0.006);
+    for (const s of [1,-1]) add(SHARED.stalkG, carbon, s*0.5-0.01, 0.86, -2.02);
+  } else if (spec.wing==='hyper'){
+    const wz=ZR+0.25; wing.position.set(0,1.32,wz); wing.rotation.x=-0.14;
+    W(SHARED.wingG, carbon, 1.05,1.2,1.4); for (const s of [1,-1]) W(SHARED.plateG, carbon, 1,1.7,1.5, s*0.9-0.006);
+    for (const s of [1,-1]){ const o=add(SHARED.stalkG, carbon, s*0.42-0.01, B.shH(wz)-0.04, wz); o.scale.set(1,1.85,1.2); }
+    if (spec.fin){ add(SHARED.finG, paint, 0, B.topY(-0.95,0)-0.02, -0.95); }
+  } else if (spec.wing==='duck'){
+    const wz=ZR+0.12; wing.position.set(0,B.shH(wz)+0.012,wz); wing.rotation.x=-0.25; W(SHARED.wingG, paint, 0.92,0.6,0.55);
+  } else if (spec.wing==='german'){
+    const wz=-1.95; wing.position.set(0,B.topY(wz,0)+0.07,wz); wing.rotation.x=-0.05; W(SHARED.wingG, carbon, 0.8,0.7,0.9);
+    for (const s of [1,-1]) add(new THREE.BoxGeometry(0.03,0.08,0.1), carbon, s*0.4, B.topY(wz,0.4)+0.03, wz);
+  } else if (spec.wing==='muscle'){
+    const wz=ZR+0.2; wing.position.set(0,B.shH(wz)+0.07,wz); wing.rotation.x=-0.12; W(SHARED.wingG, paint, 0.98,0.8,0.7);
+    for (const x of [-0.6,0,0.6]) add(new THREE.BoxGeometry(0.04,0.07,0.08), paint, x, B.shH(wz)+0.035, wz);
+  } else if (spec.wing==='span'){
+    const wz=ZR+0.1, deck=B.shH(wz); wing.position.set(0,deck+0.13,wz); wing.rotation.x=-0.1;
+    W(SHARED.wingG, paint, 1.06,0.9,0.8);
+    for (const s of [1,-1]) W(SHARED.plateG, paint, 1,1.1,0.9, s*0.92, -0.07);
+    for (const s of [1,-1]) add(new THREE.BoxGeometry(0.05,0.13,0.12), carbon, s*0.48, deck+0.06, wz);
+  } else if (spec.wing==='f1'){
+    wing.position.set(0,0.98,ZR-0.06); wing.rotation.x=-0.1;
+    W(SHARED.wingG, carbon, 0.6,1.1,1.1); W(SHARED.wingG, carbon, 0.6,0.8,0.7, 0,0.1,-0.11, -0.35);
+    for (const s of [1,-1]) W(SHARED.plateG, paint, 1,3.4,1.5, s*0.52-0.006, -0.05);
+    W(new THREE.BoxGeometry(0.05,0.5,0.18), carbon, 1,1,1, 0,-0.3,0.05);
+    // alerón delantero
+    const fw=new THREE.Group(); fw.position.set(0,0.09,ZF-0.12); g.add(fw);
+    for (const [sx,sy,sz,y,z,rx] of [[1.12,1,1.5,0,0,0],[1.12,0.8,0.9,0.06,-0.14,-0.3]]){ const o=new THREE.Mesh(SHARED.wingG,carbon); o.scale.set(sx,sy,sz); o.position.set(0,y,z); o.rotation.x=rx; fw.add(o); }
+    for (const s of [1,-1]){ const o=new THREE.Mesh(SHARED.plateG,paint); o.scale.set(1,1.4,1.6); o.position.set(s*0.96,0.05,-0.05); fw.add(o); }
+    // halo, piloto, suelo, retrovisores
+    const hc=new THREE.CatmullRomCurve3([[-0.28,0.62,0.0],[-0.3,0.84,0.32],[0,0.92,0.52],[0.3,0.84,0.32],[0.28,0.62,0.0]].map(p=>new THREE.Vector3(...p)));
+    g.add(new THREE.Mesh(new THREE.TubeGeometry(hc,30,0.026,8,false), carbon));
+    rod(new THREE.Vector3(0,0.92,0.52), new THREE.Vector3(0,0.64,0.78), 0.022, carbon);
+    const helmet=add(new THREE.SphereGeometry(0.135,20,14), paint, 0, 0.74, 0.2);
+    add(new THREE.SphereGeometry(0.137,20,10,Math.PI/2-0.9,1.8,1.15,0.55), glass, 0, 0.74, 0.2);
+    add(new THREE.BoxGeometry(1.3,0.02,3.6), carbon, 0, 0.1, -0.2);
+    for (const s of [1,-1]) add(new THREE.BoxGeometry(0.16,0.07,0.08), paint, s*0.5, 0.78, 0.38);
+  }
+  if (spec.louvres){
+    const slatM = new THREE.MeshStandardMaterial({color:0x2c2f34, metalness:0.4, roughness:0.5});
+    for (let k=0;k<7;k++){ const z=-1.0-k*0.13; add(new THREE.BoxGeometry(0.62,0.012,0.035), slatM, 0, B.topY(z,0)+0.006, z, slopeAt(z,0)); }
+  }
+  // Suspensiones a la vista (monoplaza)
+  const tw=spec.tireW, wsc=spec.wr/0.353;
+  if (spec.f1) for (const [x,z] of [[spec.wx,spec.wz[0]],[-spec.wx,spec.wz[0]],[spec.wx,spec.wz[1]],[-spec.wx,spec.wz[1]]]){
+    const s=Math.sign(x), hub=new THREE.Vector3(x-s*0.14, spec.wr, z), bx=s*(z>0?0.16:0.32);
+    for (const [dy,dz] of [[0.09,0.22],[0.09,-0.22],[-0.06,0.2],[-0.06,-0.2]]) rod(new THREE.Vector3(bx, spec.wr+dy, z+dz), hub, 0.014, carbon);
+  }
+  // Sombra de contacto
+  const ao=new THREE.Mesh(new THREE.PlaneGeometry(2.5,ZF-ZR+0.6), new THREE.MeshBasicMaterial({map:SHARED.aoTex, transparent:true, depthWrite:false}));
+  ao.rotation.x=-Math.PI/2; ao.position.set(0,0.012,(ZF+ZR)/2); g.add(ao);
+
+  // Ruedas
+  const tireM = new THREE.MeshStandardMaterial({map:SHARED.treadTex, color:0xffffff, roughness:0.93, metalness:0});
+  const rimM = new THREE.MeshStandardMaterial({color:spec.rimColor||0xb9bec5, metalness:1, roughness:0.22});
+  const lipM = spec.rimLip ? new THREE.MeshStandardMaterial({color:spec.rimLip, metalness:1, roughness:0.15}) : rimM;
+  const barrelM = new THREE.MeshStandardMaterial({color:0x2a2d32, metalness:0.8, roughness:0.4, side:THREE.DoubleSide});
+  const discM = new THREE.MeshStandardMaterial({color:0x7a7d82, metalness:0.9, roughness:0.38});
+  const calM = new THREE.MeshStandardMaterial({color:0xc4161c, metalness:0.3, roughness:0.35});
+  const wheels = [];
+  for (const [x,z,front] of [[spec.wx,spec.wz[0],1],[-spec.wx,spec.wz[0],1],[spec.wx,spec.wz[1],0],[-spec.wx,spec.wz[1],0], ...(spec.wz3!=null?[[spec.wx,spec.wz3,0],[-spec.wx,spec.wz3,0]]:[])]){   // wz3: tercer eje (buggy de seis ruedas)
+    const pivot = new THREE.Group(); pivot.position.set(x,spec.wr,z);
+    const mir = new THREE.Group(); mir.scale.set(Math.sign(x)*wsc*(front?tw[0]:tw[1]), wsc, wsc); pivot.add(mir);
+    const spin = new THREE.Group(); mir.add(spin);
+    const t=new THREE.Mesh(SHARED.tireG,tireM); t.castShadow=true; spin.add(t);
+    spin.add(new THREE.Mesh(SHARED.barrelG,barrelM));
+    const lip=new THREE.Mesh(SHARED.lipG,lipM); lip.position.x=0.112; spin.add(lip);
+    for (let k=0;k<5;k++) for (const o of (spec.spokeOff||[-0.13,0.13])){ const sk=new THREE.Mesh(SHARED.spokeG,rimM); sk.rotation.x=k*Math.PI*2/5+o; sk.position.x=0.072; spin.add(sk); }
+    const hub=new THREE.Mesh(SHARED.hubG,rimM); hub.position.x=0.1; spin.add(hub);
+    const disc=new THREE.Mesh(SHARED.discG,discM); disc.position.x=-0.03; spin.add(disc);
+    const cal=new THREE.Mesh(SHARED.calG,calM); cal.position.x=-0.06; mir.add(cal);
+    g.add(pivot);
+    wheels.push({pivot, spin, x, z, front:!!front, last:null});
+  }
+  parent.add(g);
+  return {g, wheels, tailM, wing, body, paint, glass, pc, pctx, paintTex, paintHex, carbon, model:m, B, wr:spec.wr};
+}
+// Construye un coche por su nombre. Los colores se pasan a espacio lineal (como el resto de Frente Cero).
+function construir(nombre, pintura) {
+  const m = MODELS.findIndex(x => x.name === nombre);
+  const o = buildCarFF(m < 0 ? 0 : m, pintura, new THREE.Group());
+  o.paintTex.encoding = THREE.sRGBEncoding;
+  o.g.traverse(me => {
+    if (!me.material) return;
+    for (const x of Array.isArray(me.material) ? me.material : [me.material]) {
+      if (x.userData.lineal) continue;
+      x.userData.lineal = true;
+      if (x.color) x.color.convertSRGBToLinear();
+      if (x.emissive) x.emissive.convertSRGBToLinear();
+    }
+    me.castShadow = true; me.receiveShadow = true;
+  });
+  const spec = MODELS[m < 0 ? 0 : m];
+  return { g: o.g, largo: spec.ZF - spec.ZR, centroZ: (spec.ZF + spec.ZR) / 2 };
+}
+return { MODELOS: MODELS.map(x => x.name), construir };
+})();
+
+/* =====================================================================
    6. MAPA
    ---------------------------------------------------------------------
    crearMapa() devuelve solo DATOS. Cada objeto: { x, z, y (base), w, h, d, mat }
@@ -1054,21 +1485,15 @@ function crearMapa() {
     for (const dz of [2.4, -0.6, -2.4]) for (const dx of [-1.2, 1.2]) p.push({ dx, dz, r: 0.5, largo: 0.35, mat: 'rueda' });
     vehiculo(x, z, girado, p);
   }
-  function coche(x, z, girado, pintura) {
-    const p = [
-      { dx: 0, dz: 0, w: 1.9, h: 0.65, d: 4.2, y: 0.3, mat: pintura },
-      { dx: 0, dz: -0.2, w: 1.7, h: 0.6, d: 2.2, y: 0.95, mat: 'cristal' }
-    ];
-    for (const dz of [1.35, -1.35]) for (const dx of [-0.95, 0.95]) p.push({ dx, dz, r: 0.33, largo: 0.25, mat: 'rueda' });
-    vehiculo(x, z, girado, p);
-  }
   camion(-12, -1, false, 'camionAzul');
-  coche(16, 15, true, 'cocheRojo');
-  coche(-20, 24, false, 'cocheAmarillo');
+  // Coches de Fast and Fuñius (solo decorado). giro: 0 = morro hacia +z
+  objetos.push({ forma: 'coche', modelo: 'Thunder V8', pintura: '#c8161d', x: 16, z: 15, giro: Math.PI / 2 });
+  objetos.push({ forma: 'coche', modelo: 'Corsa Lunga', pintura: '#f2b800', x: -20, z: 24, giro: 0 });
+  objetos.push({ forma: 'coche', modelo: 'Fendente', pintura: '#1d5fd1', x: 5, z: -20, giro: -Math.PI / 2 });
 
   return {
     nombre: 'Almacén',
-    tam: T,
+    ancho: T, largo: T,
     // Líneas pintadas en el suelo [x, z, ancho, fondo]
     marcas: [[-15, 0, 0.15, 12], [-9, 0, 0.15, 12], [-12, -6, 6, 0.15], [-12, 6, 6, 0.15],
              [14, -16.6, 7, 0.15], [0, 0, 0.15, 3], [-22, -18.5, 8, 0.15]],
@@ -1078,24 +1503,91 @@ function crearMapa() {
   };
 }
 
+// ---- Mapa del 5 contra 5: "Muelle", rectángulo de 40 × 90 m ----
+// Simétrico respecto al centro: todo lo que se pone en un lado aparece girado 180° en el otro,
+// para que ningún equipo tenga ventaja. Azules salen en el lado +z (sur) y rojos en el -z (norte).
+function crearMapaMuelle() {
+  const objetos = [];
+  const ANCHO = 40, LARGO = 90, MX = ANCHO / 2, MZ = LARGO / 2;
+  const caja = (x, z, w, h, d, mat, extra) => objetos.push(Object.assign({ x, z, y: 0, w, h, d, mat }, extra || {}));
+  // Pone el objeto y su copia simétrica (x, z) → (-x, -z)
+  const par = (x, z, w, h, d, mat, extra) => { caja(x, z, w, h, d, mat, extra); if (x || z) caja(-x, -z, w, h, d, mat, extra); };
+  const parCoche = (modelo, pintura, x, z, giro) => {
+    objetos.push({ forma: 'coche', modelo, pintura, x, z, giro });
+    objetos.push({ forma: 'coche', modelo, pintura, x: -x, z: -z, giro: giro + Math.PI });
+  };
+  // Camión a lo largo del eje Z; sentido = 1 (cabina hacia +z) o -1
+  const camion = (x, z, sentido, pintura) => {
+    caja(x, z, 2.3, 0.45, 7, 'chasis', { y: 0.5 });
+    caja(x, z + 2.45 * sentido, 2.4, 1.9, 2.0, pintura, { y: 0.95 });
+    caja(x, z + 3.46 * sentido, 2.2, 0.7, 0.06, 'cristal', { y: 1.95, sinColision: true });
+    caja(x, z - 1.0 * sentido, 2.5, 2.5, 4.7, 'cajaCarga', { y: 0.95 });
+    for (const dz of [2.4, -0.6, -2.4]) for (const dx of [-1.2, 1.2])
+      objetos.push({ x: x + dx, z: z + dz * sentido, y: 0, forma: 'cilindro', r: 0.5, largo: 0.35, eje: 'x', mat: 'rueda', sinColision: true });
+  };
+
+  // Muros exteriores
+  caja(0, -MZ - 0.5, ANCHO + 2, 5, 1, 'muroExt'); caja(0, MZ + 0.5, ANCHO + 2, 5, 1, 'muroExt');
+  caja(-MX - 0.5, 0, 1, 5, LARGO, 'muroExt');      caja(MX + 0.5, 0, 1, 5, LARGO, 'muroExt');
+
+  // Bases: parapetos delante de la salida y contenedores a los lados
+  par(-8, 35, 8, 1.2, 0.4, 'muroBajo');
+  par(8, 35, 8, 1.2, 0.4, 'muroBajo');
+  caja(-15, 39, 2.5, 2.6, 6.2, 'contAzul'); caja(15, 39, 2.5, 2.6, 6.2, 'contAzul');
+  caja(15, -39, 2.5, 2.6, 6.2, 'contRojo'); caja(-15, -39, 2.5, 2.6, 6.2, 'contRojo');
+
+  // Medio campo
+  par(-10, 25, 6.2, 2.6, 2.5, 'contVerde');
+  par(10, 20, 2.5, 2.6, 6.2, 'contNaranja');
+  par(0, 28, 2, 2, 2, 'madera'); par(0, 28, 1.2, 1.2, 1.2, 'maderaOsc', { y: 2 });
+  par(-4, 18, 1.2, 1.2, 1.2, 'madera');
+  par(5, 14, 2, 2, 2, 'madera');
+  par(-14, 15, 0.4, 1.2, 6, 'muroBajo');
+  par(14, 30, 0.4, 1.2, 6, 'muroBajo');
+  par(-6, 10, 0.8, 5, 0.8, 'columna');
+  par(6, 22, 0.8, 5, 0.8, 'columna');
+  par(-17, 24, 2, 0.4, 2, 'palet'); par(-17, 24, 1.2, 1.2, 1.2, 'madera', { y: 0.4 });
+
+  // Centro: contenedor, muros bajos y un camión en cada lado
+  caja(0, 0, 6.2, 2.6, 2.5, 'contRojo');
+  par(10, 0, 6, 1.2, 0.4, 'muroBajo');
+  camion(-15, 4, 1, 'camionAzul');
+  camion(15, -4, -1, 'camionAzul');
+
+  // Coches de Fast and Fuñius
+  parCoche('Vortex X', '#4fb3e8', 12, 9, 0);
+  parCoche('Kreisel 9', '#f26a00', -12, 32, Math.PI / 2);
+
+  // Puntos de salida de cada equipo (10 por equipo, en dos filas)
+  const filas = (z0, paso) => { const p = []; for (const dz of [0, paso]) for (const x of [-6, -3, 0, 3, 6]) p.push([x, z0 + dz]); return p; };
+  return {
+    nombre: 'Muelle',
+    ancho: ANCHO, largo: LARGO,
+    marcas: [[0, 0, ANCHO, 0.2], [0, 35.8, 24, 0.15], [0, -35.8, 24, 0.15], [-18, 0, 0.15, 30], [18, 0, 0.15, 30]],
+    objetos,
+    aparicion: [],
+    bases: { azul: filas(42, -2.5), rojo: filas(-42, 2.5) }
+  };
+}
+
 // ---- Construcción del mapa a partir de los datos ----
 let MAPA = null;
-const NAV_N = 60;            // rejilla de navegación de 1 m
-const NAV_C = NAV_N * NAV_N;
+const NAV_MAX = 128 * 128;   // la rejilla de navegación (celdas de 1 m) admite mapas de hasta 128 × 128 m
 
 function construirMapa(def) {
+  if (MAPA && MAPA.grupo) escena.remove(MAPA.grupo);
   const grupo = new THREE.Group();
   const col = [];
-  const mitad = def.tam / 2;
+  const mx = def.ancho / 2, mz = def.largo / 2;   // medio ancho (X) y medio largo (Z)
 
   // Suelo con la textura repetida cada pocos metros
-  const lado = def.tam + 2, mSuelo = metrosTex('suelo');
-  const geoSuelo = new THREE.PlaneGeometry(lado, lado), uvS = geoSuelo.attributes.uv;
-  for (let i = 0; i < uvS.count; i++) uvS.setXY(i, uvS.getX(i) * lado / mSuelo, uvS.getY(i) * lado / mSuelo);
+  const lx = def.ancho + 2, lz = def.largo + 2, mSuelo = metrosTex('suelo');
+  const geoSuelo = new THREE.PlaneGeometry(lx, lz), uvS = geoSuelo.attributes.uv;
+  for (let i = 0; i < uvS.count; i++) uvS.setXY(i, uvS.getX(i) * lx / mSuelo, uvS.getY(i) * lz / mSuelo);
   const suelo = new THREE.Mesh(geoSuelo, matMapa('suelo'));
   suelo.rotation.x = -Math.PI / 2; suelo.receiveShadow = true;
   grupo.add(suelo);
-  col.push({ min: [-mitad - 1, -1, -mitad - 1], max: [mitad + 1, 0, mitad + 1], suelo: true });
+  col.push({ min: [-mx - 1, -1, -mz - 1], max: [mx + 1, 0, mz + 1], suelo: true });
 
   for (const [x, z, w, d] of def.marcas || []) {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), matMapa('marca'));
@@ -1105,6 +1597,17 @@ function construirMapa(def) {
 
   for (const o of def.objetos) {
     let me, w = o.w, h = o.h, d = o.d;
+    if (o.forma === 'coche') {
+      // Coche de Fast and Fuñius (decorado). giro en múltiplos de 90° para que la colisión encaje
+      const giro = o.giro || 0, c = COCHES_FF.construir(o.modelo, o.pintura);
+      c.g.position.set(o.x, 0, o.z); c.g.rotation.y = giro;
+      grupo.add(c.g);
+      const deLado = Math.abs(Math.sin(giro)) > 0.5;
+      const cw = deLado ? c.largo : 1.95, cd = deLado ? 1.95 : c.largo;
+      const cx = o.x + Math.sin(giro) * c.centroZ, cz = o.z + Math.cos(giro) * c.centroZ;
+      col.push({ min: [cx - cw / 2, 0, cz - cd / 2], max: [cx + cw / 2, 1.15, cz + cd / 2] });
+      continue;
+    }
     if (o.forma === 'cilindro') {
       me = new THREE.Mesh(geoCil, matMapa(o.mat));
       me.scale.set(o.r, o.largo, o.r);
@@ -1121,30 +1624,40 @@ function construirMapa(def) {
   }
   escena.add(grupo);
 
+  // Las sombras del sol tienen que cubrir todo el mapa (cuadrado o alargado)
+  const rs = Math.hypot(mx, mz) + 4;
+  sol.position.copy(sol.position.clone().normalize().multiplyScalar(rs + 25));
+  Object.assign(sol.shadow.camera, { left: -rs, right: rs, top: rs, bottom: -rs, near: 1, far: 2 * rs + 50 });
+  sol.shadow.camera.updateProjectionMatrix();
+
   // Rejilla de navegación: celda bloqueada si un círculo de 0,45 m en su centro toca un obstáculo
-  const bloq = new Uint8Array(NAV_C);
-  for (let j = 0; j < NAV_N; j++) for (let i = 0; i < NAV_N; i++) {
-    const x = -mitad + i + 0.5, z = -mitad + j + 0.5;
+  const nw = Math.ceil(def.ancho), nh = Math.ceil(def.largo);
+  const bloq = new Uint8Array(nw * nh);
+  for (let j = 0; j < nh; j++) for (let i = 0; i < nw; i++) {
+    const x = -mx + i + 0.5, z = -mz + j + 0.5;
     for (const c of col) {
       if (c.suelo) continue;
       const cx = clamp(x, c.min[0], c.max[0]), cz = clamp(z, c.min[2], c.max[2]);
-      if ((x - cx) ** 2 + (z - cz) ** 2 < 0.45 * 0.45) { bloq[j * NAV_N + i] = 1; break; }
+      if ((x - cx) ** 2 + (z - cz) ** 2 < 0.45 * 0.45) { bloq[j * nw + i] = 1; break; }
     }
   }
   // Puntos de cobertura: celdas libres pegadas a un obstáculo
   const coberturas = [];
-  for (let j = 1; j < NAV_N - 1; j++) for (let i = 1; i < NAV_N - 1; i++) {
-    const k = j * NAV_N + i;
+  for (let j = 1; j < nh - 1; j++) for (let i = 1; i < nw - 1; i++) {
+    const k = j * nw + i;
     if (bloq[k]) continue;
-    if (bloq[k - 1] || bloq[k + 1] || bloq[k - NAV_N] || bloq[k + NAV_N])
-      coberturas.push(new V3(-mitad + i + 0.5, 0, -mitad + j + 0.5));
+    if (bloq[k - 1] || bloq[k + 1] || bloq[k - nw] || bloq[k + nw])
+      coberturas.push(new V3(-mx + i + 0.5, 0, -mz + j + 0.5));
   }
-  MAPA = { def, grupo, col, bloq, coberturas, mitad, aparicion: [] };
+  MAPA = { def, grupo, col, bloq, coberturas, mx, mz, nw, nh, aparicion: [], bases: {} };
   // Puntos de aparición (si alguno cae en un obstáculo se mueve a la celda libre más cercana)
-  for (const [x, z] of def.aparicion) {
+  const ajustar = ([x, z]) => {
+    if (!celdaBloqueadaPos(x, z)) return new V3(x, 0, z);
     const [i, j] = libreCercana(...celdaDe(x, z));
-    MAPA.aparicion.push(bloq[j * NAV_N + i] === 0 && celdaBloqueadaPos(x, z) === false ? new V3(x, 0, z) : new V3(-mitad + i + 0.5, 0, -mitad + j + 0.5));
-  }
+    return new V3(-mx + i + 0.5, 0, -mz + j + 0.5);
+  };
+  MAPA.aparicion = (def.aparicion || []).map(ajustar);
+  for (const eq in def.bases || {}) MAPA.bases[eq] = def.bases[eq].map(ajustar);
   return MAPA;
 }
 
@@ -1226,17 +1739,18 @@ function trazarDisparo(tirador, o, d, max) {
 }
 
 // ---- Rejilla y búsqueda de caminos (A*) ----
-function celdaDe(x, z) { return [clamp(Math.floor(x + MAPA.mitad), 0, NAV_N - 1), clamp(Math.floor(z + MAPA.mitad), 0, NAV_N - 1)]; }
+function celdaDe(x, z) { return [clamp(Math.floor(x + MAPA.mx), 0, MAPA.nw - 1), clamp(Math.floor(z + MAPA.mz), 0, MAPA.nh - 1)]; }
 function celdaBloqueadaPos(x, z) {
-  if (Math.abs(x) >= MAPA.mitad || Math.abs(z) >= MAPA.mitad) return true;
-  const [i, j] = celdaDe(x, z); return MAPA.bloq[j * NAV_N + i] === 1;
+  if (Math.abs(x) >= MAPA.mx || Math.abs(z) >= MAPA.mz) return true;
+  const [i, j] = celdaDe(x, z); return MAPA.bloq[j * MAPA.nw + i] === 1;
 }
 function libreCercana(i, j) {
-  if (!MAPA.bloq[j * NAV_N + i]) return [i, j];
+  const W = MAPA.nw, H = MAPA.nh;
+  if (!MAPA.bloq[j * W + i]) return [i, j];
   for (let r = 1; r < 8; r++) for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) {
     const a = i + di, b = j + dj;
-    if (a < 0 || b < 0 || a >= NAV_N || b >= NAV_N) continue;
-    if (!MAPA.bloq[b * NAV_N + a]) return [a, b];
+    if (a < 0 || b < 0 || a >= W || b >= H) continue;
+    if (!MAPA.bloq[b * W + a]) return [a, b];
   }
   return [i, j];
 }
@@ -1245,9 +1759,9 @@ function lineaLibre(ax, az, bx, bz) {
   for (let k = 1; k <= n; k++) { const t = k / n; if (celdaBloqueadaPos(ax + dx * t, az + dz * t)) return false; }
   return true;
 }
-const NAV = { g: new Float32Array(NAV_C), padre: new Int32Array(NAV_C), abierto: new Int32Array(NAV_C), cerrado: new Int32Array(NAV_C), sello: 0 };
+const NAV = { g: new Float32Array(NAV_MAX), padre: new Int32Array(NAV_MAX), abierto: new Int32Array(NAV_MAX), cerrado: new Int32Array(NAV_MAX), sello: 0 };
 function buscarCamino(ax, az, bx, bz) {
-  const N = NAV_N, bloq = MAPA.bloq;
+  const N = MAPA.nw, H = MAPA.nh, bloq = MAPA.bloq;   // N = celdas por fila (ancho), H = filas (largo)
   const [si, sj] = libreCercana(...celdaDe(ax, az)), [ti, tj] = libreCercana(...celdaDe(bx, bz));
   const s = sj * N + si, t = tj * N + ti;
   const sello = ++NAV.sello;
@@ -1278,7 +1792,7 @@ function buscarCamino(ax, az, bx, bz) {
     for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
       if (!di && !dj) continue;
       const ni = ci + di, nj = cj + dj;
-      if (ni < 0 || nj < 0 || ni >= N || nj >= N) continue;
+      if (ni < 0 || nj < 0 || ni >= N || nj >= H) continue;
       const n = nj * N + ni;
       if (bloq[n] || NAV.cerrado[n] === sello) continue;
       if (di && dj && (bloq[cj * N + ni] || bloq[nj * N + ci])) continue; // no cortar esquinas
@@ -1288,17 +1802,19 @@ function buscarCamino(ax, az, bx, bz) {
   }
   if (!encontrado) return null;
   const ruta = [];
-  for (let n = t; n !== -1; n = NAV.padre[n]) ruta.push(new V3(-MAPA.mitad + (n % N) + 0.5, 0, -MAPA.mitad + ((n / N) | 0) + 0.5));
+  for (let n = t; n !== -1; n = NAV.padre[n]) ruta.push(new V3(-MAPA.mx + (n % N) + 0.5, 0, -MAPA.mz + ((n / N) | 0) + 0.5));
   ruta.reverse();
   if (!celdaBloqueadaPos(bx, bz)) ruta[ruta.length - 1].set(bx, 0, bz);
   return ruta;
 }
-function puntoAleatorio() {
+// Punto libre al azar; zMin/zMax opcionales limitan la franja (los bots por equipos avanzan hacia el rival)
+function puntoAleatorio(zMin, zMax) {
+  const z0 = Math.max(-MAPA.mz + 1, zMin ?? -Infinity), z1 = Math.min(MAPA.mz - 1, zMax ?? Infinity);
   for (let k = 0; k < 50; k++) {
-    const x = rand(-MAPA.mitad + 1, MAPA.mitad - 1), z = rand(-MAPA.mitad + 1, MAPA.mitad - 1);
+    const x = rand(-MAPA.mx + 1, MAPA.mx - 1), z = rand(z0, z1);
     if (!celdaBloqueadaPos(x, z)) return new V3(x, 0, z);
   }
-  return MAPA.aparicion[0].clone();
+  return (MAPA.aparicion[0] || MAPA.bases.azul[0]).clone();
 }
 
 /* =====================================================================
@@ -1726,29 +2242,87 @@ function actualizarModeloArma(dt) {
    12. BOTS (IA): percepción, patrulla, combate, cobertura
    ===================================================================== */
 const bots = [];
+// ---- Soldado con forma humana: cabeza redonda, tronco, brazos y piernas articulados ----
+// Alturas (de pie): tobillo 0,1 · rodilla 0,48 · cadera 0,9 · hombros 1,38 · cabeza 1,63 m
+// (coinciden con las zonas de impacto: cuerpo hasta 1,47 y cabeza en 1,64).
+const geoEsf = new THREE.SphereGeometry(1, 18, 12);
+const geoTronco = new THREE.CylinderGeometry(0.2, 0.16, 1, 18);
+const geoCasco = new THREE.SphereGeometry(1, 18, 10, 0, Math.PI * 2, 0, Math.PI * 0.55);
 function crearModeloBot(color) {
   const g = new THREE.Group(); g.rotation.order = 'YXZ';
-  const ropa = mat(color, 0.9), osc = mat(0x2a2e35, 0.75, 0.1), piel = mat(0xc99a6e, 0.55), bota = mat(0x1c1f24, 0.7);
-  const parte = (padre, w, h, d, x, y, z, m, rx) => { const me = new THREE.Mesh(geoCaja, m); me.scale.set(w, h, d); me.position.set(x, y, z); if (rx) me.rotation.x = rx; me.castShadow = true; padre.add(me); return me; };
-  const piernas = new THREE.Group(); g.add(piernas);
-  const pivL = new THREE.Group(); pivL.position.set(-0.11, 0.86, 0); piernas.add(pivL);
-  const pivR = new THREE.Group(); pivR.position.set(0.11, 0.86, 0); piernas.add(pivR);
-  for (const p of [pivL, pivR]) { parte(p, 0.17, 0.78, 0.2, 0, -0.39, 0, osc); parte(p, 0.18, 0.1, 0.28, 0, -0.81, 0.04, bota); }
-  const sup = new THREE.Group(); g.add(sup);
-  parte(sup, 0.42, 0.14, 0.24, 0, 0.9, 0, osc);
-  parte(sup, 0.5, 0.58, 0.28, 0, 1.16, 0, ropa);
-  parte(sup, 0.52, 0.34, 0.31, 0, 1.2, 0, osc);
-  parte(sup, 0.26, 0.28, 0.26, 0, 1.6, 0, piel);
-  parte(sup, 0.3, 0.12, 0.3, 0, 1.76, 0, ropa);
-  parte(sup, 0.27, 0.06, 0.02, 0, 1.63, 0.135, osc);
-  parte(sup, 0.12, 0.42, 0.12, 0.3, 1.22, 0.12, ropa, -1.1);
-  parte(sup, 0.12, 0.42, 0.12, -0.2, 1.22, 0.2, ropa, -1.3);
-  parte(sup, 0.07, 0.11, 0.62, 0.1, 1.28, 0.42, osc);
-  g.userData = { piernas, pivL, pivR, sup };
+  const ropa = mat(color, 0.9), osc = mat(0x2e3238, 0.85, 0.05), piel = mat(0xc99a6e, 0.55);
+  const bota = mat(0x1c1f24, 0.7), chaleco = mat(0x3b3f33, 0.85), negro = mat(0x111214, 0.35, 0.2);
+  const guante = mat(0x26282c, 0.8), cascoM = mat(color, 0.6, 0.15), arma = mat(0x1d2024, 0.45, 0.7);
+  const M = (padre, geo, m, sx, sy, sz, x, y, z, rx = 0, ry = 0, rz = 0) => {
+    const me = new THREE.Mesh(geo, m); me.scale.set(sx, sy, sz); me.position.set(x, y, z); me.rotation.set(rx, ry, rz);
+    me.castShadow = true; padre.add(me); return me;
+  };
+  const cuerpo = new THREE.Group(); g.add(cuerpo);   // baja entero al agacharse
+
+  // Piernas: cadera → muslo → rodilla → espinilla → bota
+  const pierna = s => {
+    const cad = new THREE.Group(); cad.position.set(s * 0.1, 0.9, 0); cuerpo.add(cad);
+    M(cad, geoCil, osc, 0.08, 0.42, 0.085, 0, -0.21, 0);
+    const rod = new THREE.Group(); rod.position.set(0, -0.42, 0); cad.add(rod);
+    M(rod, geoEsf, osc, 0.07, 0.07, 0.07, 0, 0, 0.005);
+    M(rod, geoCil, osc, 0.064, 0.38, 0.068, 0, -0.19, 0);
+    M(rod, geoEsf, bota, 0.078, 0.065, 0.14, 0, -0.415, 0.045);
+    M(rod, geoCaja, bota, 0.15, 0.03, 0.27, 0, -0.465, 0.045);
+    return { cad, rod };
+  };
+  const pL = pierna(-1), pR = pierna(1);
+
+  // Tronco: pelvis, torso, chaleco con bolsillos, hombros y cuello
+  M(cuerpo, geoEsf, osc, 0.18, 0.11, 0.13, 0, 0.93, 0);
+  M(cuerpo, geoTronco, ropa, 1, 0.5, 0.72, 0, 1.17, 0);
+  M(cuerpo, geoTronco, chaleco, 1.07, 0.34, 0.84, 0, 1.2, 0);
+  for (const x of [-0.08, 0.08]) M(cuerpo, geoCaja, chaleco, 0.11, 0.1, 0.06, x, 1.1, 0.16);
+  M(cuerpo, geoEsf, ropa, 0.21, 0.09, 0.14, 0, 1.42, 0);
+  M(cuerpo, geoCil, piel, 0.055, 0.12, 0.055, 0, 1.5, 0);
+
+  // Cabeza: cráneo redondo, orejas, ojos, nariz y casco
+  const cab = new THREE.Group(); cab.position.set(0, 1.63, 0); cuerpo.add(cab);
+  M(cab, geoEsf, piel, 0.105, 0.125, 0.115, 0, 0, 0);
+  for (const s of [-1, 1]) {
+    M(cab, geoEsf, piel, 0.02, 0.035, 0.026, s * 0.104, 0, -0.005);
+    M(cab, geoEsf, negro, 0.016, 0.016, 0.01, s * 0.04, 0.012, 0.106);
+  }
+  M(cab, geoEsf, piel, 0.018, 0.026, 0.02, 0, -0.018, 0.115);
+  M(cab, geoCasco, cascoM, 0.128, 0.13, 0.138, 0, 0.022, -0.004);
+  M(cab, geoCil, cascoM, 0.132, 0.012, 0.142, 0, 0.026, -0.004);   // ala del casco
+
+  // Brazos: hombro → brazo → codo → antebrazo → mano, sujetando el fusil
+  const brazo = (s, rHombro, rCodo, rz) => {
+    const hom = new THREE.Group(); hom.position.set(s * 0.235, 1.38, 0); cuerpo.add(hom);
+    M(hom, geoEsf, ropa, 0.072, 0.072, 0.072, 0, 0, 0);
+    M(hom, geoCil, ropa, 0.058, 0.28, 0.058, 0, -0.14, 0);
+    const codo = new THREE.Group(); codo.position.set(0, -0.28, 0); hom.add(codo);
+    M(codo, geoEsf, ropa, 0.055, 0.055, 0.055, 0, 0, 0);
+    M(codo, geoCil, ropa, 0.05, 0.26, 0.05, 0, -0.13, 0);
+    M(codo, geoEsf, guante, 0.045, 0.055, 0.04, 0, -0.29, 0);
+    hom.rotation.set(rHombro, 0, rz); codo.rotation.x = rCodo;
+    return hom;
+  };
+  brazo(1, -0.45, -1.25, -0.2);    // derecho: mano en la empuñadura
+  brazo(-1, -1.05, -0.75, 0.5);    // izquierdo: mano bajo el guardamanos
+
+  // Fusil
+  const fusil = new THREE.Group(); fusil.position.set(0.07, 1.25, 0.32); cuerpo.add(fusil);
+  M(fusil, geoCaja, arma, 0.06, 0.09, 0.42, 0, 0, 0.05);
+  M(fusil, geoCaja, arma, 0.05, 0.08, 0.2, 0, -0.01, -0.24);
+  M(fusil, geoCil, arma, 0.014, 0.3, 0.014, 0, 0.012, 0.4, Math.PI / 2);
+  M(fusil, geoCaja, arma, 0.035, 0.13, 0.06, 0, -0.1, 0.12, -0.2);
+
+  g.userData = { cuerpo, pL, pR, cab };
   return g;
 }
-function crearBot(i) {
-  const ent = crearCombatiente(BOT_CFG.nombres[i % BOT_CFG.nombres.length], false, BOT_CFG.colores[i % BOT_CFG.colores.length]);
+// Color del uniforme en el modo por equipos
+const COLOR_EQUIPO = { azul: 0x2f5fd0, rojo: 0xc0392b };
+const NOMBRE_EQUIPO = { azul: 'azul', rojo: 'rojo' };
+function crearBot(i, equipo) {
+  const color = equipo ? COLOR_EQUIPO[equipo] : BOT_CFG.colores[i % BOT_CFG.colores.length];
+  const ent = crearCombatiente(BOT_CFG.nombres[i % BOT_CFG.nombres.length], false, color);
+  ent.equipo = equipo || null;
   const b = {
     ent, modelo: crearModeloBot(ent.color), yaw: 0, estado: 'patrulla',
     objetivo: null, ve: false, ultimaPos: new V3(), tVisto: -99,
@@ -1767,7 +2341,7 @@ function percibir(b) {
   const fx = Math.sin(b.yaw), fz = Math.cos(b.yaw), cosCampo = Math.cos(BOT_CFG.campoVision / 2 * DEG);
   let mejor = null, md = 1e9, actualVisible = false;
   for (const o of combatientes) {
-    if (o === e || !o.vivo) continue;
+    if (o === e || !o.vivo || (e.equipo && o.equipo === e.equipo)) continue;   // a los compañeros no se les ataca
     const dx = o.pos.x - e.pos.x, dz = o.pos.z - e.pos.z, d = Math.hypot(dx, dz);
     if (d > BOT_CFG.vista) continue;
     if ((dx * fx + dz * fz) / (d || 1) < cosCampo && d > BOT_CFG.oido) continue;
@@ -1879,18 +2453,22 @@ function poseModelo(g, e, yaw, dt) {
     return;
   }
   ud.tMuerte = 0; g.visible = true;
-  const v = Math.hypot(e.vel.x, e.vel.z);
+  const v = Math.hypot(e.vel.x, e.vel.z), k = clamp(v / 3, 0, 1), alt = e.altAgachado;
   ud.paso = (ud.paso || 0) + v * dt * 3;
-  const sw = Math.sin(ud.paso) * 0.6 * clamp(v / 3, 0, 1);
-  ud.pivL.rotation.x = sw; ud.pivR.rotation.x = -sw;
-  ud.sup.position.y = -0.4 * e.altAgachado;
-  ud.piernas.scale.y = 1 - 0.45 * e.altAgachado;
+  // Andar: el muslo oscila y la rodilla se dobla cuando la pierna va hacia atrás.
+  // Agachado: muslos hacia delante y rodillas dobladas; todo el cuerpo baja 0,4 m.
+  const sw = Math.sin(ud.paso) * 0.55 * k;
+  ud.pL.cad.rotation.x = sw - 1.25 * alt;
+  ud.pR.cad.rotation.x = -sw - 1.25 * alt;
+  ud.pL.rod.rotation.x = Math.max(0, -Math.sin(ud.paso)) * 0.9 * k + 2.0 * alt;
+  ud.pR.rod.rotation.x = Math.max(0, Math.sin(ud.paso)) * 0.9 * k + 2.0 * alt;
+  ud.cuerpo.position.y = -0.4 * alt + Math.abs(Math.cos(ud.paso)) * 0.03 * k;
   g.position.set(e.pos.x, 0, e.pos.z);
   g.rotation.set(0, yaw, 0);
 }
 
 function actualizarBot(b, dt) {
-  const e = b.ent, g = b.modelo, ud = g.userData;
+  const e = b.ent, g = b.modelo;
   if (!e.vivo) {
     poseModelo(g, e, b.yaw, dt);
     e.tReap -= dt;
@@ -1944,7 +2522,13 @@ function actualizarBot(b, dt) {
     if (!dir) { b.objetivo = null; b.estado = 'patrulla'; }
   } else {
     b.estado = 'patrulla';
-    if (!b.destino || b.llego) { b.destino = puntoAleatorio(); b.llego = false; }
+    if (!b.destino || b.llego) {
+      // Por equipos, patrullan hacia el campo rival (azules salen en +z y avanzan hacia -z)
+      if (e.equipo === 'azul') b.destino = puntoAleatorio(-MAPA.mz, MAPA.mz * 0.3);
+      else if (e.equipo === 'rojo') b.destino = puntoAleatorio(-MAPA.mz * 0.3, MAPA.mz);
+      else b.destino = puntoAleatorio();
+      b.llego = false;
+    }
     dir = dirRuta(b, b.destino);
     if (!dir) b.llego = true;
     vel = BOT_CFG.velocidad * 0.75;
@@ -1979,6 +2563,8 @@ function actualizarBot(b, dt) {
    ===================================================================== */
 function aplicarDano(ent, dano, atacante, cabeza) {
   if (!ent.vivo) return false;
+  // Por equipos no hay fuego amigo
+  if (ent.equipo && atacante && atacante !== ent && atacante.equipo === ent.equipo) return false;
   // Online, como invitado: el impacto se manda al anfitrión, que es quien quita la vida
   if (NET.cliente) {
     if (atacante === J.ent && ent.id) netEnviar({ t: 'hit', id: ent.id, d: Math.round(dano * 10) / 10, c: cabeza ? 1 : 0 });
@@ -1997,18 +2583,24 @@ function morir(ent, atacante, cabeza) {
   anotarBaja(atacante, ent, cabeza);
   if (NET.anfitrion) netTodos({ t: 'baja', a: atacante ? atacante.id : null, v: ent.id, c: cabeza ? 1 : 0 });
   if (ent.esJugador) { J.muerteT = 0; raton.izq = raton.der = false; JA.aimT = 0; }
-  if (atacante && atacante.bajas >= JUEGO.bajasParaGanar) terminarPartida();
+  if (MODO.equipos) {
+    if (atacante && atacante.equipo && atacante.equipo !== ent.equipo) PUNTOS[atacante.equipo]++;
+    if (PUNTOS.azul >= MODO.objetivo || PUNTOS.rojo >= MODO.objetivo) terminarPartida();
+  } else if (atacante && atacante.bajas >= MODO.objetivo) terminarPartida();
 }
+// Punto de aparición: por equipos, en la base propia; si no, el más alejado y escondido de los rivales
 function puntoSeguro(ent) {
-  let mejor = MAPA.aparicion[0], mejorP = -1e9;
+  const lista = MODO.equipos && ent.equipo && MAPA.bases[ent.equipo] ? MAPA.bases[ent.equipo] : MAPA.aparicion;
+  let mejor = lista[0], mejorP = -1e9;
   const a = new V3(), b = new V3();
-  for (const p of MAPA.aparicion) {
+  for (const p of lista) {
     let dmin = 1e9, visto = false;
     for (const o of combatientes) {
       if (o === ent || !o.vivo) continue;
       const d = Math.hypot(o.pos.x - p.x, o.pos.z - p.z);
       dmin = Math.min(dmin, d);
-      if (d < 45 && lineaVision(a.set(o.pos.x, 1.5, o.pos.z), b.set(p.x, 1.4, p.z))) visto = true;
+      const rival = !(ent.equipo && o.equipo === ent.equipo);
+      if (rival && d < 45 && lineaVision(a.set(o.pos.x, 1.5, o.pos.z), b.set(p.x, 1.4, p.z))) visto = true;
     }
     const punt = Math.min(dmin, 30) - (visto ? 25 : 0) + Math.random() * 8;
     if (punt > mejorP) { mejorP = punt; mejor = p; }
@@ -2158,17 +2750,26 @@ function numeroDano(p, dano, cabeza) {
 }
 // Registro de bajas
 const FEED = [];
+const CSS_EQUIPO = { azul: '#5d8dff', rojo: '#ff5b4a' };
+// Nombre para el HUD, con el color de su equipo si lo tiene
+const nombreHTML = c => c ? (c.equipo ? `<span style="color:${CSS_EQUIPO[c.equipo]}">${esc(c.nombre)}</span>` : esc(c.nombre)) : '?';
 function anotarBaja(at, vic, cabeza) {
   const d = document.createElement('div');
   if (at === J.ent || vic === J.ent) d.className = 'yo';
-  d.textContent = `${at ? at.nombre : '?'}  ▸  ${vic.nombre}${cabeza ? '  (cabeza)' : ''}`;
+  d.innerHTML = `${nombreHTML(at)}  ▸  ${nombreHTML(vic)}${cabeza ? '  (cabeza)' : ''}`;
   $('killfeed').prepend(d); FEED.push({ d, t: 4 });
   while ($('killfeed').children.length > 5) $('killfeed').lastChild.remove();
 }
 function htmlTabla() {
-  const filas = combatientes.slice().sort((a, b) => b.bajas - a.bajas || a.muertes - b.muertes);
+  const fila = c => `<tr class="${c.esJugador ? 'tu' : ''}"><td>${nombreHTML(c)}</td><td class="n">${c.bajas}</td><td class="n">${c.muertes}</td></tr>`;
+  const orden = (a, b) => b.bajas - a.bajas || a.muertes - b.muertes;
+  if (MODO.equipos) {
+    return ['azul', 'rojo'].map(eq =>
+      `<table class="puntos"><tr><th style="color:${CSS_EQUIPO[eq]}">Equipo ${NOMBRE_EQUIPO[eq]} · ${PUNTOS[eq]}</th><th class="n">Bajas</th><th class="n">Muertes</th></tr>` +
+      combatientes.filter(c => c.equipo === eq).sort(orden).map(fila).join('') + '</table>').join('<div style="height:10px"></div>');
+  }
   return '<table class="puntos"><tr><th>Jugador</th><th class="n">Bajas</th><th class="n">Muertes</th></tr>' +
-    filas.map(c => `<tr class="${c.esJugador ? 'tu' : ''}"><td>${c.nombre}</td><td class="n">${c.bajas}</td><td class="n">${c.muertes}</td></tr>`).join('') + '</table>';
+    combatientes.slice().sort(orden).map(fila).join('') + '</table>';
 }
 let tTabla = 0;
 
@@ -2177,7 +2778,13 @@ function actualizarHUD(dt) {
   // Arriba izquierda
   const t = Math.max(0, Math.ceil(tiempoRestante));
   setTexto('hudTiempo', `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`);
-  setTexto('hudBajasN', String(e.bajas));
+  if (HUDC.modo !== claveModo) {
+    HUDC.modo = claveModo;
+    mostrar('hudBajas', !MODO.equipos); mostrar('hudEquipos', MODO.equipos);
+    $('hudObjetivo').textContent = MODO.objetivo; $('hudObjetivoEq').textContent = MODO.objetivo;
+  }
+  if (MODO.equipos) { setTexto('ptsAzul', String(PUNTOS.azul)); setTexto('ptsRojo', String(PUNTOS.rojo)); }
+  else setTexto('hudBajasN', String(e.bajas));
   // Vida
   const v = Math.max(0, Math.round(e.vida));
   setTexto('vidaTxt', String(v));
@@ -2245,7 +2852,7 @@ function actualizarHUD(dt) {
   // Tabla (Tab)
   const conTabla = !!teclas.Tab;
   mostrar('tabla', conTabla);
-  if (conTabla) { tTabla -= dt; if (tTabla <= 0) { tTabla = 0.25; $('tabla').innerHTML = '<h3>Puntuación · primero a ' + JUEGO.bajasParaGanar + '</h3>' + htmlTabla(); } }
+  if (conTabla) { tTabla -= dt; if (tTabla <= 0) { tTabla = 0.25; $('tabla').innerHTML = '<h3>' + MODO.nombre + ' · primero a ' + MODO.objetivo + '</h3>' + htmlTabla(); } }
 }
 
 /* =====================================================================
@@ -2260,6 +2867,11 @@ function mostrarPantalla(id) { for (const p of PANTALLAS) $(p).classList.toggle(
 function actualizarResumen() {
   $('resP').textContent = WEAPONS[AJUSTES.principal].nombre;
   $('resS').textContent = WEAPONS[AJUSTES.secundaria].nombre;
+  const m = MODOS[AJUSTES.modo];
+  $('selModo').value = AJUSTES.modo;
+  $('subModo').textContent = m.equipos
+    ? `Tú + 4 bots (azules) contra 5 bots (rojos) · ${m.objetivo} bajas o ${m.duracion / 60} minutos`
+    : `Todos contra todos · ${JUEGO.numBots} bots · ${m.objetivo} bajas o ${m.duracion / 60} minutos`;
 }
 // Valores máximos para normalizar las barras de estadísticas
 const MAXS = (() => {
@@ -2346,7 +2958,7 @@ function abrirControles(desde) {
 /* =====================================================================
    17. PARTIDA: inicio, pausa, fin
    ===================================================================== */
-let reloj = 0, tiempoRestante = JUEGO.duracion, partidaCreada = false;
+let reloj = 0, tiempoRestante = JUEGO.duracion;
 
 // Captura del ratón (Pointer Lock). El navegador no deja recapturar hasta ~1 s después
 // de soltarlo con Esc, así que si se pide antes se espera lo que falte (el clic sigue valiendo).
@@ -2368,25 +2980,43 @@ function prepararCombatientes(numBots) {
   bots.length = 0; combatientes.length = 0;
   J.ent.id = 'h' + (NET.on ? NET.yo : 0);
   J.ent.nombre = NET.on ? nombreJugador() : 'Tú';
+  // Por equipos, las personas se reparten por turnos (1.ª azul, 2.ª roja, 3.ª azul…); así todos los ordenadores calculan lo mismo
+  const presentes = NET.on ? NET.slots.map((s, i) => s ? i : -1).filter(i => i >= 0) : [0];
+  const equipoDe = s => MODO.equipos ? (presentes.indexOf(s) % 2 === 0 ? 'azul' : 'rojo') : null;
+  J.ent.equipo = equipoDe(NET.on ? NET.yo : 0);
   combatientes.push(J.ent);
-  if (NET.on) for (let s = 0; s < MAX_JUG; s++) if (NET.slots[s] && s !== NET.yo) combatientes.push(crearRemoto(s));
-  for (let i = 0; i < numBots; i++) {
-    const b = crearBot(i); bots.push(b); combatientes.push(b.ent);
+  if (NET.on) for (const s of presentes) if (s !== NET.yo) combatientes.push(crearRemoto(s, equipoDe(s)));
+  const ponerBot = (i, equipo) => {
+    const b = crearBot(i, equipo); bots.push(b); combatientes.push(b.ent);
     if (NET.cliente) hacerTitere(b.ent, b.modelo);   // en el invitado los bots solo se dibujan; la IA va en el anfitrión
-  }
+  };
+  if (MODO.equipos) {
+    // Cada equipo se completa con bots hasta tener MODO.porEquipo
+    let i = 0;
+    for (const eq of ['azul', 'rojo']) {
+      const personas = combatientes.filter(c => c.equipo === eq).length;
+      for (let k = personas; k < MODO.porEquipo; k++) ponerBot(i++, eq);
+    }
+    // Nombre encima de los compañeros (los jugadores remotos ya lo llevan)
+    for (const c of combatientes) if (c.bot && c.equipo === J.ent.equipo) c.bot.modelo.add(crearEtiqueta(c.nombre, COLOR_EQUIPO[c.equipo]));
+  } else for (let i = 0; i < numBots; i++) ponerBot(i, null);
 }
-// opts.online = partida en red; opts.bots = número de bots
+// opts.online = partida en red; opts.bots = número de bots (todos contra todos); opts.modo = clave de MODOS
 function iniciarPartida(opts) {
   opts = opts || {};
   AUDIO.iniciar();
-  if (!MAPA) construirMapa(crearMapa());
+  claveModo = MODOS[opts.modo] ? opts.modo : AJUSTES.modo;
+  MODO = MODOS[claveModo];
+  if (!MAPA || MAPA.modo !== claveModo) { construirMapa(MODO.mapa()); MAPA.modo = claveModo; }
   NET.on = !!opts.online;
   prepararCombatientes(NET.on ? opts.bots : JUEGO.numBots);
   limpiarEfectos();
   FEED.length = 0; $('killfeed').innerHTML = '';
   for (const ind of INDIC) ind.vida = 0;
   for (const n of NUMS) { n.vida = 0; n.el.style.display = 'none'; }
-  reloj = 0; tiempoRestante = JUEGO.duracion;
+  reloj = 0; tiempoRestante = MODO.duracion;
+  PUNTOS.azul = PUNTOS.rojo = 0;
+  HUDC.modo = null;   // fuerza a repintar el marcador
   combatientes.forEach(c => { c.bajas = 0; c.muertes = 0; c.vivo = false; c.tReap = 0; });
   prepararArmas();
   if (!NET.cliente) {
@@ -2419,11 +3049,17 @@ function terminarPartida() {
   $('bOtra').classList.toggle('oculto', NET.cliente);
   $('finEspera').classList.toggle('oculto', !NET.cliente);
   if (document.pointerLockElement) document.exitPointerLock();
-  const max = Math.max(...combatientes.map(c => c.bajas));
-  const ganadores = combatientes.filter(c => c.bajas === max);
-  const gano = ganadores.length === 1 && ganadores[0].esJugador;
-  $('finTitulo').textContent = gano ? 'Victoria' : ganadores.some(c => c.esJugador) ? 'Empate' : 'Derrota';
-  $('finSub').textContent = ganadores.length === 1 ? `Gana ${ganadores[0].esJugador ? 'tú' : ganadores[0].nombre} con ${max} bajas` : `Empate a ${max} bajas`;
+  if (MODO.equipos) {
+    const a = PUNTOS.azul, r = PUNTOS.rojo, gana = a === r ? null : a > r ? 'azul' : 'rojo';
+    $('finTitulo').textContent = !gana ? 'Empate' : gana === J.ent.equipo ? 'Victoria' : 'Derrota';
+    $('finSub').textContent = gana ? `Gana el equipo ${NOMBRE_EQUIPO[gana]}: ${Math.max(a, r)} a ${Math.min(a, r)}` : `Empate a ${a} bajas`;
+  } else {
+    const max = Math.max(...combatientes.map(c => c.bajas));
+    const ganadores = combatientes.filter(c => c.bajas === max);
+    const gano = ganadores.length === 1 && ganadores[0].esJugador;
+    $('finTitulo').textContent = gano ? 'Victoria' : ganadores.some(c => c.esJugador) ? 'Empate' : 'Derrota';
+    $('finSub').textContent = ganadores.length === 1 ? `Gana ${ganadores[0].esJugador ? 'tú' : ganadores[0].nombre} con ${max} bajas` : `Empate a ${max} bajas`;
+  }
   $('finTabla').innerHTML = htmlTabla();
   $('hud').classList.add('oculto');
   mostrarPantalla('pantallaFin');
@@ -2520,6 +3156,8 @@ $('bNetUnirse').onclick = netUnirse;
 $('netCodigo').onkeydown = e => { if (e.key === 'Enter') netUnirse(); };
 $('netNombre').onchange = () => { guardarNombre(); if (NET.cliente) netEnviar({ t: 'hola', nombre: nombreJugador() }); else if (NET.anfitrion) { NET.slots[0].nombre = nombreJugador(); netSala(); } };
 $('bNetEmpezar').onclick = netEmpezar;
+$('netModo').onchange = () => pintarSala();
+$('selModo').onchange = e => { AJUSTES.modo = e.target.value; guardar('fc_ajustes', AJUSTES); actualizarResumen(); };
 $('bNetVolver').onclick = () => { netCerrar(); estado = 'menu'; mostrarPantalla('pantallaInicio'); };
 $('bArmamento').onclick = abrirArmamento;
 $('bControles').onclick = () => abrirControles('menu');
@@ -2587,7 +3225,9 @@ function pintarSala() {
   $('netCodigoTxt').textContent = NET.codigo;
   $('netLista').innerHTML = NET.slots.map((s, i) => s ? `<div class="jug"><i style="background:#${COLORES_JUG[i].toString(16).padStart(6, '0')}"></i>${esc(s.nombre)}${i === 0 ? ' · anfitrión' : ''}${i === NET.yo ? ' · tú' : ''}</div>` : '').join('');
   $('bNetEmpezar').classList.toggle('oculto', !NET.anfitrion);
-  $('netBotsFila').classList.toggle('oculto', !NET.anfitrion);
+  $('netModoFila').classList.toggle('oculto', !NET.anfitrion);
+  // En 5 contra 5 los bots se ponen solos hasta completar los equipos
+  $('netBotsFila').classList.toggle('oculto', !NET.anfitrion || $('netModo').value === '5v5');
   const n = NET.slots.filter(Boolean).length;
   $('netMsg').textContent = NET.msg ||
     (NET.cliente ? 'Conectado. Esperando a que el anfitrión empiece…' :
@@ -2641,10 +3281,9 @@ function netQuitar(slot) {
 }
 function netEmpezar() {
   if (!NET.anfitrion) return;
-  if (!MAPA) construirMapa(crearMapa());
-  const bots = +$('netBots').value;
-  netTodos({ t: 'inicio', slots: NET.slots, bots });
-  iniciarPartida({ online: true, bots });   // reaparecer() manda a cada invitado su punto de salida
+  const bots = +$('netBots').value, modo = $('netModo').value;
+  netTodos({ t: 'inicio', slots: NET.slots, bots, modo });
+  iniciarPartida({ online: true, bots, modo });   // reaparecer() manda a cada invitado su punto de salida
 }
 
 // ---- Invitado: unirse con un código ----
@@ -2697,9 +3336,10 @@ function crearEtiqueta(texto, color) {
 function hacerTitere(e, modelo) {
   e.titere = true; e.modelo = modelo; e.objetivo = new V3(); e.yaw = 0; e.pitch = 0; e.altObj = 0;
 }
-function crearRemoto(slot) {
-  const e = crearCombatiente(NET.slots[slot].nombre, false, COLORES_JUG[slot % COLORES_JUG.length]);
-  e.id = 'h' + slot; e.remoto = true; e.slot = slot;
+function crearRemoto(slot, equipo) {
+  const color = equipo ? COLOR_EQUIPO[equipo] : COLORES_JUG[slot % COLORES_JUG.length];
+  const e = crearCombatiente(NET.slots[slot].nombre, false, color);
+  e.id = 'h' + slot; e.remoto = true; e.slot = slot; e.equipo = equipo || null;
   const g = crearModeloBot(e.color);
   g.add(crearEtiqueta(e.nombre, e.color));
   escena.add(g);
@@ -2751,7 +3391,7 @@ function efectoTiroRemoto(e, d) {
 // ---- Estado del mundo (anfitrión → todos) ----
 function netMundo() {
   return {
-    t: 'w', tr: r2(tiempoRestante),
+    t: 'w', tr: r2(tiempoRestante), p: [PUNTOS.azul, PUNTOS.rojo],
     e: combatientes.map(c => [c.id, r2(c.pos.x), r2(c.pos.z),
       r2(c.esJugador ? J.yaw + Math.PI : c.bot ? c.bot.yaw : c.yaw),
       r2(c.altAgachado), c.vivo ? 1 : 0, Math.round(c.vida), c.bajas, c.muertes])
@@ -2760,6 +3400,7 @@ function netMundo() {
 function aplicarMundo(w) {
   if (!w || !w.e) return;
   tiempoRestante = w.tr;
+  if (w.p) { PUNTOS.azul = w.p[0]; PUNTOS.rojo = w.p[1]; }
   for (const [id, x, z, yaw, alt, vivo, vida, bajas, muertes] of w.e) {
     const c = entPorId(id);
     if (!c) continue;
@@ -2794,7 +3435,7 @@ function netEnCliente(d) {
     const m = d.por === 'empezada' ? 'Esa partida ya ha empezado' : 'La partida está llena (6 jugadores)';
     netCerrar(); NET.msg = m; pintarSala(); return;
   }
-  if (d.t === 'inicio') { NET.slots = d.slots; iniciarPartida({ online: true, bots: d.bots }); return; }
+  if (d.t === 'inicio') { NET.slots = d.slots; iniciarPartida({ online: true, bots: d.bots, modo: d.modo || 'tct' }); return; }
   if (!NET.on) return;
   if (d.t === 'w') aplicarMundo(d);
   else if (d.t === 'tiro') { const e = entPorId(d.id); if (e && e !== J.ent) efectoTiroRemoto(e, d); }
@@ -2827,10 +3468,21 @@ function netTick(dt) {
 /* =====================================================================
    19. BUCLE PRINCIPAL
    ===================================================================== */
-let ultimoT = performance.now();
+let ultimoT = performance.now(), ultimoRAF = performance.now();
 function bucle(ahora) {
   requestAnimationFrame(bucle);
-  const dt = Math.min(0.05, (ahora - ultimoT) / 1000);
+  ultimoRAF = performance.now();
+  paso(ahora, true);
+}
+// Si la pestaña queda en segundo plano (otra pestaña, ventana minimizada) el navegador deja de
+// llamar a requestAnimationFrame. Online eso congelaría la partida de TODOS (sobre todo si es el
+// anfitrión), así que mientras tanto se sigue simulando con un temporizador, sin dibujar.
+setInterval(() => {
+  const ahora = performance.now();
+  if (NET.on && ahora - ultimoRAF > 250) paso(ahora, false);
+}, 50);
+function paso(ahora, dibujar) {
+  const dt = Math.min(0.05, Math.max(0, (ahora - ultimoT) / 1000));
   ultimoT = ahora;
   // Puntero oculto mientras se juega (también en el modo sin captura)
   const cursor = estado === 'jugando' ? 'none' : '';
@@ -2857,7 +3509,7 @@ function bucle(ahora) {
     PREV.pivote.rotation.y += dt * 0.8;
     PREV.r.render(PREV.escena, PREV.cam);
   }
-  if (MAPA && (estado === 'jugando' || estado === 'pausa' || estado === 'fin') || (estado === 'controles' && volverDesdeControles === 'pausa')) {
+  if (dibujar && (MAPA && (estado === 'jugando' || estado === 'pausa' || estado === 'fin') || (estado === 'controles' && volverDesdeControles === 'pausa'))) {
     renderizar(J.ent.vivo && estado !== 'fin');
   }
 }
@@ -2868,7 +3520,7 @@ requestAnimationFrame(bucle);
 window.__FC = {
   get estado() { return estado; },
   forzarJuego() { estado = 'jugando'; bloqueado = true; mostrarPantalla(null); },
-  J, JA, combatientes, NET, get mapa() { return MAPA; }
+  J, JA, combatientes, NET, PUNTOS, aplicarDano, get mapa() { return MAPA; }
 };
 })();
 </script>
