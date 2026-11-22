@@ -1,0 +1,2876 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frente Cero</title>
+<style>
+/* ===================== ESTILOS GENERALES ===================== */
+:root{
+  --ambar:#f2b134; --ambar2:#ffd27a; --panel:rgba(20,26,34,.94);
+  --texto:#e8edf2; --tenue:#8d99a6; --rojo:#e0473a; --verde:#5fd17a;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:#11161c;color:var(--texto);
+  font-family:"Ubuntu","Segoe UI",system-ui,sans-serif;user-select:none}
+#lienzo{display:block;position:fixed;inset:0}
+.oculto{display:none!important}
+
+/* ===================== MENÚS ===================== */
+.pantalla{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at center,rgba(22,28,38,.72),rgba(6,8,12,.96));z-index:20}
+.caja{background:var(--panel);border:1px solid rgba(242,177,52,.3);border-radius:6px;
+  padding:30px 38px;min-width:360px;max-width:94vw;max-height:94vh;overflow:auto;
+  box-shadow:0 20px 60px rgba(0,0,0,.55)}
+.caja.ancha{width:900px}
+h1{margin:0 0 4px;font-size:52px;letter-spacing:.14em;font-weight:800;color:var(--ambar)}
+h1 span{color:var(--texto)}
+h2{margin:0 0 18px;letter-spacing:.1em;text-transform:uppercase;font-size:22px;color:var(--ambar)}
+.sub{margin:0 0 22px;color:var(--tenue);letter-spacing:.06em}
+.resumen{margin:0 0 16px;font-size:14px;color:var(--tenue)}
+.resumen b{color:var(--texto)}
+button.btn{display:block;width:100%;margin:9px 0;padding:12px 18px;font:600 15px inherit;font-family:inherit;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--texto);background:#1c242e;
+  border:1px solid #34404d;border-left:4px solid var(--ambar);cursor:pointer;text-align:left}
+button.btn:hover{background:#26313e;color:var(--ambar2)}
+.arm-grid{display:grid;grid-template-columns:1fr 1.25fr;gap:24px}
+.arm-titulo{margin:6px 0 8px;font-size:13px;color:var(--tenue);text-transform:uppercase;letter-spacing:.12em}
+.arm-lista{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.arm-item{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;
+  background:#1a222b;border:1px solid #303b47;color:var(--texto);cursor:pointer;font-family:inherit;font-size:15px;text-align:left}
+.arm-item small{color:var(--tenue);font-size:12px}
+.arm-item:hover{border-color:#6b7785}
+.arm-item.sel{border-color:var(--ambar);background:#2a2717}
+.arm-item.sel small{color:var(--ambar2)}
+#prevLienzo{width:100%;height:220px;display:block;background:linear-gradient(#1b2430,#0f141a);border:1px solid #2c3742}
+#prevNombre{margin:12px 0 2px;font-size:20px;font-weight:700}
+#prevModo{color:var(--tenue);font-size:13px;margin-bottom:10px}
+.stat{display:grid;grid-template-columns:90px 1fr 74px;align-items:center;gap:10px;margin:6px 0;font-size:13px}
+.stat .barra{height:8px;background:#0d1217;border:1px solid #2b3540}
+.stat .barra i{display:block;height:100%;background:linear-gradient(90deg,#c98a1c,var(--ambar2))}
+.stat .val{text-align:right;color:var(--tenue)}
+.controles{display:grid;grid-template-columns:auto 1fr;gap:6px 22px;font-size:15px;margin-bottom:18px}
+.controles b{color:var(--ambar2);font-weight:600}
+.ajuste{display:flex;align-items:center;gap:12px;margin:10px 0;font-size:14px}
+.ajuste input[type=range]{flex:1}
+.campo{flex:1;padding:9px 12px;font:15px inherit;font-family:inherit;color:var(--texto);background:#0f151b;border:1px solid #34404d;outline:none;user-select:text}
+.campo:focus{border-color:var(--ambar)}
+select{padding:6px 10px;font-family:inherit;font-size:14px;color:var(--texto);background:#0f151b;border:1px solid #34404d}
+button.btn.mini{display:inline-block;width:auto;margin:0;padding:9px 16px}
+.codigo{font-size:18px;margin:4px 0 12px}
+.codigo b{font-size:30px;letter-spacing:.2em;color:var(--ambar2);user-select:text}
+#netLista .jug{display:flex;align-items:center;gap:10px;padding:7px 10px;background:#1a222b;border:1px solid #303b47;margin-bottom:5px}
+#netLista .jug i{width:12px;height:12px;border-radius:2px;display:inline-block}
+#pausaAviso{color:var(--tenue);font-size:13px;min-height:18px}
+table.puntos{border-collapse:collapse;width:100%;font-size:15px}
+table.puntos th{color:var(--tenue);font-weight:500;text-align:left;padding:5px 10px;border-bottom:1px solid #34404d;font-size:12px;text-transform:uppercase;letter-spacing:.1em}
+table.puntos td{padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.05)}
+table.puntos tr.tu td{color:var(--ambar2);font-weight:700}
+table.puntos td.n{text-align:right;width:70px}
+table.puntos th.n{text-align:right}
+
+/* ===================== HUD ===================== */
+#hud{position:fixed;inset:0;pointer-events:none;z-index:10}
+#hudTL{position:absolute;left:22px;top:16px;background:rgba(10,14,18,.55);border-left:3px solid var(--ambar);padding:8px 14px}
+#hudTiempo{font-size:28px;font-weight:700;letter-spacing:.06em}
+#hudBajas{font-size:14px;color:var(--tenue);letter-spacing:.08em}
+#hudBajas b{color:var(--texto);font-size:17px}
+#killfeed{position:absolute;right:22px;top:16px;text-align:right;font-size:14px}
+#killfeed div{background:rgba(10,14,18,.55);padding:4px 10px;margin-bottom:4px}
+#killfeed .yo{color:var(--ambar2)}
+#vidaCaja{position:absolute;left:50%;bottom:30px;transform:translateX(-50%);width:340px;display:flex;align-items:center;gap:12px}
+#vidaBarra{flex:1;height:12px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.25);transform:skewX(-20deg);overflow:hidden}
+#vidaRelleno{height:100%;width:100%;background:linear-gradient(90deg,#3fae5b,#8be39c);transition:width .12s}
+#vidaRelleno.baja{background:linear-gradient(90deg,#b8322a,#ef6a5c)}
+#vidaTxt{font-size:20px;font-weight:700;width:44px}
+#armaCaja{position:absolute;right:26px;bottom:24px;text-align:right}
+#armaNombre{font-size:14px;color:var(--tenue);letter-spacing:.12em;text-transform:uppercase}
+#armaMun{font-size:40px;font-weight:800;line-height:1.05}
+#armaMun small{font-size:20px;color:var(--tenue);font-weight:500}
+#armaMun.vacio #munCar{color:var(--rojo)}
+#slots{display:flex;justify-content:flex-end;gap:6px;margin-top:6px}
+#slots span{border:1px solid rgba(255,255,255,.25);padding:2px 8px;font-size:12px;color:var(--tenue);background:rgba(10,14,18,.5)}
+#slots span.activo{border-color:var(--ambar);color:var(--ambar2)}
+#armaAviso{font-size:13px;color:var(--ambar2);letter-spacing:.12em;min-height:16px;margin-top:4px}
+#mira{position:absolute;left:50%;top:50%;width:0;height:0}
+#mira i{position:absolute;background:#fff;box-shadow:0 0 2px rgba(0,0,0,.9)}
+#mira .mt,#mira .mb{width:2px;height:9px;left:-1px;top:0}
+#mira .ml,#mira .mr{width:9px;height:2px;top:-1px;left:0}
+#mira .mp{width:2px;height:2px;left:-1px;top:-1px}
+#marcador{position:absolute;left:50%;top:50%;width:0;height:0;opacity:0}
+#marcador i{position:absolute;width:2px;height:9px;background:#fff;left:-1px;top:-4px;box-shadow:0 0 2px #000}
+#marcador i:nth-child(1){transform:rotate(45deg) translateY(-11px)}
+#marcador i:nth-child(2){transform:rotate(135deg) translateY(-11px)}
+#marcador i:nth-child(3){transform:rotate(225deg) translateY(-11px)}
+#marcador i:nth-child(4){transform:rotate(315deg) translateY(-11px)}
+#marcador.cabeza i{background:#ff5a3c;height:12px}
+#marcador.baja i{background:#ff2a2a;width:3px;height:14px}
+#indicadores .ind{position:absolute;left:50%;top:50%;width:0;height:0;opacity:0}
+#indicadores .ind i{position:absolute;left:-70px;top:-190px;width:140px;height:34px;
+  border-top:6px solid rgba(230,60,45,.95);border-radius:50%/100% 100% 0 0}
+#danoVineta{position:absolute;inset:0;box-shadow:inset 0 0 160px 30px rgba(190,15,15,.95);opacity:0}
+#mirilla{position:absolute;inset:0;background:radial-gradient(circle at center,transparent 0,transparent 38vh,#000 38.4vh)}
+#mirilla::before{content:"";position:absolute;left:50%;top:12vh;bottom:12vh;width:1px;background:#000}
+#mirilla::after{content:"";position:absolute;top:50%;left:calc(50% - 38vh);width:76vh;height:1px;background:#000}
+#numeros .num{position:absolute;left:0;top:0;font-weight:800;font-size:16px;color:#fff;text-shadow:0 1px 3px #000;white-space:nowrap}
+#numeros .num.cabeza{color:#ffcf3a;font-size:19px}
+#mensaje{position:absolute;left:50%;top:36%;transform:translate(-50%,-50%);font-size:26px;text-align:center;
+  text-shadow:0 2px 6px #000;letter-spacing:.06em}
+#tabla{position:absolute;left:50%;top:16%;transform:translateX(-50%);width:520px;max-width:92vw;
+  background:rgba(14,18,24,.9);border:1px solid rgba(242,177,52,.35);padding:16px 18px}
+#tabla h3{margin:0 0 10px;color:var(--ambar);letter-spacing:.12em;font-size:15px;text-transform:uppercase}
+</style>
+</head>
+<body>
+
+<!-- ===================== PANTALLAS DE MENÚ ===================== -->
+<div id="pantallaInicio" class="pantalla">
+  <div class="caja">
+    <h1>FRENTE <span>CERO</span></h1>
+    <p class="sub">Todos contra todos · 5 bots · 20 bajas o 5 minutos</p>
+    <p class="resumen">Principal: <b id="resP"></b> · Secundaria: <b id="resS"></b></p>
+    <button class="btn" id="bJugar">Jugar</button>
+    <button class="btn" id="bOnline">Online</button>
+    <button class="btn" id="bArmamento">Elegir armamento</button>
+    <button class="btn" id="bControles">Controles</button>
+  </div>
+</div>
+
+<div id="pantallaArmamento" class="pantalla oculto">
+  <div class="caja ancha">
+    <h2>Elegir armamento</h2>
+    <div class="arm-grid">
+      <div>
+        <div class="arm-titulo">Arma principal</div>
+        <div id="listaPrincipal" class="arm-lista"></div>
+        <div class="arm-titulo">Pistola secundaria</div>
+        <div id="listaSecundaria" class="arm-lista"></div>
+      </div>
+      <div>
+        <canvas id="prevLienzo"></canvas>
+        <div id="prevNombre"></div>
+        <div id="prevModo"></div>
+        <div id="stats"></div>
+      </div>
+    </div>
+    <button class="btn" id="bArmVolver">Volver</button>
+  </div>
+</div>
+
+<div id="pantallaControles" class="pantalla oculto">
+  <div class="caja">
+    <h2>Controles</h2>
+    <div class="controles">
+      <b>Ratón</b><span>Mirar</span>
+      <b>W A S D</b><span>Moverse</span>
+      <b>Shift</b><span>Correr (solo hacia delante)</span>
+      <b>C (mantener)</b><span>Agacharse</span>
+      <b>Clic izquierdo</b><span>Disparar (mantener en automáticas)</span>
+      <b>Clic derecho (mantener)</b><span>Apuntar con la mira</span>
+      <b>1 / 2 / rueda</b><span>Arma principal / pistola</span>
+      <b>R</b><span>Recargar</span>
+      <b>Tab (mantener)</b><span>Tabla de puntuación</span>
+      <b>Esc</b><span>Pausa</span>
+    </div>
+    <div class="ajuste">Sensibilidad <input type="range" id="sens" min="0.3" max="2.5" step="0.05"><span id="sensVal"></span></div>
+    <div class="ajuste"><label><input type="checkbox" id="chkNumeros"> Mostrar números de daño</label></div>
+    <div class="ajuste">Gráficos
+      <select id="selCalidad">
+        <option value="baja">Baja (más rápido)</option>
+        <option value="media">Media (resplandor y color)</option>
+        <option value="alta">Alta (+ sombras de contacto)</option>
+      </select>
+    </div>
+    <button class="btn" id="bCtrlVolver">Volver</button>
+  </div>
+</div>
+
+<div id="pantallaOnline" class="pantalla oculto">
+  <div class="caja" style="width:540px">
+    <h2>Online</h2>
+    <div class="ajuste">Tu nombre <input type="text" id="netNombre" class="campo" maxlength="14" placeholder="Jugador"></div>
+    <div id="netInicio">
+      <button class="btn" id="bNetCrear">Crear partida (generar código)</button>
+      <div class="ajuste">Unirse con código
+        <input type="text" id="netCodigo" class="campo" maxlength="6" inputmode="numeric" placeholder="123456">
+        <button class="btn mini" id="bNetUnirse">Unirse</button>
+      </div>
+    </div>
+    <div id="netSala" class="oculto">
+      <div class="codigo">Código de la partida: <b id="netCodigoTxt"></b></div>
+      <div id="netLista"></div>
+      <div class="ajuste" id="netBotsFila">Bots en la partida
+        <select id="netBots"><option>0</option><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select>
+      </div>
+      <button class="btn" id="bNetEmpezar">Empezar partida</button>
+    </div>
+    <p class="sub" id="netMsg"></p>
+    <button class="btn" id="bNetVolver">Volver</button>
+  </div>
+</div>
+
+<div id="pantallaPausa" class="pantalla oculto">
+  <div class="caja">
+    <h2>Pausa</h2>
+    <button class="btn" id="bContinuar">Continuar</button>
+    <button class="btn" id="bPausaControles">Controles</button>
+    <button class="btn" id="bSalir">Salir al menú</button>
+    <div id="pausaAviso"></div>
+  </div>
+</div>
+
+<div id="pantallaFin" class="pantalla oculto">
+  <div class="caja" style="width:560px">
+    <h2 id="finTitulo">Fin de la partida</h2>
+    <p class="sub" id="finSub"></p>
+    <div id="finTabla"></div>
+    <button class="btn" id="bOtra">Jugar otra vez</button>
+    <p class="sub oculto" id="finEspera">Esperando a que el anfitrión empiece otra partida…</p>
+    <button class="btn" id="bFinMenu">Menú principal</button>
+  </div>
+</div>
+
+<!-- ===================== HUD ===================== -->
+<div id="hud" class="oculto">
+  <div id="mirilla" class="oculto"></div>
+  <div id="danoVineta"></div>
+  <div id="hudTL"><div id="hudTiempo">5:00</div><div id="hudBajas">BAJAS <b id="hudBajasN">0</b> / 20</div></div>
+  <div id="killfeed"></div>
+  <div id="mira"><i class="mt"></i><i class="mb"></i><i class="ml"></i><i class="mr"></i><i class="mp"></i></div>
+  <div id="marcador"><i></i><i></i><i></i><i></i></div>
+  <div id="indicadores"></div>
+  <div id="numeros"></div>
+  <div id="mensaje"></div>
+  <div id="vidaCaja"><div id="vidaBarra"><div id="vidaRelleno"></div></div><span id="vidaTxt">100</span></div>
+  <div id="armaCaja">
+    <div id="armaNombre"></div>
+    <div id="armaMun"><span id="munCar">0</span> <small>/ <span id="munRes">0</span></small></div>
+    <div id="slots"><span id="slot1">1</span><span id="slot2">2</span></div>
+    <div id="armaAviso"></div>
+  </div>
+  <div id="tabla" class="oculto"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<!-- Postprocesado (opcional: si no carga, el juego usa la calidad baja) -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/FXAAShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/SSAOShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/math/SimplexNoise.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/SSAOPass.js"></script>
+<script>
+(() => {
+'use strict';
+
+/* =====================================================================
+   1. CONFIGURACIÓN DE ARMAS (WEAPONS)
+   ---------------------------------------------------------------------
+   Unidades:
+   - dano / danoMin: vida que quita cada impacto (en la escopeta, CADA perdigón).
+     Hasta distMin (m) hace "dano"; entre distMin y distMax baja hasta "danoMin".
+   - cadencia: disparos por minuto.     - recarga: segundos.
+   - dispersion: grados de desviación máxima disparando desde la cadera y quieto.
+   - factorApuntar: multiplica la dispersión al apuntar (0 = precisión perfecta).
+   - bloom / bloomMax: grados que se suman a la dispersión por disparo (y su tope).
+   - retroV / retroH: grados que sube / se desvía la mira por disparo.
+   - recuperacion: velocidad (1/s) con la que la mira vuelve al dejar de disparar.
+   - fovApuntar: campo de visión (grados) al apuntar. 75 es el normal.
+   - modo: 'auto' | 'semi' | 'cerrojo' (cerrojo y corredera: un disparo por clic + ciclo).
+   ===================================================================== */
+const WEAPONS = {
+  ak: {
+    nombre: 'AK-47', corto: 'AK', tipo: 'principal', modo: 'auto',
+    dano: 33, danoMin: 24, distMin: 20, distMax: 60, perdigones: 1,
+    cadencia: 600, cargador: 30, reserva: 120, recarga: 2.4,
+    dispersion: 2.0, factorApuntar: 0.22, bloom: 0.35, bloomMax: 2.6,
+    retroV: 1.35, retroH: 0.55, recuperacion: 6,
+    fovApuntar: 55, tApuntar: 0.2, velMovimiento: 0.94,
+    retroVisual: { z: 0.06, rot: 0.09 }, mira: 'hierro',
+    sonido: { filtro: 1900, grave: 95, dur: 0.2, vol: 1.0, cola: 0.25 }
+  },
+  m4: {
+    nombre: 'M4', corto: 'M4', tipo: 'principal', modo: 'auto',
+    dano: 27, danoMin: 20, distMin: 22, distMax: 65, perdigones: 1,
+    cadencia: 750, cargador: 30, reserva: 150, recarga: 2.1,
+    dispersion: 1.6, factorApuntar: 0.2, bloom: 0.22, bloomMax: 1.8,
+    retroV: 0.7, retroH: 0.25, recuperacion: 9,
+    fovApuntar: 55, tApuntar: 0.18, velMovimiento: 0.97,
+    retroVisual: { z: 0.035, rot: 0.05 }, mira: 'hierro',
+    sonido: { filtro: 2600, grave: 110, dur: 0.16, vol: 0.9, cola: 0.2 }
+  },
+  mp5: {
+    nombre: 'MP5', corto: 'MP5', tipo: 'principal', modo: 'auto',
+    dano: 20, danoMin: 11, distMin: 10, distMax: 32, perdigones: 1,
+    cadencia: 900, cargador: 30, reserva: 150, recarga: 1.9,
+    dispersion: 2.4, factorApuntar: 0.35, bloom: 0.18, bloomMax: 2.0,
+    retroV: 0.45, retroH: 0.32, recuperacion: 11,
+    fovApuntar: 62, tApuntar: 0.14, velMovimiento: 1.0,
+    retroVisual: { z: 0.025, rot: 0.04 }, mira: 'hierro',
+    sonido: { filtro: 3200, grave: 140, dur: 0.11, vol: 0.75, cola: 0.1 }
+  },
+  escopeta: {
+    nombre: 'Escopeta de corredera', corto: 'ESC', tipo: 'principal', modo: 'cerrojo',
+    dano: 16, danoMin: 3, distMin: 6, distMax: 24, perdigones: 8,
+    cadencia: 72, cargador: 8, reserva: 32, recarga: 3.0,
+    dispersion: 5.0, factorApuntar: 0.75, bloom: 0, bloomMax: 0,
+    retroV: 4.5, retroH: 1.3, recuperacion: 6,
+    fovApuntar: 62, tApuntar: 0.2, velMovimiento: 0.95,
+    retroVisual: { z: 0.11, rot: 0.2 }, mira: 'hierro',
+    sonido: { filtro: 1300, grave: 70, dur: 0.32, vol: 1.15, cola: 0.45 }
+  },
+  francotirador: {
+    nombre: 'Rifle de cerrojo', corto: 'FRA', tipo: 'principal', modo: 'cerrojo',
+    dano: 105, danoMin: 90, distMin: 50, distMax: 150, perdigones: 1,
+    cadencia: 50, cargador: 5, reserva: 25, recarga: 3.2,
+    dispersion: 6.0, factorApuntar: 0.0, bloom: 0, bloomMax: 0,
+    retroV: 5.5, retroH: 1.0, recuperacion: 5,
+    fovApuntar: 18, tApuntar: 0.3, velMovimiento: 0.88,
+    retroVisual: { z: 0.12, rot: 0.16 }, mira: 'telescopica',
+    sonido: { filtro: 1500, grave: 60, dur: 0.38, vol: 1.25, cola: 0.7 }
+  },
+  pistolaLigera: {
+    nombre: 'Pistola ligera', corto: 'PL', tipo: 'secundaria', modo: 'semi',
+    dano: 24, danoMin: 15, distMin: 14, distMax: 40, perdigones: 1,
+    cadencia: 420, cargador: 12, reserva: 48, recarga: 1.5,
+    dispersion: 1.5, factorApuntar: 0.35, bloom: 0.4, bloomMax: 2.0,
+    retroV: 1.0, retroH: 0.35, recuperacion: 10,
+    fovApuntar: 62, tApuntar: 0.12, velMovimiento: 1.05,
+    retroVisual: { z: 0.03, rot: 0.12 }, mira: 'hierro',
+    posCadera: [0.17, -0.17, -0.38], posApuntar: [0, -0.004, -0.4],
+    sonido: { filtro: 2800, grave: 130, dur: 0.12, vol: 0.8, cola: 0.12 }
+  },
+  pistolaPesada: {
+    nombre: 'Pistola pesada', corto: 'PP', tipo: 'secundaria', modo: 'semi',
+    dano: 52, danoMin: 38, distMin: 15, distMax: 45, perdigones: 1,
+    cadencia: 200, cargador: 7, reserva: 28, recarga: 1.9,
+    dispersion: 1.8, factorApuntar: 0.3, bloom: 0.9, bloomMax: 3.0,
+    retroV: 3.4, retroH: 0.9, recuperacion: 7,
+    fovApuntar: 60, tApuntar: 0.14, velMovimiento: 1.0,
+    retroVisual: { z: 0.05, rot: 0.3 }, mira: 'hierro',
+    posCadera: [0.17, -0.17, -0.38], posApuntar: [0, -0.004, -0.4],
+    sonido: { filtro: 1700, grave: 85, dur: 0.22, vol: 1.05, cola: 0.3 }
+  }
+};
+const PRINCIPALES = ['ak', 'm4', 'mp5', 'escopeta', 'francotirador'];
+const SECUNDARIAS = ['pistolaLigera', 'pistolaPesada'];
+const NOMBRE_MODO = { auto: 'Automática', semi: 'Semiautomática', cerrojo: 'Acción manual (cerrojo / corredera)' };
+
+/* =====================================================================
+   2. CONFIGURACIÓN GENERAL, JUGADOR Y BOTS
+   ===================================================================== */
+const JUEGO = {
+  bajasParaGanar: 20,
+  duracion: 300,           // segundos
+  numBots: 5,
+  reaparicion: 3,          // segundos
+  multCabeza: 2,           // multiplicador de daño en la cabeza
+  retroApuntando: 0.35,    // apuntando, el retroceso baja un 35 %
+  tCambioArma: 0.4,        // segundos de la animación de cambio
+  fovBase: 75,
+  sensibilidad: 0.0022,    // radianes por píxel (se multiplica por el ajuste del menú)
+  regeneracion: { espera: 5, porSegundo: 12 }, // vida que se recupera sin recibir daño
+  numerosDano: true
+};
+const JUGADOR_CFG = {
+  vida: 100, radio: 0.4, alturaOjo: 1.62, alturaOjoAgachado: 1.05,
+  velAndar: 4.6, velCorrer: 6.9, velAgachado: 2.3, factorApuntar: 0.6, aceleracion: 14
+};
+// Factores de dispersión según el movimiento
+const DISPERSION_MOV = { quieto: 1, andando: 1.6, corriendo: 2.6, agachado: 0.6 };
+
+const BOT_CFG = {
+  nombres: ['Cuervo', 'Lince', 'Vega', 'Toro', 'Niebla'],
+  colores: [0x3b6ea5, 0xa5473b, 0x5a9a4a, 0x9a7a2a, 0x7a4a9a],
+  vida: 100, velocidad: 4.0, velCombate: 2.6, radio: 0.35,
+  vista: 55, campoVision: 140, oido: 9,      // metros, grados, metros
+  reaccion: [0.35, 0.75],                    // segundos antes de empezar a disparar
+  dano: 11, cadencia: 540, rafaga: [3, 6], pausaRafaga: [0.35, 0.9],
+  cargador: 25, recarga: 2.4,
+  error: 2.6,                                // grados de imprecisión base
+  probCabeza: 0.12,                          // probabilidad de apuntar a la cabeza
+  distPreferida: [7, 22],
+  sonido: { filtro: 1700, grave: 90, dur: 0.16, vol: 0.9, cola: 0.2 }
+};
+
+/* =====================================================================
+   3. UTILIDADES
+   ===================================================================== */
+const V3 = THREE.Vector3;
+const DEG = Math.PI / 180;
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const lerp = (a, b, t) => a + (b - a) * t;
+const rand = (a, b) => a + Math.random() * (b - a);
+const randInt = (a, b) => Math.floor(rand(a, b + 1));
+const suave = t => t * t * (3 - 2 * t);
+const r2 = v => Math.round((v || 0) * 100) / 100;   // redondeo a centímetros (mensajes online más cortos)
+const $ = id => document.getElementById(id);
+function difAng(a, b) { let d = (b - a) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2; return d; }
+function girarHacia(a, b, max) { const d = difAng(a, b); return a + clamp(d, -max, max); }
+function guardar(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sin almacenamiento */ } }
+function cargar(k, def) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch (e) { return def; } }
+const tmpA = new V3(), tmpB = new V3(), tmpC = new V3(), tmpD = new V3();
+
+// Dirección aleatoria dentro de un cono de semiángulo "ang" alrededor de "dir" (normalizada)
+function conoAleatorio(dir, ang, out) {
+  out.copy(dir);
+  if (ang <= 0) return out;
+  const arriba = Math.abs(dir.y) < 0.99 ? tmpC.set(0, 1, 0) : tmpC.set(1, 0, 0);
+  const der = tmpD.crossVectors(dir, arriba).normalize();
+  const arr2 = arriba.crossVectors(der, dir).normalize();
+  const r = Math.tan(Math.sqrt(Math.random()) * ang), a = Math.random() * Math.PI * 2;
+  out.addScaledVector(der, Math.cos(a) * r).addScaledVector(arr2, Math.sin(a) * r).normalize();
+  return out;
+}
+
+// Ajustes del jugador guardados
+const AJUSTES = Object.assign({ sens: 1, numeros: true, principal: 'ak', secundaria: 'pistolaLigera', calidad: 'media' }, cargar('fc_ajustes', {}));
+if (!WEAPONS[AJUSTES.principal]) AJUSTES.principal = 'ak';
+if (!WEAPONS[AJUSTES.secundaria]) AJUSTES.secundaria = 'pistolaLigera';
+JUEGO.numerosDano = AJUSTES.numeros;
+
+/* =====================================================================
+   4. SONIDO (Web Audio, todo sintetizado)
+   ===================================================================== */
+const AUDIO = (() => {
+  let ctx = null, master = null, ruido = null;
+  function iniciar() {
+    if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    ctx = new AC();
+    master = ctx.createGain(); master.gain.value = 0.5;
+    const comp = ctx.createDynamicsCompressor();
+    master.connect(comp); comp.connect(ctx.destination);
+    ruido = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+    const d = ruido.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  function salida(vol, pan) {
+    const g = ctx.createGain(); g.gain.value = vol;
+    if (pan && ctx.createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.value = clamp(pan, -1, 1); g.connect(p); p.connect(master); }
+    else g.connect(master);
+    return g;
+  }
+  function rafagaRuido(t, dur, tipo, frec, vol, destino, q) {
+    const s = ctx.createBufferSource(); s.buffer = ruido;
+    const f = ctx.createBiquadFilter(); f.type = tipo; f.frequency.value = frec; f.Q.value = q || 0.7;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    s.connect(f); f.connect(g); g.connect(destino);
+    s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.03);
+  }
+  function tono(t, f0, f1, dur, vol, tipo, destino) {
+    const o = ctx.createOscillator(); o.type = tipo || 'sine';
+    o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(g); g.connect(destino); o.start(t); o.stop(t + dur + 0.03);
+  }
+  function clic(frec, vol, retraso) {
+    if (!ctx) return;
+    rafagaRuido(ctx.currentTime + (retraso || 0), 0.03, 'bandpass', frec, vol, master, 4);
+  }
+  return {
+    iniciar,
+    disparo(s, vol = 1, pan = 0) {
+      if (!ctx) return;
+      const t = ctx.currentTime, out = salida(vol * s.vol, pan);
+      rafagaRuido(t, s.dur, 'lowpass', s.filtro, 1, out);
+      rafagaRuido(t, 0.03, 'highpass', 3000, 0.5, out);
+      tono(t, s.grave, s.grave * 0.35, s.dur * 0.9, 0.9, 'sine', out);
+      if (s.cola) rafagaRuido(t + 0.02, s.cola, 'lowpass', s.filtro * 0.4, 0.3, out);
+    },
+    clic,
+    recarga(dur) {
+      clic(1800, 0.5, 0.05); clic(1200, 0.35, 0.12);
+      clic(2600, 0.6, dur * 0.6); clic(3200, 0.5, dur * 0.85); clic(2200, 0.55, dur * 0.92);
+    },
+    cambio() {
+      if (!ctx) return;
+      rafagaRuido(ctx.currentTime, 0.14, 'bandpass', 1400, 0.25, master, 1.5);
+      clic(2800, 0.4, 0.2);
+    },
+    cerrojo() { clic(1600, 0.55, 0); clic(2400, 0.5, 0.14); },
+    vacio() { clic(4200, 0.55, 0); },
+    impacto(cabeza, mata) {
+      if (!ctx) return;
+      const t = ctx.currentTime;
+      if (mata) { tono(t, 900, 500, 0.18, 0.35, 'triangle', master); }
+      if (cabeza) { tono(t, 2200, 2100, 0.1, 0.25, 'sine', master); tono(t + 0.03, 3300, 3200, 0.12, 0.18, 'sine', master); }
+      else tono(t, 1800, 1700, 0.05, 0.22, 'square', master);
+    },
+    dolor() {
+      if (!ctx) return;
+      const t = ctx.currentTime;
+      tono(t, 150, 55, 0.2, 0.7, 'sine', master);
+      rafagaRuido(t, 0.1, 'lowpass', 600, 0.45, master);
+    }
+  };
+})();
+
+/* =====================================================================
+   5. MOTOR GRÁFICO: renderizador, cielo, luces, materiales y texturas
+   ---------------------------------------------------------------------
+   Materiales físicos (MeshStandardMaterial): cada uno tiene rugosidad
+   (0 = espejo, 1 = mate) y metal (0 = no metálico, 1 = metal).
+   Los colores se escriben en sRGB (como en cualquier editor) y se pasan
+   a espacio lineal para que la iluminación se calcule bien.
+   ===================================================================== */
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+renderer.domElement.id = 'lienzo';
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.autoUpdate = false;   // las sombras se calculan una sola vez por fotograma (ver renderizar)
+renderer.autoClear = false;
+document.body.prepend(renderer.domElement);
+const ANISO = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+const lineal = hex => new THREE.Color(hex).convertSRGBToLinear();
+
+const escena = new THREE.Scene();
+const COLOR_HORIZONTE = new THREE.Color(0.62, 0.70, 0.80);   // ya en espacio lineal
+escena.background = COLOR_HORIZONTE.clone();
+escena.fog = new THREE.Fog(COLOR_HORIZONTE.clone(), 40, 140);
+const camara = new THREE.PerspectiveCamera(JUEGO.fovBase, innerWidth / innerHeight, 0.05, 170);
+camara.rotation.order = 'YXZ';
+escena.add(camara);
+
+// Sol (con sombras) y algo de luz de relleno; el resto lo pone el cielo (iluminación de entorno)
+const JUEGO_EXPOSICION = 0.72;   // brillo general de la imagen (más bajo = más oscuro)
+const sol = new THREE.DirectionalLight(lineal(0xfff0d8), 2.0);
+sol.position.set(18, 32, 12);
+sol.castShadow = true;
+sol.shadow.mapSize.set(2048, 2048);
+Object.assign(sol.shadow.camera, { left: -36, right: 36, top: 36, bottom: -36, near: 1, far: 90 });
+sol.shadow.bias = -0.0004;
+sol.shadow.normalBias = 0.02;
+escena.add(sol, sol.target);
+escena.add(new THREE.HemisphereLight(lineal(0xcfe0ff), lineal(0x6b5f4e), 0.25));
+// Luz del fogonazo (siempre existe; solo cambia su intensidad, para no recompilar shaders)
+const luzFogonazo = new THREE.PointLight(lineal(0xffc070), 0, 9, 2);
+luzFogonazo.position.set(0.2, -0.1, -0.9);
+camara.add(luzFogonazo);
+
+// ---- Cielo: cúpula con degradado y sol. También genera la iluminación de entorno (reflejos) ----
+const cieloMat = new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite: false, fog: false,
+  uniforms: { dirSol: { value: sol.position.clone().normalize() } },
+  vertexShader: `varying vec3 vDir;
+    void main() { vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: `uniform vec3 dirSol; varying vec3 vDir;
+    void main() {
+      vec3 d = normalize(vDir); float h = d.y;
+      vec3 cenit = vec3(0.13, 0.28, 0.58), horiz = vec3(0.62, 0.70, 0.80), suelo = vec3(0.20, 0.19, 0.18);
+      vec3 c = h > 0.0 ? mix(horiz, cenit, pow(h, 0.5)) : mix(horiz * 0.85, suelo, pow(min(-h * 4.0, 1.0), 0.6));
+      float s = max(dot(d, dirSol), 0.0);
+      c += vec3(1.0, 0.86, 0.65) * (pow(s, 6.0) * 0.25 + pow(s, 900.0) * 14.0);
+      gl_FragColor = linearToOutputTexel(vec4(c, 1.0));
+    }`
+});
+const cielo = new THREE.Mesh(new THREE.SphereGeometry(150, 32, 16), cieloMat);
+cielo.frustumCulled = false; cielo.renderOrder = -1;
+escena.add(cielo);
+function texturaEntorno(r) {
+  const esc = new THREE.Scene();
+  esc.add(new THREE.Mesh(new THREE.SphereGeometry(50, 32, 16), cieloMat));
+  const pm = new THREE.PMREMGenerator(r);
+  const t = pm.fromScene(esc, 0.03).texture;
+  pm.dispose();
+  return t;
+}
+const entorno = texturaEntorno(renderer);
+escena.environment = entorno;
+
+// Escena aparte para el arma en primera persona (así nunca atraviesa paredes)
+const escenaArma = new THREE.Scene();
+escenaArma.environment = entorno;
+const camaraArma = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.01, 5);
+escenaArma.add(new THREE.HemisphereLight(lineal(0xdfe8ff), lineal(0x4a4035), 0.3));
+const solArma = new THREE.DirectionalLight(lineal(0xfff0d8), 1.6); solArma.position.set(0.5, 1, 0.6);
+escenaArma.add(solArma);
+const luzFogonazoArma = new THREE.PointLight(lineal(0xffb050), 0, 2, 2);
+luzFogonazoArma.position.set(0.1, -0.05, -0.7);
+escenaArma.add(luzFogonazoArma);
+const armaRaiz = new THREE.Group();
+escenaArma.add(armaRaiz);
+
+// Materiales reutilizados (uno por combinación color/rugosidad/metal) y geometrías unitarias compartidas
+const cacheMat = new Map();
+function mat(color, rugosidad = 0.85, metal = 0) {
+  const k = color + '|' + rugosidad + '|' + metal;
+  let m = cacheMat.get(k);
+  if (!m) { m = new THREE.MeshStandardMaterial({ color: lineal(color), roughness: rugosidad, metalness: metal }); cacheMat.set(k, m); }
+  return m;
+}
+const geoCaja = new THREE.BoxGeometry(1, 1, 1);
+const geoCil = new THREE.CylinderGeometry(1, 1, 1, 16);
+
+function lienzo(tam, dibujar) {
+  const c = document.createElement('canvas'); c.width = c.height = tam;
+  dibujar(c.getContext('2d'), tam);
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding;
+  return t;
+}
+const texAgujero = lienzo(32, (g, s) => {
+  const gr = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+  gr.addColorStop(0, 'rgba(10,10,10,1)'); gr.addColorStop(0.35, 'rgba(20,20,20,0.95)');
+  gr.addColorStop(0.55, 'rgba(40,40,40,0.4)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, s, s);
+});
+const texFogonazo = lienzo(64, (g, s) => {
+  g.translate(s / 2, s / 2);
+  for (let i = 0; i < 6; i++) {
+    g.rotate(Math.PI / 3);
+    const gr = g.createLinearGradient(0, 0, 0, s / 2);
+    gr.addColorStop(0, 'rgba(255,240,180,1)'); gr.addColorStop(1, 'rgba(255,120,20,0)');
+    g.fillStyle = gr; g.beginPath(); g.moveTo(-5, 0); g.lineTo(0, s / 2); g.lineTo(5, 0); g.fill();
+  }
+  const gr = g.createRadialGradient(0, 0, 0, 0, 0, s / 3);
+  gr.addColorStop(0, 'rgba(255,255,230,1)'); gr.addColorStop(1, 'rgba(255,160,40,0)');
+  g.fillStyle = gr; g.beginPath(); g.arc(0, 0, s / 3, 0, Math.PI * 2); g.fill();
+});
+const matFogonazo = new THREE.SpriteMaterial({ map: texFogonazo, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true });
+matFogonazo.color.setRGB(3, 2.4, 1.6);   // más de 1 = muy brillante (lo recoge el resplandor)
+
+/* ---------------------------------------------------------------------
+   Texturas generadas por código (sin archivos). Cada tipo dibuja una
+   imagen de color y otra de relieve (bumpMap, gris = altura) y devuelve
+   cuántos metros del mundo ocupa la imagen. Todas enlazan sin cortes.
+   --------------------------------------------------------------------- */
+function aleatorio(s) { return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+function lienzoVacio(t) { const c = document.createElement('canvas'); c.width = c.height = t; return c; }
+function envolver(S, fn) { for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) fn(dx * S, dy * S); }
+function aTex(c, esColor) {
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = ANISO;
+  if (esColor) t.encoding = THREE.sRGBEncoding;
+  return t;
+}
+function puntos(g, S, r, n, rgb, aMax, tam) {
+  for (let i = 0; i < n; i++) { g.fillStyle = `rgba(${rgb},${r() * aMax})`; const s = 1 + r() * tam; g.fillRect(r() * S, r() * S, s, s); }
+}
+function manchas(g, S, r, n, rgb, aMax, rMin, rMax) {
+  for (let i = 0; i < n; i++) {
+    const x = r() * S, y = r() * S, rad = rMin + r() * (rMax - rMin), a = r() * aMax;
+    envolver(S, (ox, oy) => {
+      const gr = g.createRadialGradient(x + ox, y + oy, 0, x + ox, y + oy, rad);
+      gr.addColorStop(0, `rgba(${rgb},${a})`); gr.addColorStop(1, `rgba(${rgb},0)`);
+      g.fillStyle = gr; g.fillRect(x + ox - rad, y + oy - rad, rad * 2, rad * 2);
+    });
+  }
+}
+function grieta(capas, S, r, ancho) {
+  let x = r() * S, y = r() * S, a = r() * 6.28;
+  const pts = [[x, y]];
+  for (let i = 0; i < 40; i++) { a += (r() - 0.5) * 0.9; x += Math.cos(a) * 7; y += Math.sin(a) * 7; pts.push([x, y]); }
+  for (const [g, color] of capas) envolver(S, (ox, oy) => {
+    g.strokeStyle = color; g.lineWidth = ancho; g.beginPath();
+    pts.forEach(([px, py], i) => i ? g.lineTo(px + ox, py + oy) : g.moveTo(px + ox, py + oy));
+    g.stroke();
+  });
+}
+function rayas(g, S, r, n, rgb, aMin, aMax, largo, ancho) {
+  for (let i = 0; i < n; i++) {
+    const x = r() * S, y = r() * S;
+    g.strokeStyle = `rgba(${rgb},${aMin + r() * (aMax - aMin)})`; g.lineWidth = ancho;
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + (r() - 0.5) * largo, y + (r() - 0.5) * largo * 0.3); g.stroke();
+  }
+}
+const GENERADORES = {
+  // Suelo de hormigón: manchas, aceite, grietas y juntas cada 4 m
+  hormigon(S, c, b, r) {
+    c.fillStyle = '#8e8f8c'; c.fillRect(0, 0, S, S); b.fillStyle = '#808080'; b.fillRect(0, 0, S, S);
+    manchas(c, S, r, 70, '255,255,250', 0.10, 30, 140);
+    manchas(c, S, r, 70, '40,38,35', 0.12, 30, 140);
+    manchas(c, S, r, 8, '25,22,18', 0.22, 12, 45);
+    puntos(c, S, r, 9000, '30,30,30', 0.25, 1.5); puntos(c, S, r, 6000, '255,255,255', 0.18, 1.5);
+    puntos(b, S, r, 12000, '0,0,0', 0.35, 1.5); puntos(b, S, r, 8000, '255,255,255', 0.25, 1.5);
+    for (let i = 0; i < 2; i++) grieta([[c, 'rgba(35,33,30,0.28)'], [b, 'rgba(0,0,0,0.9)']], S, r, 1.3);
+    for (const [g, col] of [[c, 'rgba(30,30,30,0.7)'], [b, '#000']]) { g.fillStyle = col; g.fillRect(0, 0, S, 2); g.fillRect(0, 0, 2, S); }
+    return 4;
+  },
+  // Muro de bloques de hormigón (40 × 20 cm) con mortero
+  bloque(S, c, b, r) {
+    const cols = 5, filas = 10, bw = S / cols, bh = S / filas, m = 4;
+    c.fillStyle = '#b3afa6'; c.fillRect(0, 0, S, S); b.fillStyle = '#3a3a3a'; b.fillRect(0, 0, S, S);
+    for (let f = 0; f < filas; f++) for (let k = -1; k <= cols; k++) {
+      const x = k * bw + (f % 2 ? bw / 2 : 0), y = f * bh, v = Math.round(118 + r() * 32);
+      c.fillStyle = `rgb(${v},${v + 3},${v + 7})`; c.fillRect(x + m / 2, y + m / 2, bw - m, bh - m);
+      b.fillStyle = '#b0b0b0'; b.fillRect(x + m / 2, y + m / 2, bw - m, bh - m);
+    }
+    puntos(c, S, r, 14000, '20,20,20', 0.25, 1.5); puntos(c, S, r, 6000, '255,255,255', 0.15, 1.5);
+    manchas(c, S, r, 40, '30,28,25', 0.12, 20, 90);
+    puntos(b, S, r, 10000, '0,0,0', 0.3, 1.5);
+    return 2;
+  },
+  // Pared pintada de la oficina
+  yeso(S, c, b, r) {
+    c.fillStyle = '#e9e7e2'; c.fillRect(0, 0, S, S); b.fillStyle = '#808080'; b.fillRect(0, 0, S, S);
+    manchas(c, S, r, 50, '120,110,95', 0.06, 30, 120);
+    puntos(c, S, r, 5000, '90,85,80', 0.12, 1.2);
+    puntos(b, S, r, 15000, '0,0,0', 0.2, 1.2); puntos(b, S, r, 15000, '255,255,255', 0.2, 1.2);
+    rayas(c, S, r, 14, '70,60,50', 0.1, 0.25, 60, 1.5);
+    return 2;
+  },
+  // Tablas de madera (4 por metro) con vetas, nudos y separaciones
+  madera(S, c, b, r) {
+    const tablas = 4, th = S / tablas;
+    for (let t = 0; t < tablas; t++) {
+      const y0 = t * th, tono = 0.85 + r() * 0.3;
+      c.fillStyle = `rgb(${Math.round(168 * tono)},${Math.round(118 * tono)},${Math.round(66 * tono)})`; c.fillRect(0, y0, S, th);
+      b.fillStyle = '#a0a0a0'; b.fillRect(0, y0, S, th);
+      for (let k = 0; k < 28; k++) {
+        const yy = y0 + 6 + r() * (th - 12), amp = 1 + r() * 4, fr = (1 + Math.floor(r() * 3)) * Math.PI * 2 / S, fase = r() * 6.28;
+        const a = 0.08 + r() * 0.22, ancho = 0.6 + r() * 1.6;
+        for (const [g, col] of [[c, `rgba(70,40,15,${a})`], [b, `rgba(0,0,0,${a * 0.8})`]]) {
+          g.strokeStyle = col; g.lineWidth = ancho; g.beginPath();
+          for (let x = 0; x <= S; x += 8) { const y = yy + Math.sin(x * fr + fase) * amp; x ? g.lineTo(x, y) : g.moveTo(x, y); }
+          g.stroke();
+        }
+      }
+      if (r() < 0.6) {
+        const x = r() * S, y = y0 + th * 0.3 + r() * th * 0.4;
+        c.fillStyle = 'rgba(60,32,12,0.6)'; c.beginPath(); c.ellipse(x, y, 10 + r() * 8, 4 + r() * 3, 0, 0, 6.28); c.fill();
+      }
+      c.fillStyle = 'rgba(30,18,8,0.95)'; c.fillRect(0, y0, S, 4); b.fillStyle = '#000'; b.fillRect(0, y0, S, 4);
+    }
+    c.fillStyle = 'rgba(30,18,8,0.9)'; c.fillRect(0, 0, 3, S); b.fillStyle = '#000'; b.fillRect(0, 0, 3, S);
+    puntos(c, S, r, 4000, '40,25,10', 0.15, 1.5);
+    return 1;
+  },
+  // Chapa ondulada de contenedor con chorretones de óxido (se tiñe con el color del material)
+  contenedor(S, c, b, r) {
+    const p = 32;
+    for (let x = 0; x < S; x++) {
+      const s = Math.sin(x / p * Math.PI * 2), v = Math.round(200 + 40 * s), bv = Math.round(128 + 110 * s);
+      c.fillStyle = `rgb(${v},${v},${v})`; c.fillRect(x, 0, 1, S);
+      b.fillStyle = `rgb(${bv},${bv},${bv})`; b.fillRect(x, 0, 1, S);
+    }
+    manchas(c, S, r, 30, '60,45,30', 0.15, 20, 80);
+    for (let i = 0; i < 40; i++) {
+      const x = r() * S, y = r() * S, l = 40 + r() * 200, w = 2 + r() * 5, a = 0.25 + r() * 0.3;
+      envolver(S, (ox, oy) => {
+        const gr = c.createLinearGradient(0, y + oy, 0, y + oy + l);
+        gr.addColorStop(0, `rgba(105,55,25,${a})`); gr.addColorStop(1, 'rgba(105,55,25,0)');
+        c.fillStyle = gr; c.fillRect(x + ox, y + oy, w, l);
+      });
+    }
+    rayas(c, S, r, 60, '255,255,255', 0.1, 0.3, 40, 1);
+    puntos(c, S, r, 5000, '30,30,30', 0.2, 1.5);
+    return 2;
+  },
+  // Metal pintado con desconchones y arañazos (se tiñe con el color del material)
+  metalPintado(S, c, b, r) {
+    c.fillStyle = '#dedede'; c.fillRect(0, 0, S, S); b.fillStyle = '#808080'; b.fillRect(0, 0, S, S);
+    manchas(c, S, r, 40, '80,80,80', 0.08, 20, 100);
+    puntos(c, S, r, 4000, '60,60,60', 0.15, 1.2);
+    for (let i = 0; i < 70; i++) {
+      const x = r() * S, y = r() * S, rad = 1 + r() * 4;
+      c.fillStyle = `rgba(70,65,60,${0.5 + r() * 0.4})`; c.beginPath(); c.arc(x, y, rad, 0, 6.28); c.fill();
+      b.fillStyle = '#303030'; b.beginPath(); b.arc(x, y, rad, 0, 6.28); b.fill();
+    }
+    rayas(c, S, r, 40, '90,90,90', 0.2, 0.5, 50, 0.8);
+    return 1;
+  },
+  // Hormigón liso de encofrado (muros bajos) con marcas de tablas y poros
+  hormigonLiso(S, c, b, r) {
+    c.fillStyle = '#a6a7a5'; c.fillRect(0, 0, S, S); b.fillStyle = '#808080'; b.fillRect(0, 0, S, S);
+    manchas(c, S, r, 40, '255,255,255', 0.08, 30, 120); manchas(c, S, r, 40, '40,40,40', 0.10, 30, 120);
+    puntos(c, S, r, 8000, '30,30,30', 0.2, 1.5); puntos(b, S, r, 10000, '0,0,0', 0.3, 1.5);
+    for (let k = 0; k < 4; k++) { const y = k * S / 4; c.fillStyle = 'rgba(60,60,60,0.35)'; c.fillRect(0, y, S, 2); b.fillStyle = '#202020'; b.fillRect(0, y, S, 2); }
+    for (let i = 0; i < 60; i++) {
+      const x = r() * S, y = r() * S, rad = 1 + r() * 2.5;
+      c.fillStyle = 'rgba(40,40,40,0.6)'; c.beginPath(); c.arc(x, y, rad, 0, 6.28); c.fill();
+      b.fillStyle = '#000'; b.beginPath(); b.arc(x, y, rad, 0, 6.28); b.fill();
+    }
+    return 1;
+  }
+};
+const cacheTex = {};
+function texturasDe(tipo) {
+  if (!cacheTex[tipo]) {
+    const S = 512, cc = lienzoVacio(S), cb = lienzoVacio(S);
+    const metros = GENERADORES[tipo](S, cc.getContext('2d'), cb.getContext('2d'), aleatorio(tipo.length * 7919 + 13));
+    cacheTex[tipo] = { map: aTex(cc, true), bump: aTex(cb, false), metros };
+  }
+  return cacheTex[tipo];
+}
+
+/* ---------------------------------------------------------------------
+   POSTPROCESADO Y CALIDAD GRÁFICA
+   - Baja:  sin postprocesado (lo más rápido).
+   - Media: resplandor (bloom), corrección de color, viñeta y suavizado FXAA.
+   - Alta:  lo anterior + oclusión ambiental (SSAO: sombras de contacto).
+   --------------------------------------------------------------------- */
+const CALIDADES = {
+  baja:  { pr: 1,    sombra: 1024, post: false, ssao: false },
+  media: { pr: 1.25, sombra: 2048, post: true,  ssao: false },
+  alta:  { pr: 1.5,  sombra: 2048, post: true,  ssao: true }
+};
+// Corrección de color final: tono ACES, paso a sRGB, saturación, tinte y viñeta
+const SHADER_COLOR = {
+  uniforms: { tDiffuse: { value: null }, exposicion: { value: JUEGO_EXPOSICION }, saturacion: { value: 1.1 }, vineta: { value: 0.35 } },
+  vertexShader: `varying vec2 vUv;
+    void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float exposicion; uniform float saturacion; uniform float vineta;
+    varying vec2 vUv;
+    vec3 ajusteACES(vec3 v) { vec3 a = v * (v + 0.0245786) - 0.000090537; vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081; return a / b; }
+    vec3 aces(vec3 c) {
+      const mat3 entrada = mat3(vec3(0.59719, 0.07600, 0.02840), vec3(0.35458, 0.90834, 0.13383), vec3(0.04823, 0.01566, 0.83777));
+      const mat3 salida = mat3(vec3(1.60475, -0.10208, -0.00327), vec3(-0.53108, 1.10813, -0.07276), vec3(-0.07367, -0.00605, 1.07602));
+      c *= exposicion / 0.6;
+      c = salida * ajusteACES(entrada * c);
+      return clamp(c, 0.0, 1.0);
+    }
+    vec3 aSRGB(vec3 c) { return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c)); }
+    void main() {
+      vec3 c = aSRGB(aces(texture2D(tDiffuse, vUv).rgb));
+      float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
+      c = mix(vec3(l), c, saturacion);
+      c = mix(c, c * vec3(1.03, 1.0, 0.96), smoothstep(0.3, 1.0, l));
+      c = mix(c * vec3(0.95, 0.98, 1.04), c, smoothstep(0.0, 0.4, l));
+      vec2 d = vUv - 0.5;
+      c *= 1.0 - vineta * dot(d, d) * 1.8;
+      gl_FragColor = vec4(c, 1.0);
+    }`
+};
+let composer = null, usarPost = false, calidadActual = 'media';
+const pases = {};
+function crearComposer() {
+  if (composer) return true;
+  if (!THREE.EffectComposer || !THREE.RenderPass || !THREE.ShaderPass || !THREE.UnrealBloomPass) return false;
+  try {
+    const pr = renderer.getPixelRatio(), w = innerWidth, h = innerHeight;
+    // Búfer de coma flotante: guarda brillos por encima de 1 (para el resplandor) y evita bandas en las sombras
+    const flotante = renderer.capabilities.isWebGL2 && !!renderer.extensions.get('EXT_color_buffer_float');
+    const rt = new THREE.WebGLRenderTarget(w * pr, h * pr, {
+      minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, format: THREE.RGBAFormat,
+      type: flotante ? THREE.HalfFloatType : THREE.UnsignedByteType
+    });
+    composer = new THREE.EffectComposer(renderer, rt);
+    pases.escena = new THREE.RenderPass(escena, camara);
+    composer.addPass(pases.escena);
+    if (THREE.SSAOPass) {
+      pases.ssao = new THREE.SSAOPass(escena, camara, w, h);
+      pases.ssao.kernelRadius = 0.7;        // metros alrededor de cada punto
+      pases.ssao.minDistance = 0.0002;
+      pases.ssao.maxDistance = 0.012;
+      if (flotante) pases.ssao.beautyRenderTarget.texture.type = THREE.HalfFloatType;
+      pases.ssao.enabled = false;
+      composer.addPass(pases.ssao);
+    }
+    // Pase propio que dibuja el arma encima, limpiando antes la profundidad
+    pases.arma = new THREE.Pass();
+    pases.arma.needsSwap = false;
+    pases.arma.mostrar = true;
+    pases.arma.render = function (r, escritura, lectura) {
+      if (!this.mostrar) return;
+      r.setRenderTarget(this.renderToScreen ? null : lectura);
+      r.clearDepth();
+      r.render(escenaArma, camaraArma);
+    };
+    composer.addPass(pases.arma);
+    pases.bloom = new THREE.UnrealBloomPass(new THREE.Vector2(w, h), 0.45, 0.5, 1.0);
+    composer.addPass(pases.bloom);
+    pases.color = new THREE.ShaderPass(SHADER_COLOR);
+    composer.addPass(pases.color);
+    if (THREE.FXAAShader) { pases.fxaa = new THREE.ShaderPass(THREE.FXAAShader); composer.addPass(pases.fxaa); }
+    return true;
+  } catch (e) {
+    console.warn('Postprocesado no disponible:', e);
+    composer = null;
+    return false;
+  }
+}
+function redimensionar() {
+  renderer.setSize(innerWidth, innerHeight);
+  camara.aspect = camaraArma.aspect = innerWidth / innerHeight;
+  camara.updateProjectionMatrix(); camaraArma.updateProjectionMatrix();
+  if (composer) {
+    const pr = renderer.getPixelRatio();
+    composer.setPixelRatio(pr);
+    composer.setSize(innerWidth, innerHeight);
+    if (pases.fxaa) pases.fxaa.uniforms.resolution.value.set(1 / (innerWidth * pr), 1 / (innerHeight * pr));
+  }
+}
+function aplicarCalidad(q) {
+  const c = CALIDADES[q] || CALIDADES.media;
+  calidadActual = CALIDADES[q] ? q : 'media';
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, c.pr));
+  usarPost = c.post && crearComposer();
+  // Con postprocesado el tono y el paso a sRGB los hace SHADER_COLOR; sin él, el propio renderizador
+  renderer.toneMapping = usarPost ? THREE.NoToneMapping : THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = JUEGO_EXPOSICION;
+  if (usarPost) {
+    const conSSAO = c.ssao && !!pases.ssao;
+    if (pases.ssao) pases.ssao.enabled = conSSAO;
+    pases.escena.enabled = !conSSAO;   // el SSAO ya dibuja la escena por su cuenta
+  }
+  if (sol.shadow.mapSize.x !== c.sombra) {
+    sol.shadow.mapSize.set(c.sombra, c.sombra);
+    if (sol.shadow.map) { sol.shadow.map.dispose(); sol.shadow.map = null; }
+  }
+  redimensionar();
+  const marcar = o => { if (o.material) o.material.needsUpdate = true; };
+  escena.traverse(marcar); escenaArma.traverse(marcar);
+  for (const m of cacheMat.values()) m.needsUpdate = true;
+}
+function renderizar(conArma) {
+  cielo.position.copy(camara.position);
+  renderer.shadowMap.needsUpdate = true;
+  if (usarPost) {
+    pases.arma.mostrar = conArma;
+    composer.render();
+  } else {
+    renderer.setRenderTarget(null);
+    renderer.clear();
+    renderer.render(escena, camara);
+    if (conArma) { renderer.clearDepth(); renderer.render(escenaArma, camaraArma); }
+  }
+}
+
+/* =====================================================================
+   6. MAPA
+   ---------------------------------------------------------------------
+   crearMapa() devuelve solo DATOS. Cada objeto: { x, z, y (base), w, h, d, mat }
+   (w = tamaño en X, h = alto, d = tamaño en Z, mat = clave de MAT_MAPA).
+   Opcionales: forma: 'cilindro' (usa r, largo, eje 'x'|'y'|'z'), sinColision, sinSombra.
+   Para añadir un mapa nuevo basta con escribir otra función igual.
+   ===================================================================== */
+// Materiales del mapa: tex = textura generada (opcional), color = tinte (sRGB),
+// rug = rugosidad, met = metal, relieve = fuerza del relieve de la textura
+const MAT_MAPA = {
+  suelo:         { tex: 'hormigon',     color: 0xbdbdb8, rug: 0.92, relieve: 0.025 },
+  muroExt:       { tex: 'bloque',       color: 0xffffff, rug: 0.95, relieve: 0.04 },
+  muroInt:       { tex: 'yeso',         color: 0xd8ccb0, rug: 0.9,  relieve: 0.006 },
+  columna:       { tex: 'metalPintado', color: 0x8a9099, rug: 0.55, met: 0.5, relieve: 0.01 },
+  muroBajo:      { tex: 'hormigonLiso', color: 0xffffff, rug: 0.9,  relieve: 0.02 },
+  madera:        { tex: 'madera',       color: 0xffffff, rug: 0.8,  relieve: 0.025 },
+  maderaOsc:     { tex: 'madera',       color: 0x9a7a60, rug: 0.8,  relieve: 0.025 },
+  palet:         { tex: 'madera',       color: 0xd8c8a8, rug: 0.85, relieve: 0.025 },
+  contRojo:      { tex: 'contenedor',   color: 0xb5432f, rug: 0.6,  met: 0.4, relieve: 0.05 },
+  contAzul:      { tex: 'contenedor',   color: 0x2f5fb5, rug: 0.6,  met: 0.4, relieve: 0.05 },
+  contVerde:     { tex: 'contenedor',   color: 0x3f8a4a, rug: 0.6,  met: 0.4, relieve: 0.05 },
+  contNaranja:   { tex: 'contenedor',   color: 0xc77a2a, rug: 0.6,  met: 0.4, relieve: 0.05 },
+  chasis:        { tex: 'metalPintado', color: 0x45484d, rug: 0.6,  met: 0.6, relieve: 0.01 },
+  cajaCarga:     { tex: 'metalPintado', color: 0xd6d2c4, rug: 0.5,  met: 0.3, relieve: 0.01 },
+  camionAzul:    { color: 0x2d6aa3, rug: 0.3,  met: 0.5 },
+  cocheRojo:     { color: 0xc23b3b, rug: 0.28, met: 0.5 },
+  cocheAmarillo: { color: 0xd9c34a, rug: 0.28, met: 0.5 },
+  cristal:       { color: 0x1a2530, rug: 0.05, met: 0.9 },
+  rueda:         { color: 0x1c1d20, rug: 0.95 },
+  marca:         { color: 0xd9b43a, rug: 0.75 }
+};
+const cacheMatMapa = {};
+function matMapa(clave) {
+  if (cacheMatMapa[clave]) return cacheMatMapa[clave];
+  const d = MAT_MAPA[clave] || { color: 0xff00ff };
+  const p = { color: lineal(d.color ?? 0xffffff), roughness: d.rug ?? 0.85, metalness: d.met ?? 0 };
+  if (d.tex) { const t = texturasDe(d.tex); p.map = t.map; p.bumpMap = t.bump; p.bumpScale = d.relieve ?? 0.02; }
+  return (cacheMatMapa[clave] = new THREE.MeshStandardMaterial(p));
+}
+function metrosTex(clave) { const d = MAT_MAPA[clave]; return d && d.tex ? texturasDe(d.tex).metros : 1; }
+// Caja con las coordenadas de textura en metros (la textura no se estira) y desfase aleatorio
+function geoMundo(w, h, d, metros) {
+  const g = new THREE.BoxGeometry(w, h, d), uv = g.attributes.uv;
+  const caras = [[d, h], [d, h], [w, d], [w, d], [w, h], [w, h]];   // +x, -x, +y, -y, +z, -z
+  const ou = Math.random(), ov = Math.random();
+  for (let f = 0; f < 6; f++) for (let v = 0; v < 4; v++) {
+    const i = f * 4 + v;
+    uv.setXY(i, uv.getX(i) * caras[f][0] / metros + ou, uv.getY(i) * caras[f][1] / metros + ov);
+  }
+  return g;
+}
+
+function crearMapa() {
+  const objetos = [];
+  const caja = (x, z, w, h, d, mat, extra) => objetos.push(Object.assign({ x, z, y: 0, w, h, d, mat }, extra || {}));
+  const T = 60, M = T / 2;
+
+  // Muros exteriores del recinto
+  caja(0, -M - 0.5, T + 2, 5, 1, 'muroExt'); caja(0, M + 0.5, T + 2, 5, 1, 'muroExt');
+  caja(-M - 0.5, 0, 1, 5, T, 'muroExt');     caja(M + 0.5, 0, 1, 5, T, 'muroExt');
+
+  // Oficina en la esquina noroeste (con dos puertas)
+  caja(-27, -18, 6, 3, 0.4, 'muroInt'); caja(-18, -18, 4, 3, 0.4, 'muroInt');
+  caja(-16, -28, 0.4, 3, 4, 'muroInt'); caja(-16, -20, 0.4, 3, 4, 'muroInt');
+  caja(-26, -25, 2.2, 0.9, 1, 'maderaOsc');
+  caja(-20, -27, 1.2, 1.2, 1.2, 'madera');
+
+  // Contenedores
+  caja(14, -22, 6.2, 2.6, 2.5, 'contRojo');
+  caja(14, -19.5, 6.2, 2.6, 2.5, 'contAzul');
+  caja(24, -6, 2.5, 2.6, 6.2, 'contVerde');
+  caja(-6, 22, 6.2, 2.6, 2.5, 'contNaranja');
+
+  // Columnas
+  for (const [x, z] of [[-10, -8], [10, -8], [-10, 8], [10, 8], [0, -16], [0, 16]]) caja(x, z, 0.8, 5, 0.8, 'columna');
+
+  // Muros bajos (1,2 m: agachado tapan del todo, de pie se dispara por encima)
+  caja(0, 0, 6, 1.2, 0.4, 'muroBajo');
+  caja(-18, 6, 0.4, 1.2, 6, 'muroBajo');
+  caja(19, 4, 0.4, 1.2, 6, 'muroBajo');
+  caja(5, 12, 5, 1.2, 0.4, 'muroBajo');
+  caja(-5, -12, 5, 1.2, 0.4, 'muroBajo');
+  caja(-22, 16, 6, 1.2, 0.4, 'muroBajo');
+  caja(22, 20, 0.4, 1.2, 5, 'muroBajo');
+  caja(6, -26, 5, 1.2, 0.4, 'muroBajo');
+
+  // Cajas de madera y palés
+  caja(-3, 4, 2, 2, 2, 'madera'); caja(-3, 4, 1.2, 1.2, 1.2, 'maderaOsc', { y: 2 });
+  caja(3, -4, 2, 2, 2, 'madera');
+  caja(20, -14, 2, 2, 2, 'madera');
+  caja(8, 22, 1.2, 1.2, 1.2, 'madera'); caja(9.4, 22, 1.2, 1.2, 1.2, 'maderaOsc');
+  caja(8.7, 22, 1.2, 1.2, 1.2, 'madera', { y: 1.2 });
+  caja(-14, -12, 2, 2, 2, 'madera');
+  caja(16, 8, 1.2, 1.2, 1.2, 'madera');
+  caja(-27, 10, 2, 2, 2, 'madera');
+  caja(27, 12, 2, 2, 2, 'madera');
+  caja(-8, -24, 2, 0.4, 2, 'palet'); caja(-8, -24, 1.2, 1.2, 1.2, 'madera', { y: 0.4 });
+
+  // Vehículos hechos con cajas. "girado" = a lo largo del eje X.
+  function vehiculo(x, z, girado, partes) {
+    for (const p of partes) {
+      const px = girado ? x + p.dz : x + p.dx, pz = girado ? z - p.dx : z + p.dz;
+      if (p.r) objetos.push({ x: px, z: pz, y: p.y || 0, forma: 'cilindro', r: p.r, largo: p.largo, eje: girado ? 'z' : 'x', mat: p.mat, sinColision: true });
+      else objetos.push(Object.assign({ x: px, z: pz, y: p.y, w: girado ? p.d : p.w, h: p.h, d: girado ? p.w : p.d, mat: p.mat }, p.extra || {}));
+    }
+  }
+  function camion(x, z, girado, pintura) {
+    const p = [
+      { dx: 0, dz: 0, w: 2.3, h: 0.45, d: 7, y: 0.5, mat: 'chasis' },
+      { dx: 0, dz: 2.45, w: 2.4, h: 1.9, d: 2.0, y: 0.95, mat: pintura },
+      { dx: 0, dz: 3.46, w: 2.2, h: 0.7, d: 0.06, y: 1.95, mat: 'cristal', extra: { sinColision: true } },
+      { dx: 0, dz: -1.0, w: 2.5, h: 2.5, d: 4.7, y: 0.95, mat: 'cajaCarga' }
+    ];
+    for (const dz of [2.4, -0.6, -2.4]) for (const dx of [-1.2, 1.2]) p.push({ dx, dz, r: 0.5, largo: 0.35, mat: 'rueda' });
+    vehiculo(x, z, girado, p);
+  }
+  function coche(x, z, girado, pintura) {
+    const p = [
+      { dx: 0, dz: 0, w: 1.9, h: 0.65, d: 4.2, y: 0.3, mat: pintura },
+      { dx: 0, dz: -0.2, w: 1.7, h: 0.6, d: 2.2, y: 0.95, mat: 'cristal' }
+    ];
+    for (const dz of [1.35, -1.35]) for (const dx of [-0.95, 0.95]) p.push({ dx, dz, r: 0.33, largo: 0.25, mat: 'rueda' });
+    vehiculo(x, z, girado, p);
+  }
+  camion(-12, -1, false, 'camionAzul');
+  coche(16, 15, true, 'cocheRojo');
+  coche(-20, 24, false, 'cocheAmarillo');
+
+  return {
+    nombre: 'Almacén',
+    tam: T,
+    // Líneas pintadas en el suelo [x, z, ancho, fondo]
+    marcas: [[-15, 0, 0.15, 12], [-9, 0, 0.15, 12], [-12, -6, 6, 0.15], [-12, 6, 6, 0.15],
+             [14, -16.6, 7, 0.15], [0, 0, 0.15, 3], [-22, -18.5, 8, 0.15]],
+    objetos,
+    aparicion: [[-26, 26], [0, 27], [26, 26], [27, -1], [26, -27], [2, -27], [-22, -24],
+                [-26, 4], [0, 8], [8, -12], [-8, 12], [18, -10]]
+  };
+}
+
+// ---- Construcción del mapa a partir de los datos ----
+let MAPA = null;
+const NAV_N = 60;            // rejilla de navegación de 1 m
+const NAV_C = NAV_N * NAV_N;
+
+function construirMapa(def) {
+  const grupo = new THREE.Group();
+  const col = [];
+  const mitad = def.tam / 2;
+
+  // Suelo con la textura repetida cada pocos metros
+  const lado = def.tam + 2, mSuelo = metrosTex('suelo');
+  const geoSuelo = new THREE.PlaneGeometry(lado, lado), uvS = geoSuelo.attributes.uv;
+  for (let i = 0; i < uvS.count; i++) uvS.setXY(i, uvS.getX(i) * lado / mSuelo, uvS.getY(i) * lado / mSuelo);
+  const suelo = new THREE.Mesh(geoSuelo, matMapa('suelo'));
+  suelo.rotation.x = -Math.PI / 2; suelo.receiveShadow = true;
+  grupo.add(suelo);
+  col.push({ min: [-mitad - 1, -1, -mitad - 1], max: [mitad + 1, 0, mitad + 1], suelo: true });
+
+  for (const [x, z, w, d] of def.marcas || []) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), matMapa('marca'));
+    m.rotation.x = -Math.PI / 2; m.position.set(x, 0.01, z); m.receiveShadow = true;
+    grupo.add(m);
+  }
+
+  for (const o of def.objetos) {
+    let me, w = o.w, h = o.h, d = o.d;
+    if (o.forma === 'cilindro') {
+      me = new THREE.Mesh(geoCil, matMapa(o.mat));
+      me.scale.set(o.r, o.largo, o.r);
+      if (o.eje === 'x') { me.rotation.z = Math.PI / 2; w = o.largo; h = d = o.r * 2; }
+      else if (o.eje === 'z') { me.rotation.x = Math.PI / 2; d = o.largo; w = h = o.r * 2; }
+      else { w = d = o.r * 2; h = o.largo; }
+    } else {
+      me = new THREE.Mesh(geoMundo(w, h, d, metrosTex(o.mat)), matMapa(o.mat));
+    }
+    me.position.set(o.x, o.y + h / 2, o.z);
+    me.castShadow = !o.sinSombra; me.receiveShadow = true;
+    grupo.add(me);
+    if (!o.sinColision) col.push({ min: [o.x - w / 2, o.y, o.z - d / 2], max: [o.x + w / 2, o.y + h, o.z + d / 2] });
+  }
+  escena.add(grupo);
+
+  // Rejilla de navegación: celda bloqueada si un círculo de 0,45 m en su centro toca un obstáculo
+  const bloq = new Uint8Array(NAV_C);
+  for (let j = 0; j < NAV_N; j++) for (let i = 0; i < NAV_N; i++) {
+    const x = -mitad + i + 0.5, z = -mitad + j + 0.5;
+    for (const c of col) {
+      if (c.suelo) continue;
+      const cx = clamp(x, c.min[0], c.max[0]), cz = clamp(z, c.min[2], c.max[2]);
+      if ((x - cx) ** 2 + (z - cz) ** 2 < 0.45 * 0.45) { bloq[j * NAV_N + i] = 1; break; }
+    }
+  }
+  // Puntos de cobertura: celdas libres pegadas a un obstáculo
+  const coberturas = [];
+  for (let j = 1; j < NAV_N - 1; j++) for (let i = 1; i < NAV_N - 1; i++) {
+    const k = j * NAV_N + i;
+    if (bloq[k]) continue;
+    if (bloq[k - 1] || bloq[k + 1] || bloq[k - NAV_N] || bloq[k + NAV_N])
+      coberturas.push(new V3(-mitad + i + 0.5, 0, -mitad + j + 0.5));
+  }
+  MAPA = { def, grupo, col, bloq, coberturas, mitad, aparicion: [] };
+  // Puntos de aparición (si alguno cae en un obstáculo se mueve a la celda libre más cercana)
+  for (const [x, z] of def.aparicion) {
+    const [i, j] = libreCercana(...celdaDe(x, z));
+    MAPA.aparicion.push(bloq[j * NAV_N + i] === 0 && celdaBloqueadaPos(x, z) === false ? new V3(x, 0, z) : new V3(-mitad + i + 0.5, 0, -mitad + j + 0.5));
+  }
+  return MAPA;
+}
+
+/* =====================================================================
+   7. COLISIONES, RAYOS Y NAVEGACIÓN
+   ===================================================================== */
+// Empuja un círculo (pos en XZ, radio r) fuera de las cajas del mapa
+function resolverColision(pos, r) {
+  for (const c of MAPA.col) {
+    if (c.suelo) continue;
+    const cx = clamp(pos.x, c.min[0], c.max[0]), cz = clamp(pos.z, c.min[2], c.max[2]);
+    const dx = pos.x - cx, dz = pos.z - cz, d2 = dx * dx + dz * dz;
+    if (d2 >= r * r) continue;
+    if (d2 > 1e-8) { const d = Math.sqrt(d2); pos.x += dx / d * (r - d); pos.z += dz / d * (r - d); }
+    else {
+      const pl = pos.x - c.min[0], pr = c.max[0] - pos.x, pb = pos.z - c.min[2], pf = c.max[2] - pos.z;
+      const m = Math.min(pl, pr, pb, pf);
+      if (m === pl) pos.x = c.min[0] - r; else if (m === pr) pos.x = c.max[0] + r;
+      else if (m === pb) pos.z = c.min[2] - r; else pos.z = c.max[2] + r;
+    }
+  }
+}
+
+// Rayo contra caja alineada (método de las placas). Devuelve t de entrada y la normal.
+const RES_CAJA = { t: 0, eje: 0, sg: 0 };
+function rayoAABB(o, d, mn, mx, tMax) {
+  let t0 = 0, t1 = tMax, eje = -1, sg = 0;
+  const O = [o.x, o.y, o.z], D = [d.x, d.y, d.z];
+  for (let a = 0; a < 3; a++) {
+    if (Math.abs(D[a]) < 1e-9) { if (O[a] < mn[a] || O[a] > mx[a]) return null; continue; }
+    let ta = (mn[a] - O[a]) / D[a], tb = (mx[a] - O[a]) / D[a], s = -1;
+    if (ta > tb) { const q = ta; ta = tb; tb = q; s = 1; }
+    if (ta > t0) { t0 = ta; eje = a; sg = s; }
+    if (tb < t1) t1 = tb;
+    if (t0 > t1) return null;
+  }
+  if (eje < 0) return null; // el origen está dentro
+  RES_CAJA.t = t0; RES_CAJA.eje = eje; RES_CAJA.sg = sg;
+  return RES_CAJA;
+}
+// Primer impacto contra el mapa
+function rayoMapa(o, d, tMax) {
+  let mejor = null;
+  for (const c of MAPA.col) {
+    const r = rayoAABB(o, d, c.min, c.max, mejor ? mejor.t : tMax);
+    if (r) mejor = { t: r.t, normal: new V3(r.eje === 0 ? r.sg : 0, r.eje === 1 ? r.sg : 0, r.eje === 2 ? r.sg : 0) };
+  }
+  return mejor;
+}
+function rayoEsfera(o, d, cx, cy, cz, r) {
+  const lx = cx - o.x, ly = cy - o.y, lz = cz - o.z;
+  const tca = lx * d.x + ly * d.y + lz * d.z;
+  if (tca < 0) return null;
+  const d2 = lx * lx + ly * ly + lz * lz - tca * tca;
+  if (d2 > r * r) return null;
+  return tca - Math.sqrt(r * r - d2);
+}
+function lineaVision(a, b) {
+  const d = tmpA.subVectors(b, a); const dist = d.length();
+  if (dist < 0.01) return true;
+  d.divideScalar(dist);
+  return rayoMapa(a, d, dist - 0.05) === null;
+}
+
+// Disparo: devuelve el primer impacto (mapa o combatiente; cabeza o cuerpo)
+function trazarDisparo(tirador, o, d, max) {
+  let mejorT = max, res = null;
+  const mm = rayoMapa(o, d, max);
+  if (mm) { mejorT = mm.t; res = { t: mm.t, normal: mm.normal, ent: null, cabeza: false }; }
+  for (const c of combatientes) {
+    if (c === tirador || !c.vivo) continue;
+    const tc = rayoEsfera(o, d, c.pos.x, alturaCabeza(c), c.pos.z, 0.17);
+    if (tc !== null && tc < mejorT) { mejorT = tc; res = { t: tc, ent: c, cabeza: true }; }
+    const top = lerp(1.47, 0.95, c.altAgachado);
+    const tb = rayoAABB(o, d, [c.pos.x - 0.28, 0, c.pos.z - 0.28], [c.pos.x + 0.28, top, c.pos.z + 0.28], mejorT);
+    if (tb && tb.t < mejorT) { mejorT = tb.t; res = { t: tb.t, ent: c, cabeza: false }; }
+  }
+  return res;
+}
+
+// ---- Rejilla y búsqueda de caminos (A*) ----
+function celdaDe(x, z) { return [clamp(Math.floor(x + MAPA.mitad), 0, NAV_N - 1), clamp(Math.floor(z + MAPA.mitad), 0, NAV_N - 1)]; }
+function celdaBloqueadaPos(x, z) {
+  if (Math.abs(x) >= MAPA.mitad || Math.abs(z) >= MAPA.mitad) return true;
+  const [i, j] = celdaDe(x, z); return MAPA.bloq[j * NAV_N + i] === 1;
+}
+function libreCercana(i, j) {
+  if (!MAPA.bloq[j * NAV_N + i]) return [i, j];
+  for (let r = 1; r < 8; r++) for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) {
+    const a = i + di, b = j + dj;
+    if (a < 0 || b < 0 || a >= NAV_N || b >= NAV_N) continue;
+    if (!MAPA.bloq[b * NAV_N + a]) return [a, b];
+  }
+  return [i, j];
+}
+function lineaLibre(ax, az, bx, bz) {
+  const dx = bx - ax, dz = bz - az, d = Math.hypot(dx, dz), n = Math.ceil(d / 0.4);
+  for (let k = 1; k <= n; k++) { const t = k / n; if (celdaBloqueadaPos(ax + dx * t, az + dz * t)) return false; }
+  return true;
+}
+const NAV = { g: new Float32Array(NAV_C), padre: new Int32Array(NAV_C), abierto: new Int32Array(NAV_C), cerrado: new Int32Array(NAV_C), sello: 0 };
+function buscarCamino(ax, az, bx, bz) {
+  const N = NAV_N, bloq = MAPA.bloq;
+  const [si, sj] = libreCercana(...celdaDe(ax, az)), [ti, tj] = libreCercana(...celdaDe(bx, bz));
+  const s = sj * N + si, t = tj * N + ti;
+  const sello = ++NAV.sello;
+  const heapN = [], heapF = [];
+  const push = (n, f) => {
+    let i = heapN.length; heapN.push(n); heapF.push(f);
+    while (i > 0) { const p = (i - 1) >> 1; if (heapF[p] <= f) break; heapN[i] = heapN[p]; heapF[i] = heapF[p]; i = p; }
+    heapN[i] = n; heapF[i] = f;
+  };
+  const pop = () => {
+    const top = heapN[0], ln = heapN.pop(), lf = heapF.pop();
+    if (heapN.length) {
+      let i = 0; const len = heapN.length;
+      for (;;) { let c = 2 * i + 1; if (c >= len) break; if (c + 1 < len && heapF[c + 1] < heapF[c]) c++; if (heapF[c] >= lf) break; heapN[i] = heapN[c]; heapF[i] = heapF[c]; i = c; }
+      heapN[i] = ln; heapF[i] = lf;
+    }
+    return top;
+  };
+  const h = n => { const dx = Math.abs(n % N - ti), dz = Math.abs(((n / N) | 0) - tj); return Math.max(dx, dz) + 0.414 * Math.min(dx, dz); };
+  NAV.g[s] = 0; NAV.abierto[s] = sello; NAV.padre[s] = -1; push(s, h(s));
+  let encontrado = false;
+  while (heapN.length) {
+    const c = pop();
+    if (NAV.cerrado[c] === sello) continue;
+    NAV.cerrado[c] = sello;
+    if (c === t) { encontrado = true; break; }
+    const ci = c % N, cj = (c / N) | 0;
+    for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+      if (!di && !dj) continue;
+      const ni = ci + di, nj = cj + dj;
+      if (ni < 0 || nj < 0 || ni >= N || nj >= N) continue;
+      const n = nj * N + ni;
+      if (bloq[n] || NAV.cerrado[n] === sello) continue;
+      if (di && dj && (bloq[cj * N + ni] || bloq[nj * N + ci])) continue; // no cortar esquinas
+      const g = NAV.g[c] + (di && dj ? 1.414 : 1);
+      if (NAV.abierto[n] !== sello || g < NAV.g[n]) { NAV.g[n] = g; NAV.abierto[n] = sello; NAV.padre[n] = c; push(n, g + h(n)); }
+    }
+  }
+  if (!encontrado) return null;
+  const ruta = [];
+  for (let n = t; n !== -1; n = NAV.padre[n]) ruta.push(new V3(-MAPA.mitad + (n % N) + 0.5, 0, -MAPA.mitad + ((n / N) | 0) + 0.5));
+  ruta.reverse();
+  if (!celdaBloqueadaPos(bx, bz)) ruta[ruta.length - 1].set(bx, 0, bz);
+  return ruta;
+}
+function puntoAleatorio() {
+  for (let k = 0; k < 50; k++) {
+    const x = rand(-MAPA.mitad + 1, MAPA.mitad - 1), z = rand(-MAPA.mitad + 1, MAPA.mitad - 1);
+    if (!celdaBloqueadaPos(x, z)) return new V3(x, 0, z);
+  }
+  return MAPA.aparicion[0].clone();
+}
+
+/* =====================================================================
+   8. MODELOS 3D DE LAS ARMAS (solo cajas y cilindros)
+   Convención: el cañón apunta a -Z y la línea de mira está en y = 0.
+   ===================================================================== */
+const MA = { negro: 0x22252a, metal: 0x3a3f46, madera: 0x8a5a2b, polimero: 0x2d3136, oliva: 0x4b5a3a, cromo: 0x9aa3ad, laton: 0xc9a54a };
+// Acabado de cada color de las armas: [rugosidad, metal]
+const ACABADO = {
+  [MA.negro]: [0.42, 0.75], [MA.metal]: [0.32, 0.9], [MA.madera]: [0.55, 0], [MA.polimero]: [0.7, 0.05],
+  [MA.oliva]: [0.75, 0.05], [MA.cromo]: [0.15, 1], [MA.laton]: [0.3, 1]
+};
+const matArma = c => mat(c, ...(ACABADO[c] || [0.6, 0.3]));
+function construirArma(id) {
+  const g = new THREE.Group();
+  const caja = (w, h, d, x, y, z, color, rx) => { const m = new THREE.Mesh(geoCaja, matArma(color)); m.scale.set(w, h, d); m.position.set(x, y, z); if (rx) m.rotation.x = rx; g.add(m); return m; };
+  const tubo = (r, largo, x, y, z, color) => { const m = new THREE.Mesh(geoCil, matArma(color)); m.scale.set(r, largo, r); m.rotation.x = Math.PI / 2; m.position.set(x, y, z); g.add(m); return m; };
+  const ud = { boca: new V3(), expulsion: new V3(0.03, -0.03, -0.02), movil: null, movilTipo: null };
+  switch (id) {
+    case 'ak':
+      caja(0.055, 0.07, 0.34, 0, -0.05, 0, MA.metal);
+      caja(0.05, 0.02, 0.3, 0, -0.012, 0.01, MA.metal);
+      caja(0.045, 0.075, 0.26, 0, -0.07, 0.3, MA.madera, -0.08);
+      caja(0.06, 0.055, 0.18, 0, -0.048, -0.26, MA.madera);
+      tubo(0.012, 0.2, 0, -0.014, -0.26, MA.metal);
+      tubo(0.011, 0.26, 0, -0.045, -0.46, MA.negro);
+      tubo(0.016, 0.05, 0, -0.045, -0.6, MA.negro);
+      caja(0.006, 0.03, 0.01, 0, -0.012, -0.55, MA.negro);
+      caja(0.035, 0.09, 0.045, 0, -0.12, 0.08, MA.madera, 0.35);
+      caja(0.035, 0.09, 0.06, 0, -0.12, -0.1, MA.negro, -0.15);
+      caja(0.035, 0.08, 0.06, 0, -0.2, -0.13, MA.negro, -0.4);
+      caja(0.03, 0.01, 0.03, 0.035, -0.03, 0.08, MA.metal);
+      ud.boca.set(0, -0.045, -0.64);
+      break;
+    case 'm4':
+      caja(0.05, 0.06, 0.3, 0, -0.05, 0, MA.negro);
+      caja(0.045, 0.05, 0.18, 0, -0.1, 0.02, MA.negro);
+      caja(0.025, 0.012, 0.28, 0, -0.016, 0, MA.metal);
+      caja(0.006, 0.03, 0.02, 0.012, -0.006, 0.1, MA.negro);
+      caja(0.006, 0.03, 0.02, -0.012, -0.006, 0.1, MA.negro);
+      caja(0.06, 0.06, 0.24, 0, -0.05, -0.27, MA.polimero);
+      tubo(0.01, 0.2, 0, -0.05, -0.48, MA.negro);
+      tubo(0.014, 0.05, 0, -0.05, -0.6, MA.negro);
+      caja(0.006, 0.04, 0.01, 0, -0.012, -0.38, MA.negro);
+      tubo(0.015, 0.15, 0, -0.05, 0.2, MA.negro);
+      caja(0.045, 0.07, 0.15, 0, -0.07, 0.31, MA.polimero);
+      caja(0.035, 0.09, 0.045, 0, -0.15, 0.1, MA.polimero, 0.35);
+      caja(0.03, 0.15, 0.065, 0, -0.17, -0.08, MA.negro, -0.12);
+      ud.boca.set(0, -0.05, -0.63);
+      break;
+    case 'mp5':
+      caja(0.05, 0.06, 0.3, 0, -0.045, -0.02, MA.negro);
+      caja(0.055, 0.055, 0.14, 0, -0.05, -0.22, MA.polimero);
+      tubo(0.01, 0.08, 0, -0.035, -0.32, MA.negro);
+      tubo(0.012, 0.2, 0, -0.012, -0.2, MA.negro);
+      caja(0.006, 0.025, 0.02, 0.012, -0.004, 0.1, MA.negro);
+      caja(0.006, 0.025, 0.02, -0.012, -0.004, 0.1, MA.negro);
+      caja(0.006, 0.028, 0.01, 0, -0.01, -0.3, MA.negro);
+      caja(0.025, 0.12, 0.045, 0, -0.13, -0.09, MA.negro, -0.3);
+      caja(0.035, 0.085, 0.045, 0, -0.12, 0.07, MA.polimero, 0.3);
+      caja(0.01, 0.05, 0.18, 0.02, -0.06, 0.22, MA.metal);
+      caja(0.01, 0.05, 0.18, -0.02, -0.06, 0.22, MA.metal);
+      caja(0.05, 0.07, 0.015, 0, -0.07, 0.31, MA.negro);
+      ud.boca.set(0, -0.035, -0.37);
+      break;
+    case 'escopeta':
+      caja(0.05, 0.07, 0.22, 0, -0.05, 0, MA.metal);
+      tubo(0.014, 0.55, 0, -0.03, -0.38, MA.negro);
+      tubo(0.013, 0.45, 0, -0.068, -0.33, MA.negro);
+      ud.movil = caja(0.055, 0.05, 0.16, 0, -0.07, -0.25, MA.madera); ud.movilTipo = 'corredera';
+      caja(0.045, 0.08, 0.3, 0, -0.08, 0.26, MA.madera, 0.08);
+      caja(0.008, 0.008, 0.008, 0, -0.012, -0.64, MA.laton);
+      ud.boca.set(0, -0.03, -0.67);
+      ud.expulsion.set(0.03, -0.04, -0.02);
+      break;
+    case 'francotirador':
+      caja(0.05, 0.06, 0.3, 0, -0.07, 0, MA.metal);
+      tubo(0.013, 0.6, 0, -0.065, -0.45, MA.negro);
+      caja(0.06, 0.08, 0.7, 0, -0.1, -0.02, MA.oliva);
+      caja(0.05, 0.12, 0.2, 0, -0.12, 0.32, MA.oliva);
+      tubo(0.022, 0.32, 0, 0, 0, MA.negro);
+      tubo(0.03, 0.06, 0, 0, -0.15, MA.negro);
+      tubo(0.028, 0.05, 0, 0, 0.15, MA.negro);
+      caja(0.02, 0.04, 0.02, 0, -0.03, -0.08, MA.metal);
+      caja(0.02, 0.04, 0.02, 0, -0.03, 0.08, MA.metal);
+      ud.movil = caja(0.05, 0.012, 0.012, 0.045, -0.055, 0.08, MA.cromo); ud.movilTipo = 'cerrojo';
+      caja(0.04, 0.05, 0.08, 0, -0.14, -0.02, MA.negro);
+      ud.boca.set(0, -0.065, -0.76);
+      break;
+    case 'pistolaLigera':
+      ud.movil = caja(0.032, 0.035, 0.18, 0, -0.02, -0.02, MA.negro); ud.movilTipo = 'pistola';
+      caja(0.03, 0.025, 0.16, 0, -0.05, -0.02, MA.polimero);
+      caja(0.03, 0.11, 0.05, 0, -0.1, 0.05, MA.polimero, 0.25);
+      caja(0.005, 0.01, 0.008, 0, 0.0, -0.1, MA.negro);
+      caja(0.006, 0.01, 0.008, 0.009, 0.0, 0.06, MA.negro);
+      caja(0.006, 0.01, 0.008, -0.009, 0.0, 0.06, MA.negro);
+      caja(0.032, 0.012, 0.05, 0, -0.16, 0.065, MA.negro, 0.25);
+      ud.boca.set(0, -0.02, -0.115);
+      ud.expulsion.set(0.02, -0.01, 0);
+      break;
+    case 'pistolaPesada':
+      ud.movil = caja(0.036, 0.042, 0.21, 0, -0.022, -0.025, MA.cromo); ud.movilTipo = 'pistola';
+      caja(0.034, 0.03, 0.18, 0, -0.058, -0.025, MA.metal);
+      caja(0.034, 0.12, 0.055, 0, -0.115, 0.055, MA.madera, 0.22);
+      caja(0.006, 0.012, 0.01, 0, 0.0, -0.12, MA.negro);
+      caja(0.007, 0.012, 0.01, 0.01, 0.0, 0.07, MA.negro);
+      caja(0.007, 0.012, 0.01, -0.01, 0.0, 0.07, MA.negro);
+      caja(0.02, 0.02, 0.04, 0, -0.07, 0.0, MA.metal);
+      ud.boca.set(0, -0.022, -0.135);
+      ud.expulsion.set(0.022, -0.01, 0);
+      break;
+  }
+  if (ud.movil) { ud.basePos = ud.movil.position.clone(); ud.baseRot = ud.movil.rotation.clone(); }
+  const fog = new THREE.Sprite(matFogonazo);
+  fog.position.copy(ud.boca).z -= 0.04; fog.scale.setScalar(0.16); fog.visible = false;
+  g.add(fog); ud.fogonazo = fog;
+  g.userData = ud;
+  return g;
+}
+
+/* =====================================================================
+   9. COMBATIENTES (jugador y bots comparten esta estructura)
+   ===================================================================== */
+const combatientes = [];
+function crearCombatiente(nombre, esJugador, color) {
+  return { nombre, esJugador, color, pos: new V3(), vel: new V3(), vida: 100, vivo: true,
+           bajas: 0, muertes: 0, agachado: false, altAgachado: 0, tDano: -99, tReap: 0, bot: null };
+}
+const alturaCabeza = c => lerp(1.64, 1.1, c.altAgachado);
+const alturaOjoBot = c => lerp(1.55, 1.0, c.altAgachado);
+
+/* =====================================================================
+   10. JUGADOR: movimiento, cámara y retroceso de la mira
+   ===================================================================== */
+const J = { ent: crearCombatiente('Tú', true, 0xffffff), yaw: 0, pitch: 0, altOjo: JUGADOR_CFG.alturaOjo,
+            corriendo: false, apuntando: false, velH: 0, bobFase: 0, sprintT: 0, swayX: 0, swayY: 0, muerteT: 0 };
+// Estado del armamento del jugador
+const JA = {
+  slots: [null, null], actual: 0, estado: 'lista', t: 0, tTotal: 0, cambioA: 0, cambiado: false,
+  proxDisparo: 0, tUltDisparo: -9, clicNuevo: false, tClic: 0, vacioSonado: false,
+  bloom: 0, kick: 0, aimT: 0, ciclo: 99, eyectado: true, fogon: 0, slideT: 0,
+  // retro.p / retro.y = desplazamiento actual de la mira por retroceso (radianes)
+  // pendP / pendY = retroceso que aún se está aplicando (se reparte en unos 40 ms)
+  retro: { p: 0, y: 0, pendP: 0, pendY: 0 }
+};
+const teclas = {};
+const raton = { izq: false, der: false };
+const defActual = () => JA.slots[JA.actual].def;
+
+function mirar(mx, my) {
+  mx = clamp(mx, -300, 300); my = clamp(my, -300, 300);
+  const s = JUEGO.sensibilidad * AJUSTES.sens * (camara.fov / JUEGO.fovBase);
+  let dY = -mx * s, dP = -my * s;
+  // Compensación: si el jugador baja el ratón mientras la mira está subida por el retroceso,
+  // ese movimiento se descuenta del retroceso acumulado (así la recuperación no "sobrecorrige").
+  if (dP < 0 && JA.retro.p > 0) { const a = Math.min(JA.retro.p, -dP); JA.retro.p -= a; dP += a; }
+  if (dY * JA.retro.y < 0) { const a = Math.min(Math.abs(JA.retro.y), Math.abs(dY)) * Math.sign(dY); JA.retro.y += a; dY -= a; }
+  J.yaw += dY;
+  J.pitch = clamp(J.pitch + dP, -1.5, 1.5);
+  J.swayX = clamp(J.swayX + mx * 0.00015, -0.03, 0.03);
+  J.swayY = clamp(J.swayY + my * 0.00015, -0.03, 0.03);
+}
+
+function actualizarJugador(dt) {
+  const e = J.ent;
+  if (!e.vivo) {
+    J.muerteT += dt;
+    e.tReap -= dt;
+    setTexto('mensaje', e.tReap > 0 ? `Reapareces en ${Math.max(1, Math.ceil(e.tReap))}` : (NET.cliente ? 'Entrando…' : ''));
+    // Online, como invitado, la reaparición la decide el anfitrión (mensaje 'rep')
+    if (e.tReap <= 0 && !NET.cliente) reaparecer(e);
+    return;
+  }
+  const def = defActual();
+  const activo = estado === 'jugando';   // online, en pausa, el mundo sigue pero tú no te mueves
+  const fw = activo ? (teclas.KeyW ? 1 : 0) - (teclas.KeyS ? 1 : 0) : 0;
+  const rt = activo ? (teclas.KeyD ? 1 : 0) - (teclas.KeyA ? 1 : 0) : 0;
+  J.agachado = activo && !!teclas.KeyC;
+  J.apuntando = raton.der && JA.estado === 'lista';
+  J.corriendo = !!(teclas.ShiftLeft || teclas.ShiftRight) && fw > 0 && !J.agachado && !raton.der && !raton.izq;
+
+  let vel = J.agachado ? JUGADOR_CFG.velAgachado : J.corriendo ? JUGADOR_CFG.velCorrer : JUGADOR_CFG.velAndar;
+  vel *= def.velMovimiento * lerp(1, JUGADOR_CFG.factorApuntar, JA.aimT);
+  const sy = Math.sin(J.yaw), cy = Math.cos(J.yaw);
+  let wx = -sy * fw + cy * rt, wz = -cy * fw - sy * rt;
+  const wl = Math.hypot(wx, wz);
+  if (wl > 0) { wx = wx / wl * vel; wz = wz / wl * vel; }
+  const k = Math.min(1, JUGADOR_CFG.aceleracion * dt);
+  e.vel.x += (wx - e.vel.x) * k; e.vel.z += (wz - e.vel.z) * k;
+  e.pos.x += e.vel.x * dt; e.pos.z += e.vel.z * dt;
+  resolverColision(e.pos, JUGADOR_CFG.radio);
+  resolverColision(e.pos, JUGADOR_CFG.radio);
+
+  e.agachado = J.agachado;
+  e.altAgachado += ((J.agachado ? 1 : 0) - e.altAgachado) * Math.min(1, dt * 10);
+  J.altOjo = lerp(JUGADOR_CFG.alturaOjo, JUGADOR_CFG.alturaOjoAgachado, e.altAgachado);
+  J.velH = Math.hypot(e.vel.x, e.vel.z);
+  if (J.velH > 0.5) J.bobFase += dt * J.velH * 1.9;
+  J.sprintT += ((J.corriendo ? 1 : 0) - J.sprintT) * Math.min(1, dt * 10);
+
+  // Apuntar: aimT va de 0 (cadera) a 1 (mira) en def.tApuntar segundos
+  JA.aimT = clamp(JA.aimT + (J.apuntando ? 1 : -1) * dt / def.tApuntar, 0, 1);
+
+  // Regeneración (online, como invitado, la vida la lleva el anfitrión)
+  const rg = JUEGO.regeneracion;
+  if (!NET.cliente && reloj - e.tDano > rg.espera && e.vida < JUGADOR_CFG.vida) e.vida = Math.min(JUGADOR_CFG.vida, e.vida + rg.porSegundo * dt);
+}
+
+// Coloca la cámara: rumbo/inclinación del jugador + desplazamiento por retroceso
+function actualizarCamara(dt) {
+  const e = J.ent, r = JA.retro;
+  // El retroceso pendiente se aplica rápido pero no de golpe
+  const k = Math.min(1, dt * 25);
+  const mp = r.pendP * k, my = r.pendY * k;
+  r.p += mp; r.y += my; r.pendP -= mp; r.pendY -= my;
+  r.p = Math.min(r.p, 25 * DEG);
+  // Recuperación suave cuando se deja de disparar
+  if (JA.slots[JA.actual] && reloj - JA.tUltDisparo > 60 / defActual().cadencia + 0.06) {
+    const rec = Math.min(1, defActual().recuperacion * dt);
+    r.p -= r.p * rec; r.y -= r.y * rec;
+  }
+  let alt = J.altOjo, roll = 0;
+  if (!e.vivo) { const t = Math.min(1, J.muerteT / 0.6); alt = lerp(J.altOjo, 0.35, t); roll = 0.5 * t; }
+  const bob = e.vivo ? Math.sin(J.bobFase * 2) * 0.025 * clamp(J.velH / 5, 0, 1.3) * (1 - JA.aimT * 0.8) : 0;
+  camara.position.set(e.pos.x, alt + bob, e.pos.z);
+  camara.rotation.set(clamp(J.pitch + r.p, -1.55, 1.55), J.yaw + r.y, roll);
+  // FOV: zoom suave al apuntar y algo más abierto al correr
+  const def = defActual();
+  const fov = lerp(JUEGO.fovBase, def.fovApuntar, suave(JA.aimT)) + J.sprintT * 5;
+  if (Math.abs(camara.fov - fov) > 0.01) { camara.fov = fov; camara.updateProjectionMatrix(); }
+}
+
+/* =====================================================================
+   11. ARMAS DEL JUGADOR: disparo, recarga, cambio, animaciones
+   ===================================================================== */
+const modelosJugador = {};
+function modeloJugador(id) { return modelosJugador[id] || (modelosJugador[id] = construirArma(id)); }
+function ponerModelo() {
+  while (armaRaiz.children.length) armaRaiz.remove(armaRaiz.children[0]);
+  armaRaiz.add(modeloJugador(JA.slots[JA.actual].id));
+}
+function prepararArmas() {
+  JA.slots = [AJUSTES.principal, AJUSTES.secundaria].map(id => ({ id, def: WEAPONS[id], mag: WEAPONS[id].cargador, res: WEAPONS[id].reserva }));
+  Object.assign(JA, { actual: 0, estado: 'lista', t: 0, proxDisparo: 0, bloom: 0, kick: 0, aimT: 0, ciclo: 99, eyectado: true, fogon: 0, clicNuevo: false });
+  Object.assign(JA.retro, { p: 0, y: 0, pendP: 0, pendY: 0 });
+  ponerModelo();
+}
+
+function recargar() {
+  const s = JA.slots[JA.actual];
+  if (!J.ent.vivo || JA.estado !== 'lista' || s.mag >= s.def.cargador || s.res <= 0) return;
+  JA.estado = 'recargando'; JA.t = JA.tTotal = s.def.recarga;
+  AUDIO.recarga(s.def.recarga);
+}
+function cambiarArma(i) {
+  if (!J.ent.vivo || JA.estado === 'cambiando' || i === JA.actual) return;
+  JA.estado = 'cambiando'; JA.t = JUEGO.tCambioArma; JA.cambioA = i; JA.cambiado = false;
+  AUDIO.cambio();
+}
+
+function danoPorDistancia(def, d) {
+  if (d <= def.distMin) return def.dano;
+  if (d >= def.distMax) return def.danoMin;
+  return lerp(def.dano, def.danoMin, (d - def.distMin) / (def.distMax - def.distMin));
+}
+// Dispersión actual (radianes): base × movimiento × postura × apuntado + bloom
+function dispersionActual() {
+  const def = defActual();
+  let f = DISPERSION_MOV.quieto;
+  if (J.velH > 0.6) f = J.corriendo ? DISPERSION_MOV.corriendo : DISPERSION_MOV.andando;
+  if (J.agachado) f *= DISPERSION_MOV.agachado;
+  const apunt = lerp(1, def.factorApuntar, suave(JA.aimT));
+  return (def.dispersion * f * apunt + JA.bloom * lerp(1, 0.5, JA.aimT)) * DEG;
+}
+
+function dispararJugador() {
+  const s = JA.slots[JA.actual], def = s.def;
+  s.mag--;
+  JA.tUltDisparo = reloj;
+  JA.proxDisparo = reloj + 60 / def.cadencia;
+
+  // La bala sale del centro de la cámara hacia donde apunta la mira AHORA (+ dispersión)
+  camara.updateMatrixWorld();
+  const origen = camara.getWorldPosition(new V3());
+  const frente = camara.getWorldDirection(new V3());
+  const disp = dispersionActual();
+  const golpes = new Map();
+  const dir = new V3();
+  const finales = [];   // para que los demás jugadores vean las trazadoras e impactos (online)
+  for (let i = 0; i < def.perdigones; i++) {
+    conoAleatorio(frente, disp, dir);
+    const imp = trazarDisparo(J.ent, origen, dir, 250);
+    const punto = origen.clone().addScaledVector(dir, imp ? imp.t : 120);
+    const f = [r2(punto.x), r2(punto.y), r2(punto.z)];
+    if (imp && !imp.ent) f.push(imp.normal.x, imp.normal.y, imp.normal.z);
+    finales.push(f);
+    if (!imp) continue;
+    if (imp.ent) {
+      const g = golpes.get(imp.ent) || { dano: 0, cabeza: false, punto };
+      g.dano += danoPorDistancia(def, imp.t) * (imp.cabeza ? JUEGO.multCabeza : 1);
+      g.cabeza = g.cabeza || imp.cabeza;
+      golpes.set(imp.ent, g);
+      particulas(punto, dir.clone().negate(), 0xa02020, 4);
+    } else {
+      agujeroBala(punto, imp.normal);
+      particulas(punto, imp.normal, 0x9a948a, 3);
+    }
+  }
+  for (const [ent, g] of golpes) {
+    const mata = aplicarDano(ent, g.dano, J.ent, g.cabeza);
+    marcadorImpacto(g.cabeza, mata);
+    numeroDano(g.punto, g.dano, g.cabeza);
+  }
+
+  // Retroceso de la mira (menor apuntando y algo menor agachado)
+  let m = 1 - JUEGO.retroApuntando * suave(JA.aimT);
+  if (J.agachado) m *= 0.85;
+  JA.retro.pendP += def.retroV * DEG * m * rand(0.9, 1.1);
+  JA.retro.pendY += (Math.random() * 2 - 1) * def.retroH * DEG * m;
+  JA.bloom = Math.min(def.bloomMax, JA.bloom + def.bloom);
+  // Efectos visuales y sonido
+  JA.kick = 1; JA.fogon = 0.05; JA.slideT = 0.07;
+  AUDIO.disparo(def.sonido, 1, 0);
+  if (NET.on) netTiro(J.ent, def.id, finales);
+  if (def.modo === 'cerrojo') { JA.ciclo = 0; JA.eyectado = false; }
+  else expulsarCasquillo(def);
+}
+
+function actualizarArma(dt) {
+  const s = JA.slots[JA.actual], def = s.def;
+  if (JA.estado === 'recargando') {
+    JA.t -= dt;
+    if (JA.t <= 0) { const n = Math.min(def.cargador - s.mag, s.res); s.mag += n; s.res -= n; JA.estado = 'lista'; }
+  } else if (JA.estado === 'cambiando') {
+    JA.t -= dt;
+    if (!JA.cambiado && JA.t <= JUEGO.tCambioArma / 2) {
+      JA.actual = JA.cambioA; JA.cambiado = true; JA.ciclo = 99; JA.eyectado = true; JA.aimT = 0; ponerModelo();
+    }
+    if (JA.t <= 0) JA.estado = 'lista';
+  }
+  const d2 = defActual(), s2 = JA.slots[JA.actual];
+  // Gatillo
+  if (J.ent.vivo && JA.estado === 'lista' && !J.corriendo) {
+    // Un clic rápido siempre dispara al menos una bala, aunque se suelte antes del siguiente fotograma
+    const clic = JA.clicNuevo && reloj - JA.tClic < 0.25;
+    const quiere = d2.modo === 'auto' ? (raton.izq || clic) : clic;
+    if (quiere && reloj >= JA.proxDisparo) {
+      JA.clicNuevo = false;
+      if (s2.mag > 0) dispararJugador();
+      else if (s2.res > 0) recargar();
+      else if (!JA.vacioSonado) { AUDIO.vacio(); JA.vacioSonado = true; }
+    }
+  }
+  if (JA.clicNuevo && reloj - JA.tClic >= 0.25) JA.clicNuevo = false;
+  // Ciclo del cerrojo / corredera: expulsa el casquillo a mitad del ciclo
+  if (JA.ciclo < 99) {
+    JA.ciclo += dt;
+    if (!JA.eyectado && JA.ciclo >= (60 / d2.cadencia) * 0.35) { JA.eyectado = true; AUDIO.cerrojo(); expulsarCasquillo(d2); }
+  }
+  if (reloj - JA.tUltDisparo > 0.12) JA.bloom = Math.max(0, JA.bloom - dt * 6);
+  JA.kick *= Math.exp(-dt * 14);
+  JA.fogon -= dt; JA.slideT -= dt;
+  luzFogonazo.intensity = JA.fogon > 0 ? 2.2 : 0;
+  luzFogonazoArma.intensity = JA.fogon > 0 ? 1.6 : 0;
+}
+
+// Posición del arma en pantalla: cadera ↔ mira, balanceo, golpe de retroceso, recarga y cambio
+function actualizarModeloArma(dt) {
+  const def = defActual(), m = armaRaiz.children[0];
+  if (!m) return;
+  const ud = m.userData;
+  const hip = def.posCadera || [0.19, -0.2, -0.42];
+  const ads = def.posApuntar || [0, -0.006, -0.46];
+  const a = suave(JA.aimT);
+  let x = lerp(hip[0], ads[0], a), y = lerp(hip[1], ads[1], a), z = lerp(hip[2], ads[2], a);
+  let rx = 0, ry = 0, rz = 0;
+  // Balanceo al andar
+  const amp = (1 - a * 0.85) * clamp(J.velH / 5, 0, 1.3);
+  x += Math.cos(J.bobFase) * 0.012 * amp;
+  y += Math.abs(Math.sin(J.bobFase)) * 0.012 * amp;
+  // Inercia al mover el ratón
+  J.swayX *= Math.exp(-dt * 8); J.swayY *= Math.exp(-dt * 8);
+  x -= J.swayX * (1 - a * 0.7); y += J.swayY * (1 - a * 0.7);
+  // Corriendo: arma ladeada
+  x += 0.04 * J.sprintT; y -= 0.05 * J.sprintT; ry += 0.6 * J.sprintT; rx -= 0.2 * J.sprintT;
+  // Golpe visual del retroceso (hacia atrás y hacia arriba)
+  const kv = def.retroVisual, km = JA.kick * (1 - a * 0.4);
+  z += km * kv.z; y += km * 0.012; rx += km * kv.rot;
+  // Recarga
+  if (JA.estado === 'recargando') {
+    const p = 1 - JA.t / JA.tTotal, sr = Math.sin(p * Math.PI);
+    rz += 0.6 * sr; rx += 0.25 * sr; y -= 0.08 * sr; x -= 0.03 * sr;
+  }
+  // Cambio de arma: baja y sube
+  if (JA.estado === 'cambiando') {
+    const h = JUEGO.tCambioArma / 2;
+    const dd = JA.t > h ? 1 - (JA.t - h) / h : JA.t / h;
+    y -= 0.3 * dd; rx -= 0.6 * dd;
+  }
+  armaRaiz.position.set(x, y, z);
+  armaRaiz.rotation.set(rx, ry, rz);
+
+  // Piezas móviles
+  if (ud.movil) {
+    const mv = ud.movil;
+    mv.position.copy(ud.basePos); mv.rotation.copy(ud.baseRot);
+    if (ud.movilTipo === 'pistola') {
+      if (JA.slideT > 0 || JA.slots[JA.actual].mag === 0) mv.position.z += 0.03;
+    } else if (JA.ciclo < 99) {
+      const int = 60 / def.cadencia;
+      const p = clamp((JA.ciclo - 0.15 * int) / (0.6 * int), 0, 1), sp = Math.sin(p * Math.PI);
+      if (ud.movilTipo === 'corredera') mv.position.z += 0.09 * sp;
+      else { mv.position.z += 0.06 * sp; mv.rotation.z = 1.2 * Math.min(1, sp * 2); }
+    }
+  }
+  ud.fogonazo.visible = JA.fogon > 0;
+  if (JA.fogon > 0) { ud.fogonazo.scale.setScalar(rand(0.12, 0.2) * (def.perdigones > 1 ? 1.4 : 1)); matFogonazo.rotation = Math.random() * 6.28; }
+  // Mira telescópica: se oculta el arma y se muestra la mirilla
+  const conMirilla = def.mira === 'telescopica' && JA.aimT > 0.85 && J.ent.vivo;
+  armaRaiz.visible = J.ent.vivo && !conMirilla;
+  mostrar('mirilla', conMirilla);
+}
+
+/* =====================================================================
+   12. BOTS (IA): percepción, patrulla, combate, cobertura
+   ===================================================================== */
+const bots = [];
+function crearModeloBot(color) {
+  const g = new THREE.Group(); g.rotation.order = 'YXZ';
+  const ropa = mat(color, 0.9), osc = mat(0x2a2e35, 0.75, 0.1), piel = mat(0xc99a6e, 0.55), bota = mat(0x1c1f24, 0.7);
+  const parte = (padre, w, h, d, x, y, z, m, rx) => { const me = new THREE.Mesh(geoCaja, m); me.scale.set(w, h, d); me.position.set(x, y, z); if (rx) me.rotation.x = rx; me.castShadow = true; padre.add(me); return me; };
+  const piernas = new THREE.Group(); g.add(piernas);
+  const pivL = new THREE.Group(); pivL.position.set(-0.11, 0.86, 0); piernas.add(pivL);
+  const pivR = new THREE.Group(); pivR.position.set(0.11, 0.86, 0); piernas.add(pivR);
+  for (const p of [pivL, pivR]) { parte(p, 0.17, 0.78, 0.2, 0, -0.39, 0, osc); parte(p, 0.18, 0.1, 0.28, 0, -0.81, 0.04, bota); }
+  const sup = new THREE.Group(); g.add(sup);
+  parte(sup, 0.42, 0.14, 0.24, 0, 0.9, 0, osc);
+  parte(sup, 0.5, 0.58, 0.28, 0, 1.16, 0, ropa);
+  parte(sup, 0.52, 0.34, 0.31, 0, 1.2, 0, osc);
+  parte(sup, 0.26, 0.28, 0.26, 0, 1.6, 0, piel);
+  parte(sup, 0.3, 0.12, 0.3, 0, 1.76, 0, ropa);
+  parte(sup, 0.27, 0.06, 0.02, 0, 1.63, 0.135, osc);
+  parte(sup, 0.12, 0.42, 0.12, 0.3, 1.22, 0.12, ropa, -1.1);
+  parte(sup, 0.12, 0.42, 0.12, -0.2, 1.22, 0.2, ropa, -1.3);
+  parte(sup, 0.07, 0.11, 0.62, 0.1, 1.28, 0.42, osc);
+  g.userData = { piernas, pivL, pivR, sup };
+  return g;
+}
+function crearBot(i) {
+  const ent = crearCombatiente(BOT_CFG.nombres[i % BOT_CFG.nombres.length], false, BOT_CFG.colores[i % BOT_CFG.colores.length]);
+  const b = {
+    ent, modelo: crearModeloBot(ent.color), yaw: 0, estado: 'patrulla',
+    objetivo: null, ve: false, ultimaPos: new V3(), tVisto: -99,
+    ruta: null, iRuta: 0, rutaDest: new V3(1e9, 0, 1e9), tRuta: 0, tAtajo: 0,
+    destino: null, llego: true, puntoCob: null, tCob: 0, cdCob: 0,
+    tPercep: Math.random() * 0.15, tReac: 0, tDisp: 0, rafaga: 0, mun: BOT_CFG.cargador, tRecarga: 0,
+    lado: 1, tLado: 0, paso: 0, tMuerte: 0, disparosVista: 0
+  };
+  ent.bot = b; ent.id = 'b' + i;
+  escena.add(b.modelo);
+  return b;
+}
+
+function percibir(b) {
+  const e = b.ent, ojo = tmpB.set(e.pos.x, alturaOjoBot(e), e.pos.z);
+  const fx = Math.sin(b.yaw), fz = Math.cos(b.yaw), cosCampo = Math.cos(BOT_CFG.campoVision / 2 * DEG);
+  let mejor = null, md = 1e9, actualVisible = false;
+  for (const o of combatientes) {
+    if (o === e || !o.vivo) continue;
+    const dx = o.pos.x - e.pos.x, dz = o.pos.z - e.pos.z, d = Math.hypot(dx, dz);
+    if (d > BOT_CFG.vista) continue;
+    if ((dx * fx + dz * fz) / (d || 1) < cosCampo && d > BOT_CFG.oido) continue;
+    const ve = lineaVision(ojo, tmpC.set(o.pos.x, lerp(1.2, 0.8, o.altAgachado), o.pos.z)) ||
+               lineaVision(ojo, tmpC.set(o.pos.x, alturaCabeza(o), o.pos.z));
+    if (!ve) continue;
+    if (o === b.objetivo) actualVisible = true;
+    if (d < md) { md = d; mejor = o; }
+  }
+  if (actualVisible) mejor = b.objetivo; // se mantiene el objetivo si lo sigue viendo
+  if (mejor) {
+    if (mejor !== b.objetivo || !b.ve) { b.tReac = rand(...BOT_CFG.reaccion); b.disparosVista = 0; }
+    b.objetivo = mejor; b.ve = true; b.ultimaPos.copy(mejor.pos); b.tVisto = reloj;
+  } else b.ve = false;
+}
+
+function alRecibirDano(b, atacante) {
+  if (!atacante || atacante === b.ent) return;
+  if (!b.ve) {
+    b.objetivo = atacante; b.ultimaPos.copy(atacante.pos); b.tVisto = reloj;
+    b.yaw = girarHacia(b.yaw, Math.atan2(atacante.pos.x - b.ent.pos.x, atacante.pos.z - b.ent.pos.z), 1.2);
+  }
+  if (b.estado !== 'cobertura' && b.cdCob <= 0 && Math.random() < 0.35) {
+    const pc = buscarCobertura(b.ent.pos, atacante);
+    b.cdCob = 2;
+    if (pc) { b.estado = 'cobertura'; b.puntoCob = pc; b.tCob = rand(1.5, 3); b.ruta = null; }
+  }
+}
+
+// Busca un punto cercano que quede tapado (agachado) desde la posición de la amenaza
+function buscarCobertura(pos, amenaza) {
+  const ojoA = new V3(amenaza.pos.x, 1.5, amenaza.pos.z), p = new V3();
+  let mejor = null, mejorP = 1e9;
+  for (const c of MAPA.coberturas) {
+    const d = Math.hypot(c.x - pos.x, c.z - pos.z);
+    if (d > 16) continue;
+    const dA = Math.hypot(c.x - amenaza.pos.x, c.z - amenaza.pos.z);
+    if (dA < 5) continue;
+    if (lineaVision(ojoA, p.set(c.x, 0.95, c.z))) continue; // desde ahí le verían
+    const punt = d - Math.min(dA, 20) * 0.1 + Math.random() * 1.5;
+    if (punt < mejorP) { mejorP = punt; mejor = c; }
+  }
+  return mejor ? mejor.clone() : null;
+}
+
+// Dirección hacia el siguiente punto de la ruta (A*). null si ya ha llegado.
+function dirRuta(b, dest) {
+  const e = b.ent;
+  if (!b.ruta || b.tRuta <= 0 || Math.hypot(b.rutaDest.x - dest.x, b.rutaDest.z - dest.z) > 1.5) {
+    b.ruta = buscarCamino(e.pos.x, e.pos.z, dest.x, dest.z); b.iRuta = 0; b.tRuta = 1.2; b.rutaDest.set(dest.x, 0, dest.z);
+  }
+  if (!b.ruta) return null;
+  if (b.tAtajo <= 0) {
+    b.tAtajo = 0.2;
+    while (b.iRuta < b.ruta.length - 1 && lineaLibre(e.pos.x, e.pos.z, b.ruta[b.iRuta + 1].x, b.ruta[b.iRuta + 1].z)) b.iRuta++;
+  }
+  let p = b.ruta[b.iRuta], dx = p.x - e.pos.x, dz = p.z - e.pos.z, d = Math.hypot(dx, dz);
+  if (d < 0.4) {
+    if (b.iRuta >= b.ruta.length - 1) return null;
+    b.iRuta++; p = b.ruta[b.iRuta]; dx = p.x - e.pos.x; dz = p.z - e.pos.z; d = Math.hypot(dx, dz) || 1;
+  }
+  return { x: dx / d, z: dz / d };
+}
+function moverBot(b, dx, dz, vel, dt) {
+  const e = b.ent, k = Math.min(1, dt * 8);
+  e.vel.x += (dx * vel - e.vel.x) * k; e.vel.z += (dz * vel - e.vel.z) * k;
+  e.pos.x += e.vel.x * dt; e.pos.z += e.vel.z * dt;
+  resolverColision(e.pos, BOT_CFG.radio);
+}
+
+function dispararBot(b, obj) {
+  const e = b.ent;
+  const o = new V3(e.pos.x, alturaOjoBot(e), e.pos.z);
+  const yObj = Math.random() < BOT_CFG.probCabeza ? alturaCabeza(obj) : lerp(1.15, 0.75, obj.altAgachado);
+  const dirv = new V3(obj.pos.x, yObj, obj.pos.z).sub(o).normalize();
+  const velObj = Math.hypot(obj.vel.x, obj.vel.z);
+  // Imprecisión: base + objetivo en movimiento + primeros disparos al verlo
+  const err = BOT_CFG.error * DEG * (1 + velObj * 0.12) * (b.disparosVista < 3 ? 1.4 : 1) * (obj.agachado ? 1.1 : 1);
+  const dir = conoAleatorio(dirv, err, new V3());
+  b.disparosVista++;
+  const imp = trazarDisparo(e, o, dir, 120);
+  const fin = o.clone().addScaledVector(dir, imp ? imp.t : 80);
+  const boca = new V3(e.pos.x + Math.sin(b.yaw) * 0.7 + Math.cos(b.yaw) * 0.1, lerp(1.3, 0.85, e.altAgachado), e.pos.z + Math.cos(b.yaw) * 0.7 - Math.sin(b.yaw) * 0.1);
+  trazador(boca, fin);
+  if (imp && imp.ent) { aplicarDano(imp.ent, BOT_CFG.dano * (imp.cabeza ? JUEGO.multCabeza : 1), e, imp.cabeza); particulas(fin, dir.clone().negate(), 0xa02020, 3); }
+  else if (imp) { agujeroBala(fin, imp.normal); particulas(fin, imp.normal, 0x9a948a, 2); }
+  sonidoDistante(e.pos, BOT_CFG.sonido);
+  if (NET.anfitrion) {
+    const f = [r2(fin.x), r2(fin.y), r2(fin.z)];
+    if (imp && !imp.ent) f.push(imp.normal.x, imp.normal.y, imp.normal.z);
+    netTiro(e, 'bot', [f]);
+  }
+}
+// Sonido de un disparo ajeno, según la distancia y el lado respecto a la cámara
+function sonidoDistante(pos, sonido) {
+  const dx = pos.x - camara.position.x, dz = pos.z - camara.position.z, dist = Math.hypot(dx, dz) || 1;
+  const pan = (dx * Math.cos(J.yaw) - dz * Math.sin(J.yaw)) / dist;
+  AUDIO.disparo(sonido, clamp(1 - dist / 70, 0.06, 1) * 0.7, pan * 0.8);
+}
+// Postura del modelo de un soldado (bot o jugador remoto): piernas, agachado y caída al morir
+function poseModelo(g, e, yaw, dt) {
+  const ud = g.userData;
+  if (!e.vivo) {
+    ud.tMuerte = (ud.tMuerte || 0) + dt;
+    const t = Math.min(1, ud.tMuerte / 0.45);
+    g.rotation.set(-t * Math.PI / 2, yaw, 0);
+    g.position.set(e.pos.x, 0.15 * t, e.pos.z);
+    g.visible = ud.tMuerte < 2.2;
+    return;
+  }
+  ud.tMuerte = 0; g.visible = true;
+  const v = Math.hypot(e.vel.x, e.vel.z);
+  ud.paso = (ud.paso || 0) + v * dt * 3;
+  const sw = Math.sin(ud.paso) * 0.6 * clamp(v / 3, 0, 1);
+  ud.pivL.rotation.x = sw; ud.pivR.rotation.x = -sw;
+  ud.sup.position.y = -0.4 * e.altAgachado;
+  ud.piernas.scale.y = 1 - 0.45 * e.altAgachado;
+  g.position.set(e.pos.x, 0, e.pos.z);
+  g.rotation.set(0, yaw, 0);
+}
+
+function actualizarBot(b, dt) {
+  const e = b.ent, g = b.modelo, ud = g.userData;
+  if (!e.vivo) {
+    poseModelo(g, e, b.yaw, dt);
+    e.tReap -= dt;
+    if (e.tReap <= 0) reaparecer(e);
+    return;
+  }
+  b.tPercep -= dt; b.tRuta -= dt; b.tAtajo -= dt; b.cdCob -= dt; b.tReac -= dt; b.tDisp -= dt; b.tLado -= dt;
+  if (b.tPercep <= 0) { b.tPercep = 0.15 + Math.random() * 0.05; percibir(b); }
+  if (b.objetivo && !b.objetivo.vivo) { b.objetivo = null; b.ve = false; }
+  if (b.tRecarga > 0) { b.tRecarga -= dt; if (b.tRecarga <= 0) b.mun = BOT_CFG.cargador; }
+  else if (b.mun <= 0) b.tRecarga = BOT_CFG.recarga;
+
+  const obj = b.objetivo;
+  let dir = null, vel = BOT_CFG.velocidad, mirarA = null, agachar = false;
+
+  if (b.estado === 'cobertura' && b.puntoCob) {
+    // Ir a la cobertura, agacharse, esperar (y recargar) y volver a asomarse
+    if (Math.hypot(b.puntoCob.x - e.pos.x, b.puntoCob.z - e.pos.z) > 0.5) { dir = dirRuta(b, b.puntoCob); vel *= 1.1; }
+    if (!dir) {
+      agachar = true; b.tCob -= dt;
+      if (b.tCob <= 0 && b.tRecarga <= 0) { b.estado = 'combate'; b.puntoCob = null; b.cdCob = rand(5, 9); }
+    }
+    if (obj) mirarA = b.ve ? obj.pos : b.ultimaPos;
+  } else if (obj && b.ve) {
+    b.estado = 'combate'; mirarA = obj.pos;
+    const dx = obj.pos.x - e.pos.x, dz = obj.pos.z - e.pos.z, d = Math.hypot(dx, dz) || 1;
+    if ((e.vida < 45 || b.tRecarga > 0) && b.cdCob <= 0) {
+      const pc = buscarCobertura(e.pos, obj); b.cdCob = 2;
+      if (pc) { b.estado = 'cobertura'; b.puntoCob = pc; b.tCob = rand(1.6, 3.2); b.ruta = null; }
+    }
+    if (b.estado === 'combate') {
+      if (d > BOT_CFG.distPreferida[1]) dir = dirRuta(b, obj.pos);
+      else {
+        // Movimiento lateral (strafe) manteniendo distancia
+        if (b.tLado <= 0) { b.lado = Math.random() < 0.25 ? 0 : (Math.random() < 0.5 ? -1 : 1); b.tLado = rand(0.7, 1.8); }
+        let sx = -dz / d * b.lado, sz = dx / d * b.lado;
+        if (d < BOT_CFG.distPreferida[0]) { sx -= dx / d * 0.7; sz -= dz / d * 0.7; }
+        const l = Math.hypot(sx, sz);
+        if (l > 0.01) {
+          sx /= l; sz /= l;
+          if (celdaBloqueadaPos(e.pos.x + sx * 0.9, e.pos.z + sz * 0.9)) { b.lado = -b.lado; sx = -sx; sz = -sz; }
+          dir = { x: sx, z: sz };
+        }
+        vel = BOT_CFG.velCombate;
+      }
+    }
+  } else if (obj && reloj - b.tVisto < 7) {
+    // Buscar donde lo vio por última vez
+    b.estado = 'buscar'; mirarA = b.ultimaPos;
+    dir = dirRuta(b, b.ultimaPos);
+    if (!dir) { b.objetivo = null; b.estado = 'patrulla'; }
+  } else {
+    b.estado = 'patrulla';
+    if (!b.destino || b.llego) { b.destino = puntoAleatorio(); b.llego = false; }
+    dir = dirRuta(b, b.destino);
+    if (!dir) b.llego = true;
+    vel = BOT_CFG.velocidad * 0.75;
+  }
+
+  if (dir) moverBot(b, dir.x, dir.z, vel, dt); else moverBot(b, 0, 0, 0, dt);
+
+  let yawObj = b.yaw;
+  if (mirarA) yawObj = Math.atan2(mirarA.x - e.pos.x, mirarA.z - e.pos.z);
+  else if (dir) yawObj = Math.atan2(dir.x, dir.z);
+  b.yaw = girarHacia(b.yaw, yawObj, 7 * dt);
+  e.agachado = agachar;
+  e.altAgachado += ((agachar ? 1 : 0) - e.altAgachado) * Math.min(1, dt * 6);
+
+  // Disparo en ráfagas
+  if (obj && b.ve && b.tReac <= 0 && b.tRecarga <= 0 && b.mun > 0 && Math.abs(difAng(b.yaw, yawObj)) < 0.25 && b.tDisp <= 0) {
+    if (b.rafaga <= 0) b.rafaga = randInt(...BOT_CFG.rafaga);
+    dispararBot(b, obj);
+    b.mun--; b.rafaga--;
+    b.tDisp = b.rafaga > 0 ? 60 / BOT_CFG.cadencia : rand(...BOT_CFG.pausaRafaga);
+  }
+
+  // Regeneración
+  if (reloj - e.tDano > JUEGO.regeneracion.espera && e.vida < BOT_CFG.vida) e.vida = Math.min(BOT_CFG.vida, e.vida + JUEGO.regeneracion.porSegundo * dt);
+
+  // Modelo: posición, giro, piernas y postura
+  poseModelo(g, e, b.yaw, dt);
+}
+
+/* =====================================================================
+   13. COMBATE: daño, muertes y reapariciones
+   ===================================================================== */
+function aplicarDano(ent, dano, atacante, cabeza) {
+  if (!ent.vivo) return false;
+  // Online, como invitado: el impacto se manda al anfitrión, que es quien quita la vida
+  if (NET.cliente) {
+    if (atacante === J.ent && ent.id) netEnviar({ t: 'hit', id: ent.id, d: Math.round(dano * 10) / 10, c: cabeza ? 1 : 0 });
+    return false;
+  }
+  ent.vida -= dano; ent.tDano = reloj;
+  if (ent.esJugador) { indicadorDano(atacante.pos); J.flash = 1; AUDIO.dolor(); }
+  else if (ent.bot) alRecibirDano(ent.bot, atacante);
+  else if (ent.remoto && NET.anfitrion) netA(ent.slot, { t: 'dano', x: r2(atacante.pos.x), z: r2(atacante.pos.z) });
+  if (ent.vida <= 0) { morir(ent, atacante, cabeza); return true; }
+  return false;
+}
+function morir(ent, atacante, cabeza) {
+  ent.vivo = false; ent.vida = 0; ent.muertes++; ent.tReap = JUEGO.reaparicion;
+  if (atacante && atacante !== ent) atacante.bajas++;
+  anotarBaja(atacante, ent, cabeza);
+  if (NET.anfitrion) netTodos({ t: 'baja', a: atacante ? atacante.id : null, v: ent.id, c: cabeza ? 1 : 0 });
+  if (ent.esJugador) { J.muerteT = 0; raton.izq = raton.der = false; JA.aimT = 0; }
+  if (atacante && atacante.bajas >= JUEGO.bajasParaGanar) terminarPartida();
+}
+function puntoSeguro(ent) {
+  let mejor = MAPA.aparicion[0], mejorP = -1e9;
+  const a = new V3(), b = new V3();
+  for (const p of MAPA.aparicion) {
+    let dmin = 1e9, visto = false;
+    for (const o of combatientes) {
+      if (o === ent || !o.vivo) continue;
+      const d = Math.hypot(o.pos.x - p.x, o.pos.z - p.z);
+      dmin = Math.min(dmin, d);
+      if (d < 45 && lineaVision(a.set(o.pos.x, 1.5, o.pos.z), b.set(p.x, 1.4, p.z))) visto = true;
+    }
+    const punt = Math.min(dmin, 30) - (visto ? 25 : 0) + Math.random() * 8;
+    if (punt > mejorP) { mejorP = punt; mejor = p; }
+  }
+  return mejor;
+}
+function reaparecer(ent) {
+  const p = puntoSeguro(ent);
+  ent.pos.set(p.x, 0, p.z); ent.vel.set(0, 0, 0);
+  ent.vida = ent.esJugador ? JUGADOR_CFG.vida : BOT_CFG.vida;
+  ent.vivo = true; ent.altAgachado = 0; ent.agachado = false; ent.tDano = -99;
+  const yawCentro = Math.atan2(-p.x, -p.z);
+  if (ent.esJugador) {
+    J.yaw = Math.atan2(p.x, p.z); J.pitch = 0; // mirando al centro del mapa
+    prepararArmas(); setTexto('mensaje', '');
+  } else if (ent.bot) {
+    const b = ent.bot;
+    Object.assign(b, { yaw: yawCentro, estado: 'patrulla', objetivo: null, ve: false, ruta: null, destino: null, llego: true,
+                       puntoCob: null, mun: BOT_CFG.cargador, tRecarga: 0, rafaga: 0, tMuerte: 0 });
+    b.modelo.visible = true; b.modelo.rotation.set(0, b.yaw, 0); b.modelo.position.set(p.x, 0, p.z);
+  } else if (ent.remoto) {
+    // Jugador de otro ordenador: el anfitrión le dice dónde reaparece
+    ent.objetivo.set(p.x, 0, p.z); ent.yaw = yawCentro;
+    if (NET.anfitrion) netA(ent.slot, { t: 'rep', x: r2(p.x), z: r2(p.z) });
+  }
+}
+// Reaparición indicada por el anfitrión (online, como invitado)
+function reaparecerEn(ent, x, z) {
+  ent.pos.set(x, 0, z); ent.vel.set(0, 0, 0);
+  ent.vida = JUGADOR_CFG.vida; ent.vivo = true; ent.altAgachado = 0; ent.agachado = false; ent.tDano = -99;
+  J.yaw = Math.atan2(x, z); J.pitch = 0;
+  prepararArmas(); setTexto('mensaje', '');
+}
+function separarCombatientes() {
+  for (let i = 0; i < combatientes.length; i++) for (let k = i + 1; k < combatientes.length; k++) {
+    const a = combatientes[i], b = combatientes[k];
+    if (!a.vivo || !b.vivo) continue;
+    const dx = b.pos.x - a.pos.x, dz = b.pos.z - a.pos.z, d = Math.hypot(dx, dz), min = 0.75;
+    if (d < min && d > 1e-4) {
+      const emp = (min - d) / 2;
+      a.pos.x -= dx / d * emp; a.pos.z -= dz / d * emp; b.pos.x += dx / d * emp; b.pos.z += dz / d * emp;
+    }
+  }
+}
+
+/* =====================================================================
+   14. EFECTOS: agujeros de bala, partículas, trazadoras, casquillos
+   ===================================================================== */
+const EF = { agujeros: [], iAg: 0, part: [], iPa: 0, traz: [], iTr: 0, casq: [], iCa: 0 };
+(function crearReservas() {
+  const geoAg = new THREE.PlaneGeometry(0.11, 0.11);
+  const matAg = new THREE.MeshBasicMaterial({ map: texAgujero, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 });
+  for (let i = 0; i < 80; i++) { const m = new THREE.Mesh(geoAg, matAg); m.visible = false; escena.add(m); EF.agujeros.push({ m, vida: 0 }); }
+  for (let i = 0; i < 48; i++) { const m = new THREE.Mesh(geoCaja, mat(0x9a948a)); m.scale.setScalar(0.045); m.visible = false; escena.add(m); EF.part.push({ m, v: new V3(), vida: 0 }); }
+  const matTr = new THREE.LineBasicMaterial({ color: 0xffe29a, transparent: true, opacity: 0.75 });
+  for (let i = 0; i < 16; i++) {
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
+    const l = new THREE.Line(geo, matTr); l.visible = false; l.frustumCulled = false; escena.add(l); EF.traz.push({ l, vida: 0 });
+  }
+  for (let i = 0; i < 16; i++) { const m = new THREE.Mesh(geoCaja, mat(MA.laton)); m.visible = false; escenaArma.add(m); EF.casq.push({ m, v: new V3(), vida: 0 }); }
+})();
+function agujeroBala(p, n) {
+  const a = EF.agujeros[EF.iAg]; EF.iAg = (EF.iAg + 1) % EF.agujeros.length;
+  a.m.position.copy(p).addScaledVector(n, 0.01);
+  a.m.lookAt(tmpA.copy(a.m.position).add(n));
+  a.m.rotateZ(Math.random() * 6.28);
+  a.m.scale.setScalar(1); a.m.visible = true; a.vida = 10;
+}
+function particulas(p, n, color, num) {
+  for (let i = 0; i < num; i++) {
+    const q = EF.part[EF.iPa]; EF.iPa = (EF.iPa + 1) % EF.part.length;
+    q.m.material = mat(color); q.m.position.copy(p); q.m.visible = true; q.vida = rand(0.3, 0.55);
+    q.v.copy(n).multiplyScalar(rand(1.5, 3.5)).add(tmpA.set(rand(-1, 1), rand(0, 1.5), rand(-1, 1)));
+  }
+}
+function trazador(a, b) {
+  const t = EF.traz[EF.iTr]; EF.iTr = (EF.iTr + 1) % EF.traz.length;
+  const arr = t.l.geometry.attributes.position.array;
+  arr[0] = a.x; arr[1] = a.y; arr[2] = a.z; arr[3] = b.x; arr[4] = b.y; arr[5] = b.z;
+  t.l.geometry.attributes.position.needsUpdate = true;
+  t.l.visible = true; t.vida = 0.06;
+}
+function expulsarCasquillo(def) {
+  const m = armaRaiz.children[0]; if (!m) return;
+  const c = EF.casq[EF.iCa]; EF.iCa = (EF.iCa + 1) % EF.casq.length;
+  armaRaiz.updateMatrixWorld(true);
+  c.m.position.copy(m.userData.expulsion); m.localToWorld(c.m.position);
+  const grande = def.perdigones > 1 ? 1.6 : def.id === 'francotirador' ? 1.4 : 1;
+  c.m.scale.set(0.012 * grande, 0.012 * grande, 0.035 * grande);
+  c.m.material = mat(def.perdigones > 1 ? 0xb3302a : MA.laton);
+  c.m.visible = true; c.vida = 0.7;
+  c.v.set(rand(1.1, 1.7), rand(1.2, 1.8), rand(-0.2, 0.3));
+}
+function actualizarEfectos(dt) {
+  for (const a of EF.agujeros) if (a.m.visible) { a.vida -= dt; if (a.vida <= 0) a.m.visible = false; else if (a.vida < 1) a.m.scale.setScalar(a.vida); }
+  for (const q of EF.part) if (q.m.visible) {
+    q.vida -= dt; if (q.vida <= 0) { q.m.visible = false; continue; }
+    q.v.y -= 9.8 * dt; q.m.position.addScaledVector(q.v, dt);
+    if (q.m.position.y < 0.02) { q.m.position.y = 0.02; q.v.set(0, 0, 0); }
+  }
+  for (const t of EF.traz) if (t.l.visible) { t.vida -= dt; if (t.vida <= 0) t.l.visible = false; }
+  for (const c of EF.casq) if (c.m.visible) {
+    c.vida -= dt; if (c.vida <= 0) { c.m.visible = false; continue; }
+    c.v.y -= 9 * dt; c.m.position.addScaledVector(c.v, dt);
+    c.m.rotation.x += dt * 15; c.m.rotation.y += dt * 9;
+  }
+}
+function limpiarEfectos() {
+  for (const a of EF.agujeros) a.m.visible = false;
+  for (const q of EF.part) q.m.visible = false;
+  for (const t of EF.traz) t.l.visible = false;
+  for (const c of EF.casq) c.m.visible = false;
+}
+for (const id in WEAPONS) WEAPONS[id].id = id;
+
+/* =====================================================================
+   15. HUD
+   ===================================================================== */
+const HUDC = {};
+function setTexto(id, t) { if (HUDC[id] !== t) { HUDC[id] = t; $(id).textContent = t; } }
+function mostrar(id, si) { const k = 'v_' + id; if (HUDC[k] !== si) { HUDC[k] = si; $(id).classList.toggle('oculto', !si); } }
+
+const marcador = { t: 0 };
+function marcadorImpacto(cabeza, mata) {
+  const el = $('marcador');
+  el.className = mata ? 'baja' : cabeza ? 'cabeza' : '';
+  marcador.t = mata ? 0.3 : 0.15;
+  AUDIO.impacto(cabeza, mata);
+}
+// Indicadores de dirección del daño (se recalculan cada fotograma)
+const INDIC = [];
+for (let i = 0; i < 4; i++) { const d = document.createElement('div'); d.className = 'ind'; d.innerHTML = '<i></i>'; $('indicadores').appendChild(d); INDIC.push({ el: d, x: 0, z: 0, vida: 0 }); }
+let iIndic = 0;
+function indicadorDano(desde) {
+  const ind = INDIC[iIndic]; iIndic = (iIndic + 1) % INDIC.length;
+  ind.x = desde.x; ind.z = desde.z; ind.vida = 1.3;
+}
+// Números de daño
+const NUMS = [];
+for (let i = 0; i < 12; i++) { const d = document.createElement('div'); d.className = 'num'; d.style.display = 'none'; $('numeros').appendChild(d); NUMS.push({ el: d, p: new V3(), vida: 0 }); }
+let iNum = 0;
+function numeroDano(p, dano, cabeza) {
+  if (!JUEGO.numerosDano) return;
+  const n = NUMS[iNum]; iNum = (iNum + 1) % NUMS.length;
+  n.p.copy(p); n.vida = 0.8; n.el.textContent = Math.round(dano);
+  n.el.className = 'num' + (cabeza ? ' cabeza' : ''); n.el.style.display = 'block';
+}
+// Registro de bajas
+const FEED = [];
+function anotarBaja(at, vic, cabeza) {
+  const d = document.createElement('div');
+  if (at === J.ent || vic === J.ent) d.className = 'yo';
+  d.textContent = `${at ? at.nombre : '?'}  ▸  ${vic.nombre}${cabeza ? '  (cabeza)' : ''}`;
+  $('killfeed').prepend(d); FEED.push({ d, t: 4 });
+  while ($('killfeed').children.length > 5) $('killfeed').lastChild.remove();
+}
+function htmlTabla() {
+  const filas = combatientes.slice().sort((a, b) => b.bajas - a.bajas || a.muertes - b.muertes);
+  return '<table class="puntos"><tr><th>Jugador</th><th class="n">Bajas</th><th class="n">Muertes</th></tr>' +
+    filas.map(c => `<tr class="${c.esJugador ? 'tu' : ''}"><td>${c.nombre}</td><td class="n">${c.bajas}</td><td class="n">${c.muertes}</td></tr>`).join('') + '</table>';
+}
+let tTabla = 0;
+
+function actualizarHUD(dt) {
+  const e = J.ent, s = JA.slots[JA.actual], def = s.def;
+  // Arriba izquierda
+  const t = Math.max(0, Math.ceil(tiempoRestante));
+  setTexto('hudTiempo', `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`);
+  setTexto('hudBajasN', String(e.bajas));
+  // Vida
+  const v = Math.max(0, Math.round(e.vida));
+  setTexto('vidaTxt', String(v));
+  if (HUDC.vidaW !== v) { HUDC.vidaW = v; $('vidaRelleno').style.width = v + '%'; $('vidaRelleno').classList.toggle('baja', v <= 30); }
+  // Arma
+  setTexto('armaNombre', def.nombre);
+  setTexto('munCar', String(s.mag)); setTexto('munRes', String(s.res));
+  const vacio = s.mag === 0;
+  if (HUDC.vacio !== vacio) { HUDC.vacio = vacio; $('armaMun').classList.toggle('vacio', vacio); }
+  const sl = JA.estado === 'cambiando' ? JA.cambioA : JA.actual;
+  if (HUDC.slot !== sl) {
+    HUDC.slot = sl;
+    $('slot1').textContent = '1 ' + JA.slots[0].def.corto; $('slot2').textContent = '2 ' + JA.slots[1].def.corto;
+    $('slot1').classList.toggle('activo', sl === 0); $('slot2').classList.toggle('activo', sl === 1);
+  }
+  let aviso = '';
+  if (JA.estado === 'recargando') aviso = 'RECARGANDO';
+  else if (s.mag === 0 && s.res === 0) aviso = 'SIN MUNICIÓN';
+  else if (s.mag <= Math.ceil(def.cargador * 0.25) && s.res > 0) aviso = 'R  RECARGAR';
+  setTexto('armaAviso', aviso);
+
+  // Punto de mira dinámico: se abre con la dispersión y desaparece al apuntar
+  const disp = dispersionActual();
+  const gap = Math.tan(disp) / Math.tan(camara.fov * DEG / 2) * (innerHeight / 2) + 3;
+  const mira = $('mira');
+  mira.style.opacity = !e.vivo ? 0 : clamp(1 - JA.aimT * 2.5, 0, 1) * (J.corriendo ? 0.35 : 1);
+  const g = Math.round(gap);
+  if (HUDC.gap !== g) {
+    HUDC.gap = g;
+    mira.children[0].style.transform = `translateY(${-g - 9}px)`;
+    mira.children[1].style.transform = `translateY(${g}px)`;
+    mira.children[2].style.transform = `translateX(${-g - 9}px)`;
+    mira.children[3].style.transform = `translateX(${g}px)`;
+  }
+  // Marcador de impacto
+  marcador.t -= dt;
+  $('marcador').style.opacity = marcador.t > 0 ? 1 : 0;
+  // Indicadores de daño
+  const ry = J.yaw, cr = Math.cos(ry), sr = Math.sin(ry);
+  for (const ind of INDIC) {
+    if (ind.vida <= 0) { if (ind.el.style.opacity !== '0') ind.el.style.opacity = 0; continue; }
+    ind.vida -= dt;
+    const vx = ind.x - e.pos.x, vz = ind.z - e.pos.z;
+    const lx = vx * cr - vz * sr;      // componente hacia la derecha de la cámara
+    const lf = -vx * sr - vz * cr;     // componente hacia delante
+    ind.el.style.transform = `rotate(${Math.atan2(lx, lf)}rad)`;
+    ind.el.style.opacity = clamp(ind.vida, 0, 1);
+  }
+  // Viñeta roja (golpe reciente o poca vida)
+  J.flash = Math.max(0, (J.flash || 0) - dt * 2.5);
+  $('danoVineta').style.opacity = Math.max(J.flash * 0.6, e.vivo && e.vida < 35 ? (35 - e.vida) / 35 * 0.55 : 0, e.vivo ? 0 : 0.6);
+  // Números de daño
+  for (const n of NUMS) {
+    if (n.vida <= 0) continue;
+    n.vida -= dt;
+    if (n.vida <= 0) { n.el.style.display = 'none'; continue; }
+    tmpA.copy(n.p); tmpA.y += (0.8 - n.vida) * 0.6; tmpA.project(camara);
+    if (tmpA.z > 1) { n.el.style.display = 'none'; continue; }
+    n.el.style.display = 'block';
+    n.el.style.transform = `translate(${(tmpA.x + 1) / 2 * innerWidth + 12}px, ${(1 - tmpA.y) / 2 * innerHeight - 14}px)`;
+    n.el.style.opacity = clamp(n.vida * 2, 0, 1);
+  }
+  // Registro de bajas
+  for (let i = FEED.length - 1; i >= 0; i--) { FEED[i].t -= dt; if (FEED[i].t <= 0) { FEED[i].d.remove(); FEED.splice(i, 1); } }
+  // Tabla (Tab)
+  const conTabla = !!teclas.Tab;
+  mostrar('tabla', conTabla);
+  if (conTabla) { tTabla -= dt; if (tTabla <= 0) { tTabla = 0.25; $('tabla').innerHTML = '<h3>Puntuación · primero a ' + JUEGO.bajasParaGanar + '</h3>' + htmlTabla(); } }
+}
+
+/* =====================================================================
+   16. MENÚS
+   ===================================================================== */
+let estado = 'menu';           // 'menu' | 'armamento' | 'controles' | 'jugando' | 'pausa' | 'fin'
+let volverDesdeControles = 'menu';
+let bloqueado = false;
+const PANTALLAS = ['pantallaInicio', 'pantallaOnline', 'pantallaArmamento', 'pantallaControles', 'pantallaPausa', 'pantallaFin'];
+function mostrarPantalla(id) { for (const p of PANTALLAS) $(p).classList.toggle('oculto', p !== id); }
+
+function actualizarResumen() {
+  $('resP').textContent = WEAPONS[AJUSTES.principal].nombre;
+  $('resS').textContent = WEAPONS[AJUSTES.secundaria].nombre;
+}
+// Valores máximos para normalizar las barras de estadísticas
+const MAXS = (() => {
+  const m = { dano: 0, cad: 0, disp: 0, retro: 0, carg: 0 };
+  for (const id in WEAPONS) {
+    const w = WEAPONS[id];
+    m.dano = Math.max(m.dano, w.dano * w.perdigones); m.cad = Math.max(m.cad, w.cadencia);
+    m.disp = Math.max(m.disp, w.dispersion); m.retro = Math.max(m.retro, w.retroV + w.retroH * 0.5);
+    m.carg = Math.max(m.carg, w.cargador);
+  }
+  return m;
+})();
+function mostrarStats(id) {
+  const w = WEAPONS[id];
+  $('prevNombre').textContent = w.nombre;
+  $('prevModo').textContent = NOMBRE_MODO[w.modo] + (w.mira === 'telescopica' ? ' · mira telescópica' : '');
+  const precision = 1 - (w.dispersion * (0.5 + w.factorApuntar)) / (MAXS.disp * 1.3);
+  const filas = [
+    ['Daño', w.dano * w.perdigones / MAXS.dano, w.perdigones > 1 ? `${w.dano}×${w.perdigones}` : String(w.dano)],
+    ['Cadencia', w.cadencia / MAXS.cad, `${w.cadencia}/min`],
+    ['Precisión', precision, Math.round(precision * 100) + ' %'],
+    ['Retroceso', (w.retroV + w.retroH * 0.5) / MAXS.retro, Math.round((w.retroV + w.retroH * 0.5) / MAXS.retro * 100) + ' %'],
+    ['Cargador', w.cargador / MAXS.carg, `${w.cargador} (+${w.reserva})`]
+  ];
+  $('stats').innerHTML = filas.map(([n, v, t]) =>
+    `<div class="stat"><span>${n}</span><div class="barra"><i style="width:${Math.round(clamp(v, 0.04, 1) * 100)}%"></i></div><span class="val">${t}</span></div>`).join('');
+  ponerPreview(id);
+}
+function construirListas() {
+  const hacer = (cont, ids, clave) => {
+    cont.innerHTML = '';
+    for (const id of ids) {
+      const w = WEAPONS[id], b = document.createElement('button');
+      b.className = 'arm-item' + (AJUSTES[clave] === id ? ' sel' : '');
+      b.innerHTML = `<span>${w.nombre}</span><small>${AJUSTES[clave] === id ? 'ELEGIDA' : NOMBRE_MODO[w.modo].split(' ')[0]}</small>`;
+      b.onmouseenter = () => mostrarStats(id);
+      b.onclick = () => { AJUSTES[clave] = id; guardar('fc_ajustes', AJUSTES); construirListas(); mostrarStats(id); actualizarResumen(); };
+      cont.appendChild(b);
+    }
+  };
+  hacer($('listaPrincipal'), PRINCIPALES, 'principal');
+  hacer($('listaSecundaria'), SECUNDARIAS, 'secundaria');
+}
+// Vista previa 3D (renderizador propio, pequeño)
+const PREV = { r: null, escena: null, cam: null, pivote: null };
+function iniciarPreview() {
+  const c = $('prevLienzo');
+  if (!PREV.r) {
+    PREV.r = new THREE.WebGLRenderer({ canvas: c, antialias: true, alpha: true });
+    PREV.r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    PREV.r.outputEncoding = THREE.sRGBEncoding;
+    PREV.r.toneMapping = THREE.ACESFilmicToneMapping;
+    PREV.escena = new THREE.Scene();
+    PREV.escena.environment = texturaEntorno(PREV.r);   // reflejos del cielo también en la vista previa
+    PREV.escena.add(new THREE.HemisphereLight(lineal(0xffffff), lineal(0x334455), 0.4));
+    const d = new THREE.DirectionalLight(lineal(0xffffff), 2.0); d.position.set(1, 2, 1.5); PREV.escena.add(d);
+    PREV.cam = new THREE.PerspectiveCamera(30, 1.75, 0.01, 20);
+    PREV.cam.position.set(0, 0.35, 1.7); PREV.cam.lookAt(0, 0, 0);
+    PREV.pivote = new THREE.Group(); PREV.escena.add(PREV.pivote);
+  }
+  const w = c.clientWidth || 420, h = c.clientHeight || 220;
+  PREV.r.setSize(w, h, false); PREV.cam.aspect = w / h; PREV.cam.updateProjectionMatrix();
+}
+function ponerPreview(id) {
+  if (!PREV.r) return;
+  while (PREV.pivote.children.length) PREV.pivote.remove(PREV.pivote.children[0]);
+  const m = construirArma(id);
+  const caja = new THREE.Box3().setFromObject(m), tam = caja.getSize(new V3()), centro = caja.getCenter(new V3());
+  const esc = 1 / Math.max(tam.x, tam.y, tam.z);
+  m.scale.setScalar(esc); m.position.copy(centro).multiplyScalar(-esc);
+  PREV.pivote.add(m);
+}
+function abrirArmamento() {
+  estado = 'armamento'; mostrarPantalla('pantallaArmamento');
+  iniciarPreview(); construirListas(); mostrarStats(AJUSTES.principal);
+}
+function abrirControles(desde) {
+  volverDesdeControles = desde; estado = 'controles'; mostrarPantalla('pantallaControles');
+  $('sens').value = AJUSTES.sens; $('sensVal').textContent = Number(AJUSTES.sens).toFixed(2);
+  $('chkNumeros').checked = AJUSTES.numeros;
+  $('selCalidad').value = AJUSTES.calidad;
+}
+
+/* =====================================================================
+   17. PARTIDA: inicio, pausa, fin
+   ===================================================================== */
+let reloj = 0, tiempoRestante = JUEGO.duracion, partidaCreada = false;
+
+// Captura del ratón (Pointer Lock). El navegador no deja recapturar hasta ~1 s después
+// de soltarlo con Esc, así que si se pide antes se espera lo que falte (el clic sigue valiendo).
+let tDesbloqueo = -1e9;
+const AVISO_CLIC = 'Haz clic en la pantalla para jugar';
+function capturarRaton() {
+  const espera = Math.max(0, 1150 - (performance.now() - tDesbloqueo));
+  setTimeout(() => {
+    if (document.pointerLockElement === renderer.domElement) return;
+    try {
+      const r = renderer.domElement.requestPointerLock();
+      if (r && r.catch) r.catch(() => { if (estado === 'pausa') setTexto('mensaje', AVISO_CLIC); });
+    } catch (e) { if (estado === 'pausa') setTexto('mensaje', AVISO_CLIC); }
+  }, espera);
+}
+// Crea la lista de combatientes: tú, los jugadores de otros ordenadores (online) y los bots
+function prepararCombatientes(numBots) {
+  for (const c of combatientes) { if (c.bot) escena.remove(c.bot.modelo); else if (c.modelo) escena.remove(c.modelo); }
+  bots.length = 0; combatientes.length = 0;
+  J.ent.id = 'h' + (NET.on ? NET.yo : 0);
+  J.ent.nombre = NET.on ? nombreJugador() : 'Tú';
+  combatientes.push(J.ent);
+  if (NET.on) for (let s = 0; s < MAX_JUG; s++) if (NET.slots[s] && s !== NET.yo) combatientes.push(crearRemoto(s));
+  for (let i = 0; i < numBots; i++) {
+    const b = crearBot(i); bots.push(b); combatientes.push(b.ent);
+    if (NET.cliente) hacerTitere(b.ent, b.modelo);   // en el invitado los bots solo se dibujan; la IA va en el anfitrión
+  }
+}
+// opts.online = partida en red; opts.bots = número de bots
+function iniciarPartida(opts) {
+  opts = opts || {};
+  AUDIO.iniciar();
+  if (!MAPA) construirMapa(crearMapa());
+  NET.on = !!opts.online;
+  prepararCombatientes(NET.on ? opts.bots : JUEGO.numBots);
+  limpiarEfectos();
+  FEED.length = 0; $('killfeed').innerHTML = '';
+  for (const ind of INDIC) ind.vida = 0;
+  for (const n of NUMS) { n.vida = 0; n.el.style.display = 'none'; }
+  reloj = 0; tiempoRestante = JUEGO.duracion;
+  combatientes.forEach(c => { c.bajas = 0; c.muertes = 0; c.vivo = false; c.tReap = 0; });
+  prepararArmas();
+  if (!NET.cliente) {
+    // Cada combatiente aparece en el punto más alejado de los ya colocados
+    combatientes.forEach(c => reaparecer(c));
+  }
+  setTexto('mensaje', '');
+  for (const k in teclas) teclas[k] = false;
+  raton.izq = raton.der = false;
+  $('hud').classList.remove('oculto');
+  mostrarPantalla(null);
+  estado = 'pausa';
+  $('pausaAviso').textContent = '';
+  // Si no se captura ya, el primer clic sobre el juego lo captura (sin disparar)
+  setTexto('mensaje', AVISO_CLIC);
+  capturarRaton();
+}
+function pausar() {
+  if (estado !== 'jugando') return;
+  estado = 'pausa'; raton.izq = raton.der = false;
+  for (const k in teclas) teclas[k] = false;
+  $('pausaAviso').textContent = '';
+  mostrarPantalla('pantallaPausa');
+}
+function terminarPartida() {
+  if (estado === 'fin') return;
+  if (NET.anfitrion) netTodos({ t: 'fin', w: netMundo() });
+  estado = 'fin';
+  // Online solo el anfitrión puede lanzar otra partida
+  $('bOtra').classList.toggle('oculto', NET.cliente);
+  $('finEspera').classList.toggle('oculto', !NET.cliente);
+  if (document.pointerLockElement) document.exitPointerLock();
+  const max = Math.max(...combatientes.map(c => c.bajas));
+  const ganadores = combatientes.filter(c => c.bajas === max);
+  const gano = ganadores.length === 1 && ganadores[0].esJugador;
+  $('finTitulo').textContent = gano ? 'Victoria' : ganadores.some(c => c.esJugador) ? 'Empate' : 'Derrota';
+  $('finSub').textContent = ganadores.length === 1 ? `Gana ${ganadores[0].esJugador ? 'tú' : ganadores[0].nombre} con ${max} bajas` : `Empate a ${max} bajas`;
+  $('finTabla').innerHTML = htmlTabla();
+  $('hud').classList.add('oculto');
+  mostrarPantalla('pantallaFin');
+}
+function salirAlMenu() {
+  if (NET.on || NET.peer) netCerrar();   // salir de una partida online corta la conexión
+  estado = 'menu';
+  if (document.pointerLockElement) document.exitPointerLock();
+  $('hud').classList.add('oculto');
+  actualizarResumen();
+  mostrarPantalla('pantallaInicio');
+}
+
+/* =====================================================================
+   18. ENTRADA (teclado, ratón, Pointer Lock)
+   ===================================================================== */
+addEventListener('keydown', e => {
+  if (e.code === 'Tab') e.preventDefault();
+  teclas[e.code] = true;
+  if (estado !== 'jugando') return;
+  if (e.code === 'KeyR') recargar();
+  else if (e.code === 'Digit1') cambiarArma(0);
+  else if (e.code === 'Digit2') cambiarArma(1);
+});
+addEventListener('keyup', e => { teclas[e.code] = false; });
+// ---- Modo de respaldo SIN captura del ratón ----
+// Si el navegador no permite Pointer Lock, se juega igual: el movimiento del ratón gira la cámara
+// (el puntero se oculta) y, con el puntero pegado al borde izquierdo/derecho (o fuera de la
+// ventana por ese lado), la cámara sigue girando sola. Así se puede dar la vuelta completa.
+const BORDE = { franja: 0.07, velMax: 3.2 };   // franja = parte de la pantalla; velMax = rad/s
+raton.x = innerWidth / 2;
+let ignorarClic = false;
+function empezarSinCaptura() {
+  if (estado !== 'pausa' || !$('pantallaPausa').classList.contains('oculto')) return;
+  estado = 'jugando';
+  if (J.ent.vivo) setTexto('mensaje', '');
+}
+function giroPorBorde(dt) {
+  if (bloqueado || !J.ent.vivo) return;
+  const f = BORDE.franja * innerWidth;
+  let t = 0;
+  if (raton.x < f) t = (f - raton.x) / f;
+  else if (raton.x > innerWidth - f) t = -(raton.x - (innerWidth - f)) / f;
+  if (t) J.yaw += clamp(t, -1, 1) * BORDE.velMax * (AJUSTES.sens) * dt;
+}
+addEventListener('mousedown', e => {
+  if (ignorarClic) { ignorarClic = false; return; }   // el clic que empieza la partida no dispara
+  if (estado !== 'jugando') return;
+  if (e.button === 0) { raton.izq = true; JA.clicNuevo = true; JA.tClic = reloj; JA.vacioSonado = false; }
+  if (e.button === 2) raton.der = true;
+});
+addEventListener('mouseup', e => { if (e.button === 0) raton.izq = false; if (e.button === 2) raton.der = false; });
+addEventListener('mousemove', e => {
+  if (!bloqueado) raton.x = e.clientX;
+  if (estado === 'jugando' && J.ent.vivo) mirar(e.movementX, e.movementY);
+});
+document.addEventListener('mouseleave', e => {
+  // Si el puntero sale de la ventana por un lado, se queda "en el borde" y sigue girando
+  if (!bloqueado) raton.x = e.clientX <= 0 ? 0 : e.clientX >= innerWidth - 1 ? innerWidth : raton.x;
+});
+addEventListener('wheel', e => { if (estado === 'jugando') cambiarArma(1 - JA.actual); }, { passive: true });
+addEventListener('contextmenu', e => e.preventDefault());
+addEventListener('blur', () => { if (estado === 'jugando' && document.pointerLockElement) document.exitPointerLock(); });
+document.addEventListener('pointerlockchange', () => {
+  bloqueado = document.pointerLockElement === renderer.domElement;
+  if (bloqueado) {
+    if (estado === 'pausa') { estado = 'jugando'; mostrarPantalla(null); if (J.ent.vivo) setTexto('mensaje', ''); }
+  } else {
+    tDesbloqueo = performance.now();
+    if (estado === 'jugando') pausar();
+  }
+});
+// Si la captura falla no hay error: se juega en el modo de respaldo
+document.addEventListener('pointerlockerror', () => { if (estado === 'pausa') setTexto('mensaje', AVISO_CLIC); });
+renderer.domElement.addEventListener('mousedown', e => {
+  if (estado !== 'pausa') return;
+  ignorarClic = true;
+  raton.x = e.clientX;
+  capturarRaton();
+  empezarSinCaptura();
+});
+// Esc sin captura (con captura, Esc lo gestiona el propio navegador y salta pointerlockchange)
+addEventListener('keydown', e => { if (e.code === 'Escape' && estado === 'jugando' && !bloqueado) pausar(); });
+addEventListener('resize', () => {
+  redimensionar();
+  if (estado === 'armamento') iniciarPreview();
+});
+
+// Botones de los menús
+$('bJugar').onclick = () => iniciarPartida();
+$('bOnline').onclick = abrirOnline;
+$('bNetCrear').onclick = netCrear;
+$('bNetUnirse').onclick = netUnirse;
+$('netCodigo').onkeydown = e => { if (e.key === 'Enter') netUnirse(); };
+$('netNombre').onchange = () => { guardarNombre(); if (NET.cliente) netEnviar({ t: 'hola', nombre: nombreJugador() }); else if (NET.anfitrion) { NET.slots[0].nombre = nombreJugador(); netSala(); } };
+$('bNetEmpezar').onclick = netEmpezar;
+$('bNetVolver').onclick = () => { netCerrar(); estado = 'menu'; mostrarPantalla('pantallaInicio'); };
+$('bArmamento').onclick = abrirArmamento;
+$('bControles').onclick = () => abrirControles('menu');
+$('bArmVolver').onclick = () => { estado = 'menu'; actualizarResumen(); mostrarPantalla('pantallaInicio'); };
+$('bCtrlVolver').onclick = () => {
+  if (volverDesdeControles === 'pausa') { estado = 'pausa'; mostrarPantalla('pantallaPausa'); }
+  else { estado = 'menu'; mostrarPantalla('pantallaInicio'); }
+};
+$('bContinuar').onclick = () => { AUDIO.iniciar(); mostrarPantalla(null); setTexto('mensaje', AVISO_CLIC); capturarRaton(); };
+$('bPausaControles').onclick = () => abrirControles('pausa');
+$('bSalir').onclick = salirAlMenu;
+$('bOtra').onclick = () => { if (NET.anfitrion) netEmpezar(); else if (!NET.cliente) iniciarPartida(); };
+$('bFinMenu').onclick = salirAlMenu;
+$('sens').oninput = e => { AJUSTES.sens = Number(e.target.value); $('sensVal').textContent = AJUSTES.sens.toFixed(2); guardar('fc_ajustes', AJUSTES); };
+$('chkNumeros').onchange = e => { AJUSTES.numeros = JUEGO.numerosDano = e.target.checked; guardar('fc_ajustes', AJUSTES); };
+$('selCalidad').onchange = e => { AJUSTES.calidad = e.target.value; guardar('fc_ajustes', AJUSTES); aplicarCalidad(AJUSTES.calidad); };
+actualizarResumen();
+
+/* =====================================================================
+   20. MODO ONLINE (PeerJS: conexión directa entre navegadores, sin servidor propio)
+   ---------------------------------------------------------------------
+   - Quien crea la partida es el ANFITRIÓN: mueve los bots y lleva el tiempo,
+     la vida, las bajas y las reapariciones de todos.
+   - Cada jugador mueve su personaje y calcula sus propios impactos; se los
+     manda al anfitrión, que quita la vida. Hasta 6 personas + bots.
+   Mensajes (campo t):
+     invitado → anfitrión: hola, s (estado 20/s), hit (impacto), tiro (efectos)
+     anfitrión → invitado: sala, lleno, inicio, w (mundo 15/s), tiro, dano,
+                           baja, rep (reaparece), fuera, fin
+   ===================================================================== */
+const PEER_JS = 'https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js';
+const PEER_OPT = { debug: 0, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }] } };
+const PREFIJO_PEER = 'frentecero-';
+const MAX_JUG = 6;
+const COLORES_JUG = [0x2fd35a, 0xff8a1f, 0x2f9bff, 0xe04cff, 0xffd23a, 0x30e0d0];
+const NET = { on: false, anfitrion: false, cliente: false, peer: null, conns: {}, conHost: null,
+              yo: 0, codigo: '', slots: [], tEnvio: 0, msg: '' };
+const esc = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const limpiarNombre = n => String(n || '').replace(/\s+/g, ' ').trim().slice(0, 14);
+const nombreJugador = () => limpiarNombre(AJUSTES.nombre) || 'Jugador';
+const entPorId = id => combatientes.find(c => c.id === id);
+function cargarPeer() {
+  if (window.Peer) return Promise.resolve();
+  return new Promise((ok, mal) => {
+    const s = document.createElement('script'); s.src = PEER_JS;
+    s.onload = ok; s.onerror = () => mal(new Error('peerjs'));
+    document.head.appendChild(s);
+  });
+}
+function netEnviar(m) { const c = NET.conHost; if (c && c.open) try { c.send(m); } catch (e) { /* conexión cerrada */ } }
+function netA(slot, m) { const c = NET.conns[slot]; if (c && c.open) try { c.send(m); } catch (e) { /* conexión cerrada */ } }
+function netTodos(m, excepto) { for (const k in NET.conns) if (+k !== excepto) netA(+k, m); }
+
+// ---- Pantalla de la sala ----
+function abrirOnline() {
+  estado = 'online'; mostrarPantalla('pantallaOnline');
+  $('netNombre').value = AJUSTES.nombre || '';
+  pintarSala();
+}
+function guardarNombre() { AJUSTES.nombre = limpiarNombre($('netNombre').value); guardar('fc_ajustes', AJUSTES); }
+function pintarSala() {
+  const enSala = NET.anfitrion || NET.cliente;
+  $('netInicio').classList.toggle('oculto', enSala);
+  $('netSala').classList.toggle('oculto', !enSala);
+  $('netCodigoTxt').textContent = NET.codigo;
+  $('netLista').innerHTML = NET.slots.map((s, i) => s ? `<div class="jug"><i style="background:#${COLORES_JUG[i].toString(16).padStart(6, '0')}"></i>${esc(s.nombre)}${i === 0 ? ' · anfitrión' : ''}${i === NET.yo ? ' · tú' : ''}</div>` : '').join('');
+  $('bNetEmpezar').classList.toggle('oculto', !NET.anfitrion);
+  $('netBotsFila').classList.toggle('oculto', !NET.anfitrion);
+  const n = NET.slots.filter(Boolean).length;
+  $('netMsg').textContent = NET.msg ||
+    (NET.cliente ? 'Conectado. Esperando a que el anfitrión empiece…' :
+     NET.anfitrion ? (n < 2 ? 'Pasa el código a tus amigos (hasta 6 jugadores).' : `${n} jugadores. Puedes empezar cuando quieras.`) : '');
+}
+
+// ---- Anfitrión: crear la partida ----
+async function netCrear() {
+  guardarNombre(); netCerrar(); NET.msg = 'Conectando…'; pintarSala();
+  try { await cargarPeer(); } catch (e) { NET.msg = 'No se ha podido cargar la conexión online. ¿Hay internet?'; pintarSala(); return; }
+  const probar = n => {
+    const codigo = String(100000 + Math.floor(Math.random() * 900000));
+    const peer = new Peer(PREFIJO_PEER + codigo, PEER_OPT); NET.peer = peer;
+    peer.on('open', () => {
+      if (NET.peer !== peer) return;
+      Object.assign(NET, { anfitrion: true, codigo, yo: 0, msg: '' });
+      NET.slots = [{ nombre: nombreJugador() }];
+      pintarSala();
+    });
+    peer.on('error', err => {
+      if (NET.peer !== peer) return;
+      if (err.type === 'unavailable-id' && n < 5) { peer.destroy(); probar(n + 1); return; }
+      NET.msg = 'Error de conexión (' + (err.type || 'desconocido') + ')'; pintarSala();
+    });
+    peer.on('connection', conn => netAceptar(conn));
+  };
+  probar(0);
+}
+function netAceptar(conn) {
+  conn.on('open', () => {
+    const slot = [1, 2, 3, 4, 5].find(i => !NET.slots[i]);
+    if (slot == null || NET.on) {
+      try { conn.send({ t: 'lleno', por: NET.on ? 'empezada' : 'llena' }); } catch (e) { /* nada */ }
+      setTimeout(() => conn.close(), 400); return;
+    }
+    conn.slot = slot; NET.conns[slot] = conn; NET.slots[slot] = { nombre: 'Jugador ' + (slot + 1) };
+    netSala();
+  });
+  conn.on('data', d => { if (conn.slot != null) netEnAnfitrion(conn.slot, d); });
+  conn.on('close', () => { if (conn.slot != null && NET.conns[conn.slot] === conn) netQuitar(conn.slot); });
+}
+function netSala() {
+  for (const k in NET.conns) netA(+k, { t: 'sala', slots: NET.slots, tu: +k, codigo: NET.codigo });
+  if (estado === 'online') pintarSala();
+}
+function netQuitar(slot) {
+  const nombre = NET.slots[slot] ? NET.slots[slot].nombre : '';
+  delete NET.conns[slot]; NET.slots[slot] = null;
+  if (NET.on) { quitarRemoto('h' + slot); netTodos({ t: 'fuera', id: 'h' + slot, n: nombre }); avisoFeed(nombre + ' se ha ido'); }
+  netSala();
+}
+function netEmpezar() {
+  if (!NET.anfitrion) return;
+  if (!MAPA) construirMapa(crearMapa());
+  const bots = +$('netBots').value;
+  netTodos({ t: 'inicio', slots: NET.slots, bots });
+  iniciarPartida({ online: true, bots });   // reaparecer() manda a cada invitado su punto de salida
+}
+
+// ---- Invitado: unirse con un código ----
+async function netUnirse() {
+  const codigo = $('netCodigo').value.replace(/\D/g, '');
+  guardarNombre();
+  if (codigo.length !== 6) { NET.msg = 'El código tiene 6 números'; pintarSala(); return; }
+  netCerrar(); NET.msg = 'Conectando con la partida ' + codigo + '…'; pintarSala();
+  try { await cargarPeer(); } catch (e) { NET.msg = 'No se ha podido cargar la conexión online. ¿Hay internet?'; pintarSala(); return; }
+  const peer = new Peer(PEER_OPT); NET.peer = peer;
+  peer.on('open', () => {
+    if (NET.peer !== peer) return;
+    const conn = peer.connect(PREFIJO_PEER + codigo, { reliable: true });
+    NET.conHost = conn; NET.codigo = codigo;
+    conn.on('open', () => { NET.cliente = true; NET.msg = ''; netEnviar({ t: 'hola', nombre: nombreJugador() }); pintarSala(); });
+    conn.on('data', d => netEnCliente(d));
+    conn.on('close', () => { if (NET.conHost === conn) netPerdido(); });
+  });
+  peer.on('error', err => {
+    if (NET.peer !== peer) return;
+    const m = err.type === 'peer-unavailable' ? 'No hay ninguna partida con el código ' + codigo : 'Error de conexión (' + (err.type || 'desconocido') + ')';
+    if (NET.on) netPerdido(m); else { NET.msg = m; pintarSala(); }
+  });
+}
+function netPerdido(m) {
+  const msg = m || 'Se ha perdido la conexión con el anfitrión';
+  const enPartida = NET.on;
+  netCerrar();
+  if (enPartida) salirAlMenu();
+  abrirOnline(); NET.msg = msg; pintarSala();
+}
+function netCerrar() {
+  const p = NET.peer; NET.peer = null; NET.conHost = null; NET.conns = {};
+  if (p) try { p.destroy(); } catch (e) { /* nada */ }
+  Object.assign(NET, { on: false, anfitrion: false, cliente: false, slots: [], yo: 0, codigo: '', msg: '' });
+}
+
+// ---- Jugadores de otros ordenadores y "títeres" (se mueven según lo que llega por la red) ----
+function crearEtiqueta(texto, color) {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 64;
+  const g = c.getContext('2d');
+  g.font = 'bold 34px Ubuntu, Segoe UI, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.lineWidth = 6; g.strokeStyle = 'rgba(0,0,0,0.8)'; g.strokeText(texto, 128, 32);
+  g.fillStyle = '#' + new THREE.Color(color).getHexString(); g.fillText(texto, 128, 32);
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthWrite: false, transparent: true, fog: false }));
+  s.scale.set(1.2, 0.3, 1); s.position.y = 2.15;
+  return s;
+}
+function hacerTitere(e, modelo) {
+  e.titere = true; e.modelo = modelo; e.objetivo = new V3(); e.yaw = 0; e.pitch = 0; e.altObj = 0;
+}
+function crearRemoto(slot) {
+  const e = crearCombatiente(NET.slots[slot].nombre, false, COLORES_JUG[slot % COLORES_JUG.length]);
+  e.id = 'h' + slot; e.remoto = true; e.slot = slot;
+  const g = crearModeloBot(e.color);
+  g.add(crearEtiqueta(e.nombre, e.color));
+  escena.add(g);
+  hacerTitere(e, g);
+  return e;
+}
+function quitarRemoto(id) {
+  const i = combatientes.findIndex(c => c.id === id);
+  if (i < 0) return;
+  const c = combatientes[i];
+  if (c.modelo) escena.remove(c.modelo);
+  combatientes.splice(i, 1);
+}
+function actualizarTitere(c, dt) {
+  const k = Math.min(1, dt * 12);
+  if (c.vivo) {
+    const px = c.pos.x, pz = c.pos.z;
+    if (Math.hypot(c.objetivo.x - c.pos.x, c.objetivo.z - c.pos.z) > 4) c.pos.copy(c.objetivo);   // salto grande: sin suavizar
+    else { c.pos.x += (c.objetivo.x - c.pos.x) * k; c.pos.z += (c.objetivo.z - c.pos.z) * k; }
+    c.vel.set((c.pos.x - px) / Math.max(dt, 1e-3), 0, (c.pos.z - pz) / Math.max(dt, 1e-3));
+  } else c.vel.set(0, 0, 0);
+  c.altAgachado += (c.altObj - c.altAgachado) * k;
+  // En el anfitrión, los jugadores remotos regeneran vida y reaparecen aquí
+  if (NET.anfitrion && c.remoto) {
+    if (!c.vivo) { c.tReap -= dt; if (c.tReap <= 0) reaparecer(c); }
+    else if (reloj - c.tDano > JUEGO.regeneracion.espera && c.vida < JUGADOR_CFG.vida)
+      c.vida = Math.min(JUGADOR_CFG.vida, c.vida + JUEGO.regeneracion.porSegundo * dt);
+  }
+  poseModelo(c.modelo, c, c.yaw, dt);
+}
+
+// ---- Disparos ajenos: trazadoras, agujeros y sonido ----
+function netTiro(ent, arma, finales) {
+  const m = { t: 'tiro', id: ent.id, s: arma, f: finales };
+  if (NET.anfitrion) netTodos(m); else netEnviar(m);
+}
+function efectoTiroRemoto(e, d) {
+  const yaw = e.yaw;   // giro del modelo: hacia delante = (sin, cos)
+  const boca = new V3(e.pos.x + Math.sin(yaw) * 0.6 + Math.cos(yaw) * 0.1, lerp(1.35, 0.9, e.altAgachado), e.pos.z + Math.cos(yaw) * 0.6 - Math.sin(yaw) * 0.1);
+  for (const f of (d.f || []).slice(0, 8)) {
+    const fin = new V3(f[0], f[1], f[2]);
+    trazador(boca, fin);
+    if (f.length >= 6) { const n = new V3(f[3], f[4], f[5]); agujeroBala(fin, n); particulas(fin, n, 0x9a948a, 2); }
+  }
+  const def = WEAPONS[d.s];
+  sonidoDistante(e.pos, def ? def.sonido : BOT_CFG.sonido);
+}
+
+// ---- Estado del mundo (anfitrión → todos) ----
+function netMundo() {
+  return {
+    t: 'w', tr: r2(tiempoRestante),
+    e: combatientes.map(c => [c.id, r2(c.pos.x), r2(c.pos.z),
+      r2(c.esJugador ? J.yaw + Math.PI : c.bot ? c.bot.yaw : c.yaw),
+      r2(c.altAgachado), c.vivo ? 1 : 0, Math.round(c.vida), c.bajas, c.muertes])
+  };
+}
+function aplicarMundo(w) {
+  if (!w || !w.e) return;
+  tiempoRestante = w.tr;
+  for (const [id, x, z, yaw, alt, vivo, vida, bajas, muertes] of w.e) {
+    const c = entPorId(id);
+    if (!c) continue;
+    c.bajas = bajas; c.muertes = muertes;
+    if (c === J.ent) { c.vida = vida; continue; }
+    if (vivo && !c.vivo) c.pos.set(x, 0, z);   // acaba de reaparecer: sin suavizar
+    c.objetivo.set(x, 0, z); c.yaw = yaw; c.altObj = alt; c.vida = vida; c.vivo = !!vivo;
+  }
+}
+function avisoFeed(texto) {
+  const d = document.createElement('div'); d.textContent = texto;
+  $('killfeed').prepend(d); FEED.push({ d, t: 4 });
+}
+
+// ---- Mensajes que recibe el anfitrión ----
+function netEnAnfitrion(slot, d) {
+  if (d.t === 'hola') { NET.slots[slot] = { nombre: limpiarNombre(d.nombre) || 'Jugador ' + (slot + 1) }; netSala(); return; }
+  if (!NET.on) return;
+  const g = entPorId('h' + slot);
+  if (!g) return;
+  if (d.t === 's') { g.objetivo.set(+d.x || 0, 0, +d.z || 0); g.yaw = +d.y || 0; g.altObj = clamp(+d.a || 0, 0, 1); }
+  else if (d.t === 'hit') {
+    const v = entPorId(d.id);
+    if (v && v !== g && g.vivo) aplicarDano(v, clamp(+d.d || 0, 0, 260), g, !!d.c);
+  }
+  else if (d.t === 'tiro') { efectoTiroRemoto(g, d); netTodos(Object.assign({}, d, { id: g.id }), slot); }
+}
+// ---- Mensajes que recibe el invitado ----
+function netEnCliente(d) {
+  if (d.t === 'sala') { NET.slots = d.slots; NET.yo = d.tu; NET.codigo = d.codigo; if (estado === 'online') pintarSala(); return; }
+  if (d.t === 'lleno') {
+    const m = d.por === 'empezada' ? 'Esa partida ya ha empezado' : 'La partida está llena (6 jugadores)';
+    netCerrar(); NET.msg = m; pintarSala(); return;
+  }
+  if (d.t === 'inicio') { NET.slots = d.slots; iniciarPartida({ online: true, bots: d.bots }); return; }
+  if (!NET.on) return;
+  if (d.t === 'w') aplicarMundo(d);
+  else if (d.t === 'tiro') { const e = entPorId(d.id); if (e && e !== J.ent) efectoTiroRemoto(e, d); }
+  else if (d.t === 'dano') { indicadorDano({ x: d.x, z: d.z }); J.flash = 1; AUDIO.dolor(); J.ent.tDano = reloj; }
+  else if (d.t === 'baja') {
+    const a = entPorId(d.a), v = entPorId(d.v);
+    if (v) {
+      v.vivo = false;
+      if (v === J.ent) { J.ent.vida = 0; J.ent.tReap = JUEGO.reaparicion; J.muerteT = 0; raton.izq = raton.der = false; JA.aimT = 0; }
+    }
+    if (v) anotarBaja(a, v, !!d.c);
+    if (a === J.ent && v !== J.ent) marcadorImpacto(!!d.c, true);
+  }
+  else if (d.t === 'rep') reaparecerEn(J.ent, d.x, d.z);
+  else if (d.t === 'fuera') { quitarRemoto(d.id); avisoFeed((d.n || 'Un jugador') + ' se ha ido'); }
+  else if (d.t === 'fin') { aplicarMundo(d.w); terminarPartida(); }
+}
+
+// ---- Envíos periódicos ----
+function netTick(dt) {
+  NET.tEnvio -= dt;
+  if (NET.tEnvio > 0) return;
+  if (NET.anfitrion) { NET.tEnvio = 1 / 15; netTodos(netMundo()); }
+  else if (NET.cliente) {
+    NET.tEnvio = 1 / 20;
+    netEnviar({ t: 's', x: r2(J.ent.pos.x), z: r2(J.ent.pos.z), y: r2(J.yaw + Math.PI), a: r2(J.ent.altAgachado) });
+  }
+}
+
+/* =====================================================================
+   19. BUCLE PRINCIPAL
+   ===================================================================== */
+let ultimoT = performance.now();
+function bucle(ahora) {
+  requestAnimationFrame(bucle);
+  const dt = Math.min(0.05, (ahora - ultimoT) / 1000);
+  ultimoT = ahora;
+  // Puntero oculto mientras se juega (también en el modo sin captura)
+  const cursor = estado === 'jugando' ? 'none' : '';
+  if (document.body.style.cursor !== cursor) document.body.style.cursor = cursor;
+  // Online el mundo no se para aunque tú estés en pausa
+  const simular = estado === 'jugando' || (NET.on && (estado === 'pausa' || estado === 'controles'));
+  if (simular) {
+    reloj += dt;
+    if (!NET.cliente) tiempoRestante -= dt;
+    if (estado === 'jugando') giroPorBorde(dt);
+    actualizarJugador(dt);
+    actualizarArma(dt);
+    if (!NET.cliente) for (const b of bots) actualizarBot(b, dt);   // la IA solo corre en el anfitrión (o sin red)
+    for (const c of combatientes) if (c.titere) actualizarTitere(c, dt);
+    if (NET.on) netTick(dt);
+    separarCombatientes();
+    for (const c of combatientes) if (c.vivo) resolverColision(c.pos, c.esJugador ? JUGADOR_CFG.radio : BOT_CFG.radio);
+    actualizarEfectos(dt);
+    actualizarCamara(dt);
+    actualizarModeloArma(dt);
+    actualizarHUD(dt);
+    if (!NET.cliente && tiempoRestante <= 0) terminarPartida();
+  } else if (estado === 'armamento' && PREV.r) {
+    PREV.pivote.rotation.y += dt * 0.8;
+    PREV.r.render(PREV.escena, PREV.cam);
+  }
+  if (MAPA && (estado === 'jugando' || estado === 'pausa' || estado === 'fin') || (estado === 'controles' && volverDesdeControles === 'pausa')) {
+    renderizar(J.ent.vivo && estado !== 'fin');
+  }
+}
+aplicarCalidad(AJUSTES.calidad);
+requestAnimationFrame(bucle);
+
+// Acceso para pruebas desde la consola (no afecta al juego)
+window.__FC = {
+  get estado() { return estado; },
+  forzarJuego() { estado = 'jugando'; bloqueado = true; mostrarPantalla(null); },
+  J, JA, combatientes, NET, get mapa() { return MAPA; }
+};
+})();
+</script>
+</body>
+</html>
