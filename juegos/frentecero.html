@@ -206,6 +206,7 @@ table.puntos th.n{text-align:right}
       <b>W A S D</b><span>Moverse</span>
       <b>Shift</b><span>Correr (solo hacia delante)</span>
       <b>C (mantener)</b><span>Agacharse</span>
+      <b>Espacio</b><span>Saltar. Contra un muro bajo o un coche de lado: lo saltas. Contra una caja o un coche de frente: te subes</span>
       <b>Clic izquierdo</b><span>Disparar (mantener en automáticas)</span>
       <b>Clic derecho (mantener)</b><span>Apuntar con la mira</span>
       <b>E</b><span>Apuntar sin mantener (otra vez E para dejar de apuntar)</span>
@@ -475,6 +476,14 @@ const JUGADOR_CFG = {
   vida: 100, radio: 0.4, alturaOjo: 1.62, alturaOjoAgachado: 1.05,
   velAndar: 4.6, velCorrer: 6.9, velAgachado: 2.3, factorApuntar: 0.6, aceleracion: 14
 };
+// Salto y parkour (Espacio). Alturas en metros medidas desde los pies; tiempos en segundos.
+// - salto: velocidad hacia arriba al saltar (con gravedad 18 sube unos 1,05 m).
+// - paso: escalón que se sube andando, sin saltar.
+// - alcance: distancia (desde tu centro) a la que tiene que estar un obstáculo para usarlo.
+// - grosorMuro: lo que tiene de fondo como mucho un muro para saltarlo por encima (si es más, te subes).
+// - maxMuro / maxSubir: altura máxima de un muro que se salta / de una caja a la que te subes.
+const PARKOUR = { salto: 6.1, gravedad: 18, paso: 0.45, alcance: 1.15, grosorMuro: 0.8, maxMuro: 1.5, maxSubir: 2.1,
+                  tMuro: 0.6, tSubir: 0.75, altoCuerpo: 1.75, controlAire: 0.15 };
 // Factores de dispersión según el movimiento
 const DISPERSION_MOV = { quieto: 1, andando: 1.6, corriendo: 2.6, agachado: 0.6 };
 
@@ -639,6 +648,20 @@ const AUDIO = (() => {
       clic(5200, 0.4, 0);
     },
     recoger() { clic(2200, 0.5, 0); clic(3000, 0.5, 0.08); },
+    // Salto, apoyo de la mano (parkour) y caída
+    salto() { if (!ctx) return; rafagaRuido(ctx.currentTime, 0.08, 'lowpass', 900, 0.25, master); },
+    apoyo() {
+      if (!ctx) return;
+      const t = ctx.currentTime;
+      rafagaRuido(t, 0.06, 'bandpass', 1500, 0.5, master, 1.5);
+      rafagaRuido(t + 0.05, 0.22, 'bandpass', 700, 0.2, master, 0.8);
+    },
+    aterrizar(f) {
+      if (!ctx) return;
+      const t = ctx.currentTime;
+      rafagaRuido(t, 0.12, 'lowpass', 500, 0.6 * f, master);
+      tono(t, 110, 50, 0.12, 0.45 * f, 'sine', master);
+    },
     logro() {
       if (!ctx) return;
       const t = ctx.currentTime;
@@ -1713,7 +1736,8 @@ function construirMapa(def) {
       const deLado = Math.abs(Math.sin(giro)) > 0.5;
       const cw = deLado ? c.largo : 1.95, cd = deLado ? 1.95 : c.largo;
       const cx = o.x + Math.sin(giro) * c.centroZ, cz = o.z + Math.cos(giro) * c.centroZ;
-      col.push({ min: [cx - cw / 2, 0, cz - cd / 2], max: [cx + cw / 2, 1.15, cz + cd / 2] });
+      // eje = eje largo del coche (0 = X, 2 = Z): por ahí te subes; de lado (por las puertas) se salta
+      col.push({ min: [cx - cw / 2, 0, cz - cd / 2], max: [cx + cw / 2, 1.15, cz + cd / 2], coche: true, eje: deLado ? 0 : 2 });
       continue;
     }
     if (o.forma === 'cilindro') {
@@ -1772,10 +1796,14 @@ function construirMapa(def) {
 /* =====================================================================
    7. COLISIONES, RAYOS Y NAVEGACIÓN
    ===================================================================== */
-// Empuja un círculo (pos en XZ, radio r) fuera de las cajas del mapa
-function resolverColision(pos, r) {
+// Empuja un círculo (pos en XZ, radio r) fuera de las cajas del mapa.
+// Opcional: desdeY / alto = franja de alturas del cuerpo; las cajas fuera de ella no empujan
+// (así el jugador puede estar encima de una caja o pasar por encima de un escalón).
+function resolverColision(pos, r, desdeY, alto) {
+  const conAltura = desdeY !== undefined, hastaY = conAltura ? desdeY + alto : 0;
   for (const c of MAPA.col) {
     if (c.suelo) continue;
+    if (conAltura && (c.max[1] <= desdeY || c.min[1] >= hastaY)) continue;
     const cx = clamp(pos.x, c.min[0], c.max[0]), cz = clamp(pos.z, c.min[2], c.max[2]);
     const dx = pos.x - cx, dz = pos.z - cz, d2 = dx * dx + dz * dz;
     if (d2 >= r * r) continue;
@@ -1839,12 +1867,12 @@ function trazarDisparo(tirador, o, d, max) {
     if (c === tirador || !c.vivo) continue;
     const tc = rayoEsfera(o, d, c.pos.x, alturaCabeza(c), c.pos.z, 0.17);
     if (tc !== null && tc < mejorT) { mejorT = tc; res = { t: tc, ent: c, cabeza: true }; }
-    const top = lerp(1.47, 0.95, c.altAgachado);
-    const tb = rayoAABB(o, d, [c.pos.x - 0.28, 0, c.pos.z - 0.28], [c.pos.x + 0.28, top, c.pos.z + 0.28], mejorT);
+    const top = c.pos.y + lerp(1.47, 0.95, c.altAgachado);
+    const tb = rayoAABB(o, d, [c.pos.x - 0.28, c.pos.y, c.pos.z - 0.28], [c.pos.x + 0.28, top, c.pos.z + 0.28], mejorT);
     if (tb && tb.t < mejorT) {
       // torso = de la cintura a los hombros (donde va el chaleco); por debajo, piernas
       const y = o.y + d.y * tb.t;
-      mejorT = tb.t; res = { t: tb.t, ent: c, cabeza: false, torso: y >= lerp(0.88, 0.5, c.altAgachado) };
+      mejorT = tb.t; res = { t: tb.t, ent: c, cabeza: false, torso: y - c.pos.y >= lerp(0.88, 0.5, c.altAgachado) };
     }
   }
   return res;
@@ -2077,14 +2105,14 @@ function crearCombatiente(nombre, esJugador, color) {
            bajas: 0, muertes: 0, agachado: false, altAgachado: 0, tDano: -99, tReap: 0, bot: null,
            chaleco: 0, casco: false };   // protección (solo la llevan los jugadores que la han conseguido)
 }
-const alturaCabeza = c => lerp(1.64, 1.1, c.altAgachado);
-const alturaOjoBot = c => lerp(1.55, 1.0, c.altAgachado);
+const alturaCabeza = c => c.pos.y + lerp(1.64, 1.1, c.altAgachado);   // pos.y = altura de los pies (saltando o encima de algo)
+const alturaOjoBot = c => c.pos.y + lerp(1.55, 1.0, c.altAgachado);
 
 /* =====================================================================
    10. JUGADOR: movimiento, cámara y retroceso de la mira
    ===================================================================== */
 const J = { ent: crearCombatiente('Tú', true, 0xffffff), yaw: 0, pitch: 0, altOjo: JUGADOR_CFG.alturaOjo,
-            corriendo: false, apuntando: false, apuntaFijo: false, velH: 0, bobFase: 0, sprintT: 0, swayX: 0, swayY: 0, muerteT: 0 };
+            corriendo: false, apuntando: false, apuntaFijo: false, velY: 0, enSuelo: true, saltoPedido: false, park: null, velH: 0, bobFase: 0, sprintT: 0, swayX: 0, swayY: 0, muerteT: 0 };
 // Estado del armamento del jugador
 const JA = {
   slots: [null, null], actual: 0, estado: 'lista', t: 0, tTotal: 0, cambioA: 0, cambiado: false,
@@ -2112,11 +2140,132 @@ function mirar(mx, my) {
   J.swayY = clamp(J.swayY + my * 0.00015, -0.03, 0.03);
 }
 
+// ---- Salto y parkour ----
+// Altura del suelo bajo un círculo: la tapa más alta de las cajas que no pase de hastaY (0 = el suelo)
+function sueloBajo(x, z, r, hastaY) {
+  let h = 0;
+  for (const c of MAPA.col) {
+    if (c.suelo || c.max[1] > hastaY || c.max[1] <= h) continue;
+    if (x + r <= c.min[0] || x - r >= c.max[0] || z + r <= c.min[2] || z - r >= c.max[2]) continue;
+    h = c.max[1];
+  }
+  return h;
+}
+// ¿Cabe un cuerpo (círculo r, alto) con los pies a la altura y en (x, z)?
+function hueco(x, z, y, r, alto) {
+  if (Math.abs(x) > MAPA.mx - r || Math.abs(z) > MAPA.mz - r) return false;
+  for (const c of MAPA.col) {
+    if (c.suelo || c.max[1] <= y + 0.05 || c.min[1] >= y + alto) continue;
+    const cx = clamp(x, c.min[0], c.max[0]), cz = clamp(z, c.min[2], c.max[2]);
+    if ((x - cx) ** 2 + (z - cz) ** 2 < r * r) return false;
+  }
+  return true;
+}
+// Obstáculo justo delante en la dirección (dx, dz). El paso se hace recto por el eje X o Z
+// (los objetos del mapa están alineados con los ejes), según hacia dónde vayas más.
+function buscarObstaculo(px, pz, py, dx, dz) {
+  const R = JUGADOR_CFG.radio, porX = Math.abs(dx) > Math.abs(dz), s = Math.sign(porX ? dx : dz) || 1;
+  const a = porX ? 0 : 2, b = porX ? 2 : 0, pa = porX ? px : pz, pb = porX ? pz : px;
+  let mejor = null;
+  for (const c of MAPA.col) {
+    if (c.suelo || c.max[1] <= py + PARKOUR.paso || c.min[1] > py + PARKOUR.paso) continue;
+    if (pb < c.min[b] - R * 0.5 || pb > c.max[b] + R * 0.5) continue;    // no está en tu camino
+    const cara = s > 0 ? c.min[a] : c.max[a];
+    const dist = (cara - pa) * s;                                       // de tu centro a la cara del obstáculo
+    if (dist < R - 0.2 || dist > PARKOUR.alcance) continue;
+    if (!mejor || dist < mejor.dist) mejor = { c, dist, a, b, s, cara, pb };
+  }
+  return mejor;
+}
+// Espacio: saltar el muro, subirse a la caja o, si no hay nada delante, un salto normal
+function intentarSalto() {
+  const e = J.ent, R = JUGADOR_CFG.radio;
+  if (!J.enSuelo || J.park) return;
+  let dx = e.vel.x, dz = e.vel.z;
+  if (Math.hypot(dx, dz) < 0.8) { dx = -Math.sin(J.yaw); dz = -Math.cos(J.yaw); }   // quieto: hacia donde miras
+  const ob = buscarObstaculo(e.pos.x, e.pos.z, e.pos.y, dx, dz);
+  if (ob) {
+    const { c, a, b, s, pb } = ob, tope = c.max[1], alto = tope - e.pos.y, fondo = c.max[a] - c.min[a];
+    const enXZ = (va, vb) => a === 0 ? [va, vb] : [vb, va];   // (eje del paso, eje lateral) → [x, z]
+    // Muro fino, o coche cruzado por el lado de las puertas: mano encima y se salta
+    const esMuro = c.coche ? c.eje !== a : fondo <= PARKOUR.grosorMuro;
+    if (esMuro && alto <= PARKOUR.maxMuro) {
+      const [x2, z2] = enXZ(s > 0 ? c.max[a] + R + 0.25 : c.min[a] - R - 0.25, pb);
+      const y2 = sueloBajo(x2, z2, R * 0.6, e.pos.y + PARKOUR.paso);
+      if (hueco(x2, z2, y2, R, PARKOUR.altoCuerpo)) return empezarParkour('muro', x2, y2, z2, ob);
+    }
+    // Caja, o coche por delante o por detrás: mano encima y te subes
+    if (alto <= PARKOUR.maxSubir) {
+      const dentro = Math.min(fondo / 2, R + 0.15);
+      const [x2, z2] = enXZ(s > 0 ? c.min[a] + dentro : c.max[a] - dentro, clamp(pb, c.min[b] + 0.1, c.max[b] - 0.1));
+      if (hueco(x2, z2, tope, R * 0.8, PARKOUR.altoCuerpo)) return empezarParkour('subir', x2, tope, z2, ob);
+    }
+  }
+  J.velY = PARKOUR.salto; J.enSuelo = false;
+  AUDIO.salto();
+}
+function empezarParkour(tipo, x2, y2, z2, ob) {
+  const e = J.ent, tope = ob.c.max[1];
+  // Punto donde se apoya la mano: en el borde de arriba, un poco a tu izquierda
+  const fx = -Math.sin(J.yaw), fz = -Math.cos(J.yaw);
+  const ma = ob.cara + ob.s * 0.12;
+  const mano = ob.a === 0 ? new V3(ma, tope, ob.pb) : new V3(ob.pb, tope, ma);
+  mano.x += fz * 0.2; mano.z -= fx * 0.2;
+  J.park = {
+    tipo, t: 0, dur: tipo === 'muro' ? PARKOUR.tMuro : PARKOUR.tSubir + Math.max(0, tope - e.pos.y - 1) * 0.3,
+    x0: e.pos.x, y0: e.pos.y, z0: e.pos.z, x1: x2, y1: y2, z1: z2, tope, mano,
+    vel: tipo === 'muro' ? new V3(e.vel.x, 0, e.vel.z) : new V3()
+  };
+  J.agachado = false; JA.aimT = 0;
+  if (JA.estado === 'recargando') JA.estado = 'lista';   // la recarga se corta (no se pierde munición)
+  AUDIO.apoyo();
+}
+function avanzarParkour(dt) {
+  const p = J.park, e = J.ent;
+  p.t += dt;
+  const k = Math.min(1, p.t / p.dur);
+  let kh, y;
+  if (p.tipo === 'muro') {
+    // Arco por encima del muro, con los pies unos centímetros por encima de él
+    kh = suave(k);
+    const medio = (p.y0 + p.y1) / 2;
+    y = lerp(p.y0, p.y1, k) + Math.sin(Math.PI * k) * (p.tope + 0.2 - medio);
+  } else {
+    // Subir: primero arriba pegado a la caja y después hacia dentro
+    y = lerp(p.y0, p.y1, suave(clamp(k / 0.6, 0, 1)));
+    kh = suave(clamp((k - 0.25) / 0.75, 0, 1));
+  }
+  e.pos.set(lerp(p.x0, p.x1, kh), y, lerp(p.z0, p.z1, kh));
+  e.vel.set(0, 0, 0);
+  if (k >= 1) {
+    e.pos.y = p.y1; e.vel.copy(p.vel).multiplyScalar(0.8);
+    J.velY = 0; J.enSuelo = true; J.park = null;
+    AUDIO.aterrizar(0.5);
+  }
+}
+// Gravedad, aterrizaje y escalones (después de moverse en horizontal)
+function fisicaVertical(dt) {
+  const e = J.ent, R = JUGADOR_CFG.radio;
+  const tolerancia = e.pos.y + (J.enSuelo ? PARKOUR.paso : 0.1);
+  J.velY -= PARKOUR.gravedad * dt;
+  e.pos.y += J.velY * dt;
+  const suelo = sueloBajo(e.pos.x, e.pos.z, R * 0.6, tolerancia);
+  if (e.pos.y <= suelo) {
+    if (!J.enSuelo && J.velY < -5) AUDIO.aterrizar(clamp(-J.velY / 12, 0.3, 1));
+    e.pos.y = suelo; J.velY = 0; J.enSuelo = true;
+  } else if (J.enSuelo && J.velY <= 0 && e.pos.y - suelo <= PARKOUR.paso) {
+    e.pos.y = suelo; J.velY = 0;          // bajar un escalón pegado al suelo
+  } else J.enSuelo = false;
+}
+
 function actualizarJugador(dt) {
   const e = J.ent;
   if (!e.vivo) {
     J.muerteT += dt;
     e.tReap -= dt;
+    J.park = null;
+    // Si mueres en el aire, caes hasta el suelo (o hasta lo que tengas debajo)
+    if (e.pos.y > 0) e.pos.y = Math.max(sueloBajo(e.pos.x, e.pos.z, JUGADOR_CFG.radio * 0.6, e.pos.y + 0.05), e.pos.y - 7 * dt);
     setTexto('mensaje', e.tReap > 0 ? `Reapareces en ${Math.max(1, Math.ceil(e.tReap))} · K para cambiar de arma` : (NET.cliente ? 'Entrando…' : ''));
     // Online, como invitado, la reaparición la decide el anfitrión (mensaje 'rep')
     if (e.tReap <= 0 && !NET.cliente) reaparecer(e);
@@ -2129,7 +2278,7 @@ function actualizarJugador(dt) {
   J.agachado = activo && !!teclas.KeyC;
   J.corriendo = !!(teclas.ShiftLeft || teclas.ShiftRight) && fw > 0 && !J.agachado && !raton.der && !raton.izq;
   // Apuntar: con el clic derecho mantenido o fijo con la E (al correr se deja de apuntar mientras dure)
-  J.apuntando = (raton.der || (J.apuntaFijo && !J.corriendo)) && JA.estado === 'lista' && def.modo !== 'cuchillo';
+  J.apuntando = (raton.der || (J.apuntaFijo && !J.corriendo)) && JA.estado === 'lista' && def.modo !== 'cuchillo' && !J.park;
 
   let vel = J.agachado ? JUGADOR_CFG.velAgachado : J.corriendo ? JUGADOR_CFG.velCorrer : JUGADOR_CFG.velAndar;
   vel *= def.velMovimiento * lerp(1, JUGADOR_CFG.factorApuntar, JA.aimT);
@@ -2137,11 +2286,18 @@ function actualizarJugador(dt) {
   let wx = -sy * fw + cy * rt, wz = -cy * fw - sy * rt;
   const wl = Math.hypot(wx, wz);
   if (wl > 0) { wx = wx / wl * vel; wz = wz / wl * vel; }
-  const k = Math.min(1, JUGADOR_CFG.aceleracion * dt);
-  e.vel.x += (wx - e.vel.x) * k; e.vel.z += (wz - e.vel.z) * k;
-  e.pos.x += e.vel.x * dt; e.pos.z += e.vel.z * dt;
-  resolverColision(e.pos, JUGADOR_CFG.radio);
-  resolverColision(e.pos, JUGADOR_CFG.radio);
+  if (J.saltoPedido) { J.saltoPedido = false; if (activo) intentarSalto(); }
+  if (J.park) avanzarParkour(dt);
+  else {
+    // En el aire se controla mucho menos la dirección
+    const k = Math.min(1, JUGADOR_CFG.aceleracion * dt * (J.enSuelo ? 1 : PARKOUR.controlAire));
+    e.vel.x += (wx - e.vel.x) * k; e.vel.z += (wz - e.vel.z) * k;
+    e.pos.x += e.vel.x * dt; e.pos.z += e.vel.z * dt;
+    const desde = e.pos.y + (J.enSuelo ? PARKOUR.paso : 0.1), alto = lerp(PARKOUR.altoCuerpo, 1.15, e.altAgachado);
+    resolverColision(e.pos, JUGADOR_CFG.radio, desde, alto);
+    resolverColision(e.pos, JUGADOR_CFG.radio, desde, alto);
+    fisicaVertical(dt);
+  }
 
   e.agachado = J.agachado;
   e.altAgachado += ((J.agachado ? 1 : 0) - e.altAgachado) * Math.min(1, dt * 10);
@@ -2173,6 +2329,9 @@ function actualizarCamara(dt) {
   }
   let alt = J.altOjo, roll = 0;
   if (!e.vivo) { const t = Math.min(1, J.muerteT / 0.6); alt = lerp(J.altOjo, 0.35, t); roll = 0.5 * t; }
+  alt += e.pos.y;
+  // Parkour: la cámara se ladea un poco al pasar por encima
+  if (J.park) roll += Math.sin(Math.PI * Math.min(1, J.park.t / J.park.dur)) * (J.park.tipo === 'muro' ? 0.1 : 0.05);
   const bob = e.vivo ? Math.sin(J.bobFase * 2) * 0.025 * clamp(J.velH / 5, 0, 1.3) * (1 - JA.aimT * 0.8) : 0;
   camara.position.set(e.pos.x, alt + bob, e.pos.z);
   camara.rotation.set(clamp(J.pitch + r.p, -1.55, 1.55), J.yaw + r.y, roll);
@@ -2218,7 +2377,7 @@ function cambiarArma(i) {
 // saca el cuchillo, da la cuchillada y vuelve a sacar el arma (corta la recarga si la había).
 const PRE_RAPIDA = 0.1;   // segundos que tarda en salir (y en guardarse) el cuchillo en la cuchillada rápida
 function cuchillada() {
-  if (!J.ent.vivo || (JA.estado !== 'lista' && JA.estado !== 'recargando')) return;
+  if (!J.ent.vivo || J.park || (JA.estado !== 'lista' && JA.estado !== 'recargando')) return;
   JA.rapido = defActual().modo !== 'cuchillo';
   JA.estado = 'cuchillada'; JA.golpeDado = false; JA.aimT = 0;
   JA.t = JA.tTotal = CUCHILLO.duracion + (JA.rapido ? PRE_RAPIDA * 2 : 0);
@@ -2286,6 +2445,7 @@ function dispersionActual() {
   let f = DISPERSION_MOV.quieto;
   if (J.velH > 0.6) f = J.corriendo ? DISPERSION_MOV.corriendo : DISPERSION_MOV.andando;
   if (J.agachado) f *= DISPERSION_MOV.agachado;
+  if (!J.enSuelo || J.park) f = DISPERSION_MOV.corriendo * 1.3;   // en el aire se apunta peor
   const apunt = lerp(1, def.factorApuntar, suave(JA.aimT));
   return (def.dispersion * f * apunt + JA.bloom * lerp(1, 0.5, JA.aimT)) * DEG;
 }
@@ -2364,10 +2524,10 @@ function actualizarArma(dt) {
   const d2 = defActual(), s2 = JA.slots[JA.actual];
   // Con el cuchillo en la mano, el clic da una cuchillada (también corriendo)
   if (d2.modo === 'cuchillo') {
-    if (J.ent.vivo && JA.estado === 'lista' && JA.clicNuevo) { JA.clicNuevo = false; cuchillada(); }
+    if (J.ent.vivo && JA.estado === 'lista' && JA.clicNuevo && !J.park) { JA.clicNuevo = false; cuchillada(); }
   }
   // Gatillo
-  else if (J.ent.vivo && JA.estado === 'lista' && !J.corriendo) {
+  else if (J.ent.vivo && JA.estado === 'lista' && !J.corriendo && !J.park) {
     // Un clic rápido siempre dispara al menos una bala, aunque se suelte antes del siguiente fotograma
     const clic = JA.clicNuevo && reloj - JA.tClic < 0.25;
     const quiere = d2.modo === 'auto' ? (raton.izq || clic) : clic;
@@ -2389,6 +2549,39 @@ function actualizarArma(dt) {
   JA.fogon -= dt; JA.slideT -= dt;
   luzFogonazo.intensity = JA.fogon > 0 ? 2.2 : 0;
   luzFogonazoArma.intensity = JA.fogon > 0 ? 1.6 : 0;
+}
+
+// ---- Mano izquierda del parkour: se apoya en el borde del obstáculo ----
+let manoPk = null;
+function crearManoPk() {
+  // Hecha mirando a -Z (dedos) con el antebrazo hacia +Z, para orientarla con lookAt hacia el codo
+  const g = new THREE.Group();
+  const caja = (w, h, d, x, y, z, color, r) => { const m = new THREE.Mesh(geoCaja, mat(color, r || 0.8, 0)); m.scale.set(w, h, d); m.position.set(x, y, z); g.add(m); };
+  caja(0.08, 0.075, 0.7, 0, 0.012, 0.38, 0x4b5a3a);                 // manga
+  caja(0.068, 0.062, 0.07, 0, 0.006, 0.03, 0x2a2622, 0.7);          // muñeca del guante
+  caja(0.088, 0.03, 0.095, 0, -0.012, -0.045, 0x2a2622, 0.7);       // palma
+  for (let i = 0; i < 4; i++) caja(0.017, 0.02, 0.065, -0.031 + i * 0.021, -0.018, -0.12, 0x2a2622, 0.7);   // dedos
+  caja(0.02, 0.02, 0.055, 0.052, -0.012, -0.03, 0x2a2622, 0.7);     // pulgar
+  escenaArma.add(g);
+  return g;
+}
+function actualizarManoPk() {
+  const p = J.park, k = p ? p.t / p.dur : 1;
+  if (!p || !J.ent.vivo || k > (p.tipo === 'muro' ? 0.7 : 0.8)) { if (manoPk) manoPk.visible = false; return; }
+  if (!manoPk) manoPk = crearManoPk();
+  // Punto del mundo donde se apoya → coordenadas de la cámara del arma (que tiene otro campo de visión)
+  camara.updateMatrixWorld();
+  const v = camara.worldToLocal(p.mano.clone());
+  const f = Math.tan(camaraArma.fov * DEG / 2) / Math.tan(camara.fov * DEG / 2);
+  v.x *= f; v.y *= f;
+  if (v.z > -0.15) v.z = -0.15;
+  // Que siempre quede en la parte de abajo de la pantalla (si miras al frente, el borde queda por debajo de la vista)
+  v.y = clamp(v.y, v.z * 0.3, v.z * -0.1); v.x = clamp(v.x, v.z * 0.6, v.z * -0.3);
+  // Al principio la mano sube desde abajo de la pantalla hasta el borde
+  v.copy(new V3(-0.14, -0.42, -0.35).lerp(v, suave(clamp(k / 0.15, 0, 1))));
+  manoPk.position.copy(v);
+  manoPk.lookAt(v.x - 0.1, v.y - 0.18, v.z + 0.6);   // antebrazo hacia atrás y algo abajo: dedos hacia delante, palma abajo
+  manoPk.visible = true;
 }
 
 // Posición del arma en pantalla: cadera ↔ mira, balanceo, golpe de retroceso, recarga y cambio
@@ -2427,6 +2620,12 @@ function actualizarModeloArma(dt) {
   }
   // Cuchillada: el cuchillo sigue su propio recorrido
   if (JA.estado === 'cuchillada') [x, y, z, rx, ry, rz] = poseCuchillada();
+  // Parkour: el arma se aparta hacia abajo a la derecha (la mano izquierda va al obstáculo)
+  if (J.park) {
+    const pk = Math.sin(Math.PI * Math.min(1, J.park.t / J.park.dur));
+    x += 0.07 * pk; y -= 0.16 * pk; rz -= 0.7 * pk; ry += 0.3 * pk;
+  } else if (!J.enSuelo) y += clamp(-J.velY * 0.004, -0.03, 0.03);   // en el aire el arma flota un poco
+  actualizarManoPk();
   armaRaiz.position.set(x, y, z);
   armaRaiz.rotation.set(rx, ry, rz);
 
@@ -2628,7 +2827,7 @@ function moverBot(b, dx, dz, vel, dt) {
 function dispararBot(b, obj) {
   const e = b.ent;
   const o = new V3(e.pos.x, alturaOjoBot(e), e.pos.z);
-  const yObj = Math.random() < BOT_CFG.probCabeza ? alturaCabeza(obj) : lerp(1.15, 0.75, obj.altAgachado);
+  const yObj = Math.random() < BOT_CFG.probCabeza ? alturaCabeza(obj) : obj.pos.y + lerp(1.15, 0.75, obj.altAgachado);
   const dirv = new V3(obj.pos.x, yObj, obj.pos.z).sub(o).normalize();
   const velObj = Math.hypot(obj.vel.x, obj.vel.z);
   // Imprecisión: base + objetivo en movimiento + primeros disparos al verlo
@@ -2661,7 +2860,7 @@ function poseModelo(g, e, yaw, dt) {
     ud.tMuerte = (ud.tMuerte || 0) + dt;
     const t = Math.min(1, ud.tMuerte / 0.45);
     g.rotation.set(-t * Math.PI / 2, yaw, 0);
-    g.position.set(e.pos.x, 0.15 * t, e.pos.z);
+    g.position.set(e.pos.x, e.pos.y + 0.15 * t, e.pos.z);
     g.visible = ud.tMuerte < 2.2;
     return;
   }
@@ -2676,7 +2875,7 @@ function poseModelo(g, e, yaw, dt) {
   ud.pL.rod.rotation.x = Math.max(0, -Math.sin(ud.paso)) * 0.9 * k + 2.0 * alt;
   ud.pR.rod.rotation.x = Math.max(0, Math.sin(ud.paso)) * 0.9 * k + 2.0 * alt;
   ud.cuerpo.position.y = -0.4 * alt + Math.abs(Math.cos(ud.paso)) * 0.03 * k;
-  g.position.set(e.pos.x, 0, e.pos.z);
+  g.position.set(e.pos.x, e.pos.y, e.pos.z);
   g.rotation.set(0, yaw, 0);
 }
 
@@ -2839,6 +3038,7 @@ function reaparecer(ent) {
   const yawCentro = Math.atan2(-p.x, -p.z);
   if (ent.esJugador) {
     J.yaw = Math.atan2(p.x, p.z); J.pitch = 0; // mirando al centro del mapa
+    J.velY = 0; J.enSuelo = true; J.park = null;
     prepararArmas(); setTexto('mensaje', '');
   } else if (ent.bot) {
     const b = ent.bot;
@@ -2856,6 +3056,7 @@ function reaparecerEn(ent, x, z) {
   ent.pos.set(x, 0, z); ent.vel.set(0, 0, 0);
   ent.vida = JUGADOR_CFG.vida; ent.vivo = true; ent.altAgachado = 0; ent.agachado = false; ent.tDano = -99;
   J.yaw = Math.atan2(x, z); J.pitch = 0;
+  J.velY = 0; J.enSuelo = true; J.park = null;
   prepararArmas(); setTexto('mensaje', '');
 }
 // ---- Cargadores en el suelo: cada combatiente suelta uno al morir; se recogen con T ----
@@ -2874,16 +3075,17 @@ function soltarCargador(p) {
   if (!MAPA) return;
   if (botin.length >= BOTIN.max) { escena.remove(botin[0].g); botin.shift(); }
   const g = modeloCargador.clone();
-  g.position.set(p.x, 0.2, p.z);
+  const y = sueloBajo(p.x, p.z, 0.1, (p.y || 0) + 0.05);   // cae al suelo o encima de lo que haya debajo
+  g.position.set(p.x, y + 0.2, p.z);
   escena.add(g);
-  botin.push({ g, x: p.x, z: p.z, t: BOTIN.duracion, fase: Math.random() * 6 });
+  botin.push({ g, x: p.x, y, z: p.z, t: BOTIN.duracion, fase: Math.random() * 6 });
 }
 function limpiarBotin() { for (const b of botin) escena.remove(b.g); botin.length = 0; }
 // Cargador más cercano al alcance (o null)
 function cargadorCerca() {
   if (!J.ent.vivo) return null;
   let mejor = null, dm = BOTIN.radio;
-  for (const b of botin) { const d = Math.hypot(b.x - J.ent.pos.x, b.z - J.ent.pos.z); if (d < dm) { dm = d; mejor = b; } }
+  for (const b of botin) { const d = Math.hypot(b.x - J.ent.pos.x, b.z - J.ent.pos.z); if (d < dm && Math.abs(b.y - J.ent.pos.y) < 1.2) { dm = d; mejor = b; } }
   return mejor;
 }
 function recogerCargador() {
@@ -2900,7 +3102,7 @@ function actualizarBotin(dt) {
     b.t -= dt; b.fase += dt;
     if (b.t <= 0) { escena.remove(b.g); botin.splice(i, 1); continue; }
     b.g.rotation.y = b.fase * 1.6;
-    b.g.position.y = 0.22 + Math.sin(b.fase * 3) * 0.04;
+    b.g.position.y = b.y + 0.22 + Math.sin(b.fase * 3) * 0.04;
     b.g.visible = b.t > 3 || Math.sin(b.t * 20) > 0;   // parpadea antes de desaparecer
   }
 }
@@ -3427,8 +3629,11 @@ addEventListener('keydown', e => {
   else if (e.code === 'KeyE') { if (J.ent.vivo) J.apuntaFijo = !J.apuntaFijo; }   // apuntar sin mantener
   else if (e.code === 'KeyQ') cuchillada();
   else if (e.code === 'KeyT') recogerCargador();
+  else if (e.code === 'Space') J.saltoPedido = true;
 });
 addEventListener('keyup', e => { teclas[e.code] = false; });
+// El Espacio no debe pulsar el botón del menú que se quedó seleccionado
+for (const tipo of ['keydown', 'keyup']) addEventListener(tipo, e => { if (e.code === 'Space' && estado !== 'online') e.preventDefault(); });
 
 // ---- Panel de cambio de arma (K) ----
 // Muerto: eliges con qué reapareces. Vivo: dejas elegida el arma para la próxima vez que aparezcas.
@@ -3783,7 +3988,7 @@ function actualizarTitere(c, dt) {
   if (c.vivo) {
     const px = c.pos.x, pz = c.pos.z;
     if (Math.hypot(c.objetivo.x - c.pos.x, c.objetivo.z - c.pos.z) > 4) c.pos.copy(c.objetivo);   // salto grande: sin suavizar
-    else { c.pos.x += (c.objetivo.x - c.pos.x) * k; c.pos.z += (c.objetivo.z - c.pos.z) * k; }
+    else { c.pos.x += (c.objetivo.x - c.pos.x) * k; c.pos.z += (c.objetivo.z - c.pos.z) * k; c.pos.y += (c.objetivo.y - c.pos.y) * k; }
     c.vel.set((c.pos.x - px) / Math.max(dt, 1e-3), 0, (c.pos.z - pz) / Math.max(dt, 1e-3));
   } else c.vel.set(0, 0, 0);
   c.altAgachado += (c.altObj - c.altAgachado) * k;
@@ -3803,7 +4008,7 @@ function netTiro(ent, arma, finales) {
 }
 function efectoTiroRemoto(e, d) {
   const yaw = e.yaw;   // giro del modelo: hacia delante = (sin, cos)
-  const boca = new V3(e.pos.x + Math.sin(yaw) * 0.6 + Math.cos(yaw) * 0.1, lerp(1.35, 0.9, e.altAgachado), e.pos.z + Math.cos(yaw) * 0.6 - Math.sin(yaw) * 0.1);
+  const boca = new V3(e.pos.x + Math.sin(yaw) * 0.6 + Math.cos(yaw) * 0.1, e.pos.y + lerp(1.35, 0.9, e.altAgachado), e.pos.z + Math.cos(yaw) * 0.6 - Math.sin(yaw) * 0.1);
   for (const f of (d.f || []).slice(0, 8)) {
     const fin = new V3(f[0], f[1], f[2]);
     trazador(boca, fin);
@@ -3819,20 +4024,20 @@ function netMundo() {
     t: 'w', tr: r2(tiempoRestante), p: [PUNTOS.azul, PUNTOS.rojo],
     e: combatientes.map(c => [c.id, r2(c.pos.x), r2(c.pos.z),
       r2(c.esJugador ? J.yaw + Math.PI : c.bot ? c.bot.yaw : c.yaw),
-      r2(c.altAgachado), c.vivo ? 1 : 0, Math.round(c.vida), c.bajas, c.muertes])
+      r2(c.altAgachado), c.vivo ? 1 : 0, Math.round(c.vida), c.bajas, c.muertes, r2(c.pos.y)])
   };
 }
 function aplicarMundo(w) {
   if (!w || !w.e) return;
   tiempoRestante = w.tr;
   if (w.p) { PUNTOS.azul = w.p[0]; PUNTOS.rojo = w.p[1]; }
-  for (const [id, x, z, yaw, alt, vivo, vida, bajas, muertes] of w.e) {
+  for (const [id, x, z, yaw, alt, vivo, vida, bajas, muertes, y] of w.e) {
     const c = entPorId(id);
     if (!c) continue;
     c.bajas = bajas; c.muertes = muertes;
     if (c === J.ent) { c.vida = vida; continue; }
-    if (vivo && !c.vivo) c.pos.set(x, 0, z);   // acaba de reaparecer: sin suavizar
-    c.objetivo.set(x, 0, z); c.yaw = yaw; c.altObj = alt; c.vida = vida; c.vivo = !!vivo;
+    if (vivo && !c.vivo) c.pos.set(x, y || 0, z);   // acaba de reaparecer: sin suavizar
+    c.objetivo.set(x, y || 0, z); c.yaw = yaw; c.altObj = alt; c.vida = vida; c.vivo = !!vivo;
   }
 }
 function avisoFeed(texto) {
@@ -3850,7 +4055,7 @@ function netEnAnfitrion(slot, d) {
   if (!NET.on) return;
   const g = entPorId('h' + slot);
   if (!g) return;
-  if (d.t === 's') { g.objetivo.set(+d.x || 0, 0, +d.z || 0); g.yaw = +d.y || 0; g.altObj = clamp(+d.a || 0, 0, 1); }
+  if (d.t === 's') { g.objetivo.set(+d.x || 0, clamp(+d.h || 0, 0, 8), +d.z || 0); g.yaw = +d.y || 0; g.altObj = clamp(+d.a || 0, 0, 1); }
   else if (d.t === 'hit') {
     const v = entPorId(d.id);
     if (v && v !== g && g.vivo) aplicarDano(v, clamp(+d.d || 0, 0, 260), g, !!d.c, { cab: clamp(+d.h || 0, 0, 260), tor: clamp(+d.o || 0, 0, 260) });
@@ -3893,7 +4098,7 @@ function netTick(dt) {
   if (NET.anfitrion) { NET.tEnvio = 1 / 15; netTodos(netMundo()); }
   else if (NET.cliente) {
     NET.tEnvio = 1 / 20;
-    netEnviar({ t: 's', x: r2(J.ent.pos.x), z: r2(J.ent.pos.z), y: r2(J.yaw + Math.PI), a: r2(J.ent.altAgachado) });
+    netEnviar({ t: 's', x: r2(J.ent.pos.x), z: r2(J.ent.pos.z), h: r2(J.ent.pos.y), y: r2(J.yaw + Math.PI), a: r2(J.ent.altAgachado) });
   }
 }
 
@@ -3932,7 +4137,11 @@ function paso(ahora, dibujar) {
     for (const c of combatientes) if (c.titere) actualizarTitere(c, dt);
     if (NET.on) netTick(dt);
     separarCombatientes();
-    for (const c of combatientes) if (c.vivo) resolverColision(c.pos, c.esJugador ? JUGADOR_CFG.radio : BOT_CFG.radio);
+    for (const c of combatientes) {
+      if (!c.vivo || c.titere) continue;
+      if (c.esJugador) { if (!J.park) resolverColision(c.pos, JUGADOR_CFG.radio, c.pos.y + (J.enSuelo ? PARKOUR.paso : 0.1), PARKOUR.altoCuerpo); }
+      else resolverColision(c.pos, BOT_CFG.radio);
+    }
     actualizarEfectos(dt);
     actualizarBotin(dt);
     actualizarCamara(dt);
