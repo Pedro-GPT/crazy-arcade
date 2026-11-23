@@ -4802,6 +4802,24 @@ const arrancarMusica=()=>{ if(musicaArrancada) return; musicaArrancada=true; aud
 document.addEventListener('pointerdown',arrancarMusica);
 document.addEventListener('keydown',arrancarMusica);
 document.addEventListener('visibilitychange',()=>{ if(document.hidden) MUS.parar(); else if(musicaArrancada && !enPausa) MUS.poner(pistaActual()); });
+// Truco secreto: teclear N L K J compra, con el dinero que tengas, las casas de la ciudad nº 1 (solo esa ciudad)
+let trucoTeclas='';
+function comprarCasasCiudad1(){
+  const d=datosCiudad('suerte');
+  const libres=SALA.CASAS.filter(k=>!d.casas[k.id]).sort((a,b)=>a.valor0-b.valor0);   // de la más barata a la más cara
+  if(!libres.length){ aviso('🏠 Ya tienes todas las casas de '+CIUDADES[0].nombre+'.'); return; }
+  let n=0, gastado=0;
+  for(const k of libres){ if(dinero<k.valor0) break; dinero-=k.valor0; gastado+=k.valor0; d.casas[k.id]=k.valor0; k.vecino.oculto=true; n++; }
+  if(!n){ aviso('🏠 No te llega ni para la casa más barata de '+CIUDADES[0].nombre+' ('+fmt(libres[0].valor0)+').',true); return; }
+  SFX.granPremio(); animarDinero('baja'); guardarEstado(); refrescar(); SALA.recalcular();
+  aviso('🏠 Truco: has comprado '+n+' casa'+(n>1?'s':'')+' en '+CIUDADES[0].nombre+' por '+fmt(gastado)+(n<libres.length?'. Te faltan '+(libres.length-n)+'.':'. ¡Ya las tienes todas!'));
+}
+document.addEventListener('keydown',e=>{
+  if(e.target&&/INPUT|TEXTAREA/.test(e.target.tagName)) return;
+  const l=/^Key([A-Z])$/.exec(e.code); if(!l) return;
+  trucoTeclas=(trucoTeclas+l[1]).slice(-4);
+  if(trucoTeclas==='NLKJ'){ trucoTeclas=''; comprarCasasCiudad1(); }
+});
 document.addEventListener('keydown',e=>{
   if(enPausa){ e.preventDefault(); if(e.code==='KeyP'||e.code==='Escape') pausar(false); return; }
   if(e.code==='KeyP' && !(e.target&&/INPUT|TEXTAREA/.test(e.target.tagName))){ e.preventDefault(); pausar(true); return; }
