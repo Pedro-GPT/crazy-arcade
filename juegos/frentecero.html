@@ -94,6 +94,14 @@ table.puntos th.n{text-align:right}
 #slots{display:flex;justify-content:flex-end;gap:6px;margin-top:6px}
 #slots span{border:1px solid rgba(255,255,255,.25);padding:2px 8px;font-size:12px;color:var(--tenue);background:rgba(10,14,18,.5)}
 #slots span.activo{border-color:var(--ambar);color:var(--ambar2)}
+#proxArma{font-size:12px;color:#9fd0ff;letter-spacing:.06em;min-height:14px;margin-top:3px}
+.arm-grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+#netLista .jug .eq{margin-left:auto;display:flex;gap:6px;align-items:center;font-size:13px}
+#netLista .jug .eq button{background:#121920;border:1px solid #3a4652;color:var(--tenue);padding:4px 10px;cursor:pointer;font:inherit}
+#netLista .jug .eq button.az.sel{background:#1d4f8f;border-color:#4fa3ff;color:#fff}
+#netLista .jug .eq button.ro.sel{background:#8a2020;border-color:#ff5a4f;color:#fff}
+#netLista .jug .eq b.az{color:#6fb5ff}
+#netLista .jug .eq b.ro{color:#ff6a5f}
 #armaAviso{font-size:13px;color:var(--ambar2);letter-spacing:.12em;min-height:16px;margin-top:4px}
 #mira{position:absolute;left:50%;top:50%;width:0;height:0}
 #mira i{position:absolute;background:#fff;box-shadow:0 0 2px rgba(0,0,0,.9)}
@@ -204,6 +212,7 @@ table.puntos th.n{text-align:right}
       <b>1 / 2 / 3 / rueda</b><span>Arma principal / pistola / cuchillo</span>
       <b>Q</b><span>Cuchillada rápida sin cambiar de arma</span>
       <b>T</b><span>Recoger un cargador del suelo</span>
+      <b>K</b><span>Cambiar de arma (sale al volver a aparecer)</span>
       <b>R</b><span>Recargar</span>
       <b>Tab (mantener)</b><span>Tabla de puntuación</span>
       <b>Esc</b><span>Pausa</span>
@@ -251,6 +260,19 @@ table.puntos th.n{text-align:right}
   </div>
 </div>
 
+<div id="pantallaElegir" class="pantalla oculto">
+  <div class="caja ancha">
+    <h2>Cambiar de arma</h2>
+    <p class="sub" id="elegirInfo"></p>
+    <div class="arm-grid2">
+      <div><div class="arm-titulo">Arma principal</div><div id="elegirPrincipal" class="arm-lista"></div></div>
+      <div><div class="arm-titulo">Pistola</div><div id="elegirSecundaria" class="arm-lista"></div></div>
+    </div>
+    <p class="sub">Haz clic o pulsa el número. K o Esc para cerrar.</p>
+    <button class="btn" id="bElegirListo">Listo</button>
+  </div>
+</div>
+
 <div id="pantallaPausa" class="pantalla oculto">
   <div class="caja">
     <h2>Pausa</h2>
@@ -295,6 +317,7 @@ table.puntos th.n{text-align:right}
     <div id="armaNombre"></div>
     <div id="armaMun"><span id="munCar">0</span> <small>/ <span id="munRes">0</span></small></div>
     <div id="slots"><span id="slot1">1</span><span id="slot2">2</span><span id="slot3">3</span></div>
+    <div id="proxArma"></div>
     <div id="armaAviso"></div>
   </div>
   <div id="tabla" class="oculto"></div>
@@ -2094,7 +2117,7 @@ function actualizarJugador(dt) {
   if (!e.vivo) {
     J.muerteT += dt;
     e.tReap -= dt;
-    setTexto('mensaje', e.tReap > 0 ? `Reapareces en ${Math.max(1, Math.ceil(e.tReap))}` : (NET.cliente ? 'Entrando…' : ''));
+    setTexto('mensaje', e.tReap > 0 ? `Reapareces en ${Math.max(1, Math.ceil(e.tReap))} · K para cambiar de arma` : (NET.cliente ? 'Entrando…' : ''));
     // Online, como invitado, la reaparición la decide el anfitrión (mensaje 'rep')
     if (e.tReap <= 0 && !NET.cliente) reaparecer(e);
     return;
@@ -3096,6 +3119,11 @@ function actualizarHUD(dt) {
   else if (s.mag === 0 && s.res === 0) aviso = 'SIN MUNICIÓN · Q CUCHILLO';
   else if (s.mag <= Math.ceil(def.cargador * 0.25) && s.res > 0) aviso = 'R  RECARGAR';
   setTexto('armaAviso', aviso);
+  // Arma elegida con K para la próxima vez que aparezcas
+  const prox = [];
+  if (AJUSTES.principal !== JA.slots[0].id) prox.push(WEAPONS[AJUSTES.principal].corto);
+  if (AJUSTES.secundaria !== JA.slots[1].id) prox.push(WEAPONS[AJUSTES.secundaria].corto);
+  setTexto('proxArma', prox.length ? 'Al reaparecer: ' + prox.join(' + ') : '');
 
   // Punto de mira dinámico: se abre con la dispersión y desaparece al apuntar
   const disp = dispersionActual();
@@ -3156,7 +3184,7 @@ function actualizarHUD(dt) {
 let estado = 'menu';           // 'menu' | 'armamento' | 'controles' | 'jugando' | 'pausa' | 'fin'
 let volverDesdeControles = 'menu';
 let bloqueado = false;
-const PANTALLAS = ['pantallaInicio', 'pantallaOnline', 'pantallaArmamento', 'pantallaLogros', 'pantallaControles', 'pantallaPausa', 'pantallaFin'];
+const PANTALLAS = ['pantallaInicio', 'pantallaOnline', 'pantallaArmamento', 'pantallaLogros', 'pantallaElegir', 'pantallaControles', 'pantallaPausa', 'pantallaFin'];
 function mostrarPantalla(id) { for (const p of PANTALLAS) $(p).classList.toggle('oculto', p !== id); }
 
 function actualizarResumen() {
@@ -3269,6 +3297,15 @@ function capturarRaton() {
     } catch (e) { if (estado === 'pausa') setTexto('mensaje', AVISO_CLIC); }
   }, espera);
 }
+// Equipo de cada persona en 5 contra 5: el que haya puesto el anfitrión en la sala (slot.bando);
+// a quien no tenga, se le pone en el equipo con menos gente. Todos los ordenadores calculan lo mismo.
+function repartoEquipos(slots) {
+  const r = {}, n = { azul: 0, rojo: 0 };
+  const pres = slots.map((s, i) => s ? i : -1).filter(i => i >= 0);
+  for (const i of pres) if (slots[i].bando === 'azul' || slots[i].bando === 'rojo') { r[i] = slots[i].bando; n[r[i]]++; }
+  for (const i of pres) if (!r[i]) { const e = n.azul <= n.rojo ? 'azul' : 'rojo'; r[i] = e; n[e]++; }
+  return r;
+}
 // Crea la lista de combatientes: tú, los jugadores de otros ordenadores (online) y los bots
 function prepararCombatientes(numBots) {
   for (const c of combatientes) { if (c.bot) escena.remove(c.bot.modelo); else if (c.modelo) escena.remove(c.modelo); }
@@ -3277,7 +3314,8 @@ function prepararCombatientes(numBots) {
   J.ent.nombre = NET.on ? nombreJugador() : 'Tú';
   // Por equipos, las personas se reparten por turnos (1.ª azul, 2.ª roja, 3.ª azul…); así todos los ordenadores calculan lo mismo
   const presentes = NET.on ? NET.slots.map((s, i) => s ? i : -1).filter(i => i >= 0) : [0];
-  const equipoDe = s => MODO.equipos ? (presentes.indexOf(s) % 2 === 0 ? 'azul' : 'rojo') : null;
+  const reparto = repartoEquipos(NET.on ? NET.slots : [{}]);
+  const equipoDe = s => MODO.equipos ? reparto[s] : null;
   J.ent.equipo = equipoDe(NET.on ? NET.yo : 0);
   combatientes.push(J.ent);
   if (NET.on) for (const s of presentes) if (s !== NET.yo) combatientes.push(crearRemoto(s, equipoDe(s)));
@@ -3391,6 +3429,60 @@ addEventListener('keydown', e => {
   else if (e.code === 'KeyT') recogerCargador();
 });
 addEventListener('keyup', e => { teclas[e.code] = false; });
+
+// ---- Panel de cambio de arma (K) ----
+// Muerto: eliges con qué reapareces. Vivo: dejas elegida el arma para la próxima vez que aparezcas.
+// El arma elegida se guarda en AJUSTES (la misma que en "Elegir armamento") y la pone prepararArmas() al reaparecer.
+const ELEGIR = { muerto: false };
+function abrirElegir() {
+  if (estado !== 'jugando') return;
+  estado = 'elegir'; ELEGIR.muerto = !J.ent.vivo;
+  raton.izq = raton.der = false;
+  for (const k in teclas) teclas[k] = false;
+  pintarElegir(); mostrarPantalla('pantallaElegir');
+  if (document.pointerLockElement) document.exitPointerLock();   // para poder usar el ratón en el panel
+}
+function pintarElegir() {
+  const hacer = (cont, ids, clave, n0) => {
+    cont.innerHTML = '';
+    ids.forEach((id, i) => {
+      const w = WEAPONS[id], b = document.createElement('button');
+      b.className = 'arm-item' + (AJUSTES[clave] === id ? ' sel' : '');
+      b.innerHTML = `<span>${n0 + i}. ${w.nombre}</span><small>${AJUSTES[clave] === id ? 'ELEGIDA' : NOMBRE_MODO[w.modo].split(' ')[0]}</small>`;
+      b.onclick = () => elegirArma(clave, id);
+      cont.appendChild(b);
+    });
+  };
+  hacer($('elegirPrincipal'), PRINCIPALES, 'principal', 1);
+  hacer($('elegirSecundaria'), SECUNDARIAS, 'secundaria', PRINCIPALES.length + 1);
+  infoElegir();
+}
+function infoElegir() {
+  const t = J.ent.vivo
+    ? `Llevas ${JA.slots[0].def.nombre} y ${JA.slots[1].def.nombre}. Lo que elijas saldrá la próxima vez que aparezcas.`
+    : `Reapareces en ${Math.max(1, Math.ceil(J.ent.tReap))} s con lo que elijas.`;
+  if ($('elegirInfo').textContent !== t) $('elegirInfo').textContent = t;
+}
+function elegirArma(clave, id) {
+  AJUSTES[clave] = id; guardar('fc_ajustes', AJUSTES);
+  AUDIO.cambio(); pintarElegir();
+}
+function cerrarElegir() {
+  if (estado !== 'elegir') return;
+  mostrarPantalla(null);
+  estado = 'pausa';
+  if (J.ent.vivo) setTexto('mensaje', AVISO_CLIC);
+  capturarRaton();   // vuelve a meter el ratón en el juego
+}
+addEventListener('keydown', e => {
+  if (e.repeat) return;
+  if (estado === 'jugando' && e.code === 'KeyK') { abrirElegir(); return; }
+  if (estado !== 'elegir') return;
+  if (e.code === 'KeyK' || e.code === 'Escape') { cerrarElegir(); return; }
+  const n = Number(e.key);
+  if (n >= 1 && n <= PRINCIPALES.length) elegirArma('principal', PRINCIPALES[n - 1]);
+  else if (n > PRINCIPALES.length && n <= PRINCIPALES.length + SECUNDARIAS.length) elegirArma('secundaria', SECUNDARIAS[n - PRINCIPALES.length - 1]);
+});
 // ---- Modo de respaldo SIN captura del ratón ----
 // Si el navegador no permite Pointer Lock, se juega igual: el movimiento del ratón gira la cámara
 // (el puntero se oculta) y, con el puntero pegado al borde izquierdo/derecho (o fuera de la
@@ -3462,7 +3554,7 @@ $('bNetUnirse').onclick = netUnirse;
 $('netCodigo').onkeydown = e => { if (e.key === 'Enter') netUnirse(); };
 $('netNombre').onchange = () => { guardarNombre(); if (NET.cliente) netEnviar({ t: 'hola', nombre: nombreJugador(), eq: miEquipo() }); else if (NET.anfitrion) { NET.slots[0].nombre = nombreJugador(); netSala(); } };
 $('bNetEmpezar').onclick = netEmpezar;
-$('netModo').onchange = () => pintarSala();
+$('netModo').onchange = () => { if (NET.anfitrion) netSala(); else pintarSala(); };
 $('selModo').onchange = e => { AJUSTES.modo = e.target.value; guardar('fc_ajustes', AJUSTES); actualizarResumen(); };
 $('bNetVolver').onclick = () => { netCerrar(); estado = 'menu'; mostrarPantalla('pantallaInicio'); };
 $('bArmamento').onclick = abrirArmamento;
@@ -3476,6 +3568,7 @@ $('bCtrlVolver').onclick = () => {
 };
 $('bContinuar').onclick = () => { AUDIO.iniciar(); mostrarPantalla(null); setTexto('mensaje', AVISO_CLIC); capturarRaton(); };
 $('bPausaControles').onclick = () => abrirControles('pausa');
+$('bElegirListo').onclick = cerrarElegir;
 $('bSalir').onclick = salirAlMenu;
 $('bOtra').onclick = () => { if (NET.anfitrion) netEmpezar(); else if (!NET.cliente) iniciarPartida(); };
 $('bFinMenu').onclick = salirAlMenu;
@@ -3531,7 +3624,18 @@ function pintarSala() {
   $('netInicio').classList.toggle('oculto', enSala);
   $('netSala').classList.toggle('oculto', !enSala);
   $('netCodigoTxt').textContent = NET.codigo;
-  $('netLista').innerHTML = NET.slots.map((s, i) => s ? `<div class="jug"><i style="background:#${COLORES_JUG[i].toString(16).padStart(6, '0')}"></i>${esc(s.nombre)}${i === 0 ? ' · anfitrión' : ''}${i === NET.yo ? ' · tú' : ''}</div>` : '').join('');
+  // En 5 contra 5 se ve el equipo de cada uno; el anfitrión lo puede cambiar con los botones
+  const equipos = (NET.anfitrion ? $('netModo').value : NET.modoSala) === '5v5';
+  const reparto = repartoEquipos(NET.slots);
+  const celdaEq = i => {
+    if (!equipos) return '';
+    const e = reparto[i];
+    if (!NET.anfitrion) return `<span class="eq"><b class="${e === 'azul' ? 'az' : 'ro'}">Equipo ${NOMBRE_EQUIPO[e]}</b></span>`;
+    return `<span class="eq"><button class="az${e === 'azul' ? ' sel' : ''}" data-s="${i}" data-b="azul">Azul</button>` +
+           `<button class="ro${e === 'rojo' ? ' sel' : ''}" data-s="${i}" data-b="rojo">Rojo</button></span>`;
+  };
+  $('netLista').innerHTML = NET.slots.map((s, i) => s ? `<div class="jug"><i style="background:#${COLORES_JUG[i].toString(16).padStart(6, '0')}"></i>${esc(s.nombre)}${i === 0 ? ' · anfitrión' : ''}${i === NET.yo ? ' · tú' : ''}${celdaEq(i)}</div>` : '').join('');
+  for (const b of $('netLista').querySelectorAll('button[data-s]')) b.onclick = () => ponerBando(+b.dataset.s, b.dataset.b);
   $('bNetEmpezar').classList.toggle('oculto', !NET.anfitrion);
   $('netModoFila').classList.toggle('oculto', !NET.anfitrion);
   // En 5 contra 5 los bots se ponen solos hasta completar los equipos
@@ -3577,8 +3681,19 @@ function netAceptar(conn) {
   conn.on('data', d => { if (conn.slot != null) netEnAnfitrion(conn.slot, d); });
   conn.on('close', () => { if (conn.slot != null && NET.conns[conn.slot] === conn) netQuitar(conn.slot); });
 }
+// Anfitrión: pone a un jugador en un equipo (máximo 5 personas por equipo)
+function ponerBando(slot, bando) {
+  if (!NET.anfitrion || !NET.slots[slot]) return;
+  const r = repartoEquipos(NET.slots);
+  const enEse = Object.keys(r).filter(i => +i !== slot && r[i] === bando).length;
+  if (enEse >= MODOS['5v5'].porEquipo) { NET.msg = `El equipo ${NOMBRE_EQUIPO[bando]} ya tiene ${MODOS['5v5'].porEquipo} personas`; pintarSala(); NET.msg = ''; return; }
+  // Al fijar a uno, los demás se quedan donde se ven ahora (así no se mueven solos)
+  for (const i in r) if (NET.slots[i] && !NET.slots[i].bando) NET.slots[i].bando = r[i];
+  NET.slots[slot].bando = bando;
+  netSala();
+}
 function netSala() {
-  for (const k in NET.conns) netA(+k, { t: 'sala', slots: NET.slots, tu: +k, codigo: NET.codigo });
+  for (const k in NET.conns) netA(+k, { t: 'sala', slots: NET.slots, tu: +k, codigo: NET.codigo, modo: $('netModo').value });
   if (estado === 'online') pintarSala();
 }
 function netQuitar(slot) {
@@ -3729,7 +3844,7 @@ function avisoFeed(texto) {
 function netEnAnfitrion(slot, d) {
   if (d.t === 'hola') {
     const eq = d.eq || {};
-    NET.slots[slot] = { nombre: limpiarNombre(d.nombre) || 'Jugador ' + (slot + 1), eq: { ch: clamp(Math.round(+eq.ch || 0), 0, 2), ca: eq.ca ? 1 : 0 } };
+    NET.slots[slot] = { bando: NET.slots[slot] ? NET.slots[slot].bando : undefined, nombre: limpiarNombre(d.nombre) || 'Jugador ' + (slot + 1), eq: { ch: clamp(Math.round(+eq.ch || 0), 0, 2), ca: eq.ca ? 1 : 0 } };
     netSala(); return;
   }
   if (!NET.on) return;
@@ -3744,7 +3859,7 @@ function netEnAnfitrion(slot, d) {
 }
 // ---- Mensajes que recibe el invitado ----
 function netEnCliente(d) {
-  if (d.t === 'sala') { NET.slots = d.slots; NET.yo = d.tu; NET.codigo = d.codigo; if (estado === 'online') pintarSala(); return; }
+  if (d.t === 'sala') { NET.slots = d.slots; NET.yo = d.tu; NET.codigo = d.codigo; NET.modoSala = d.modo; if (estado === 'online') pintarSala(); return; }
   if (d.t === 'lleno') {
     const m = d.por === 'empezada' ? 'Esa partida ya ha empezado' : 'La partida está llena (6 jugadores)';
     netCerrar(); NET.msg = m; pintarSala(); return;
@@ -3805,7 +3920,8 @@ function paso(ahora, dibujar) {
   const cursor = estado === 'jugando' ? 'none' : '';
   if (document.body.style.cursor !== cursor) document.body.style.cursor = cursor;
   // Online el mundo no se para aunque tú estés en pausa
-  const simular = estado === 'jugando' || (NET.on && (estado === 'pausa' || estado === 'controles'));
+  // El panel de cambio de arma (K) no para el juego: la cuenta atrás para reaparecer sigue
+  const simular = estado === 'jugando' || estado === 'elegir' || (NET.on && (estado === 'pausa' || estado === 'controles'));
   if (simular) {
     reloj += dt;
     if (!NET.cliente) tiempoRestante -= dt;
@@ -3822,12 +3938,13 @@ function paso(ahora, dibujar) {
     actualizarCamara(dt);
     actualizarModeloArma(dt);
     actualizarHUD(dt);
+    if (estado === 'elegir') { infoElegir(); if (ELEGIR.muerto && J.ent.vivo) cerrarElegir(); }   // al reaparecer se cierra solo
     if (!NET.cliente && tiempoRestante <= 0) terminarPartida();
   } else if (estado === 'armamento' && PREV.r) {
     PREV.pivote.rotation.y += dt * 0.8;
     PREV.r.render(PREV.escena, PREV.cam);
   }
-  if (dibujar && (MAPA && (estado === 'jugando' || estado === 'pausa' || estado === 'fin') || (estado === 'controles' && volverDesdeControles === 'pausa'))) {
+  if (dibujar && (MAPA && (estado === 'jugando' || estado === 'pausa' || estado === 'elegir' || estado === 'fin') || (estado === 'controles' && volverDesdeControles === 'pausa'))) {
     renderizar(J.ent.vivo && estado !== 'fin');
   }
 }
