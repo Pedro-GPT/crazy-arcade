@@ -122,6 +122,20 @@ table.puntos th.n{text-align:right}
 #tabla{position:absolute;left:50%;top:16%;transform:translateX(-50%);width:520px;max-width:92vw;
   background:rgba(14,18,24,.9);border:1px solid rgba(242,177,52,.35);padding:16px 18px}
 #tabla h3{margin:0 0 10px;color:var(--ambar);letter-spacing:.12em;font-size:15px;text-transform:uppercase}
+#recoger{position:absolute;left:50%;top:60%;transform:translateX(-50%);font-size:18px;font-weight:700;color:var(--ambar2);
+  text-shadow:0 2px 5px #000;letter-spacing:.08em}
+#equipoHUD{position:absolute;left:50%;bottom:58px;transform:translateX(-50%);font-size:12px;letter-spacing:.1em;color:#9fd0ff;text-shadow:0 1px 3px #000}
+#apuntaFijo{position:absolute;left:50%;top:56%;transform:translateX(-50%);font-size:12px;letter-spacing:.12em;color:var(--tenue);text-shadow:0 1px 3px #000}
+#logroAviso{position:absolute;left:50%;top:22%;transform:translateX(-50%);background:rgba(14,18,24,.92);border:1px solid var(--ambar);
+  padding:12px 20px;text-align:center;font-size:15px;max-width:80vw}
+#logroAviso b{color:var(--ambar2);display:block;font-size:17px;margin-bottom:4px;letter-spacing:.06em}
+.logro{border:1px solid #2b3540;background:rgba(10,14,18,.6);padding:10px 12px;margin:8px 0}
+.logro.hecho{border-color:var(--ambar)}
+.logro h4{margin:0 0 4px;font-size:15px;color:var(--ambar2)}
+.logro p{margin:2px 0;font-size:13px;color:var(--tenue)}
+.logro .barra{height:8px;background:#0d1217;border:1px solid #2b3540;margin:6px 0}
+.logro .barra i{display:block;height:100%;background:linear-gradient(90deg,#c98a1c,var(--ambar2))}
+.logro label{font-size:13px}
 </style>
 </head>
 <body>
@@ -141,7 +155,17 @@ table.puntos th.n{text-align:right}
     <button class="btn" id="bJugar">Jugar</button>
     <button class="btn" id="bOnline">Online</button>
     <button class="btn" id="bArmamento">Elegir armamento</button>
+    <button class="btn" id="bLogros">Logros</button>
     <button class="btn" id="bControles">Controles</button>
+  </div>
+</div>
+
+<div id="pantallaLogros" class="pantalla oculto">
+  <div class="caja" style="width:560px">
+    <h2>Logros</h2>
+    <p class="sub" id="logrosResumen"></p>
+    <div id="listaLogros"></div>
+    <button class="btn" id="bLogrosVolver">Volver</button>
   </div>
 </div>
 
@@ -176,7 +200,10 @@ table.puntos th.n{text-align:right}
       <b>C (mantener)</b><span>Agacharse</span>
       <b>Clic izquierdo</b><span>Disparar (mantener en automáticas)</span>
       <b>Clic derecho (mantener)</b><span>Apuntar con la mira</span>
-      <b>1 / 2 / rueda</b><span>Arma principal / pistola</span>
+      <b>E</b><span>Apuntar sin mantener (otra vez E para dejar de apuntar)</span>
+      <b>1 / 2 / 3 / rueda</b><span>Arma principal / pistola / cuchillo</span>
+      <b>Q</b><span>Cuchillada rápida sin cambiar de arma</span>
+      <b>T</b><span>Recoger un cargador del suelo</span>
       <b>R</b><span>Recargar</span>
       <b>Tab (mantener)</b><span>Tabla de puntuación</span>
       <b>Esc</b><span>Pausa</span>
@@ -259,11 +286,15 @@ table.puntos th.n{text-align:right}
   <div id="indicadores"></div>
   <div id="numeros"></div>
   <div id="mensaje"></div>
+  <div id="recoger" class="oculto">T &nbsp;Recoger cargador</div>
+  <div id="apuntaFijo" class="oculto">APUNTANDO (E)</div>
+  <div id="logroAviso" class="oculto"></div>
+  <div id="equipoHUD"></div>
   <div id="vidaCaja"><div id="vidaBarra"><div id="vidaRelleno"></div></div><span id="vidaTxt">100</span></div>
   <div id="armaCaja">
     <div id="armaNombre"></div>
     <div id="armaMun"><span id="munCar">0</span> <small>/ <span id="munRes">0</span></small></div>
-    <div id="slots"><span id="slot1">1</span><span id="slot2">2</span></div>
+    <div id="slots"><span id="slot1">1</span><span id="slot2">2</span><span id="slot3">3</span></div>
     <div id="armaAviso"></div>
   </div>
   <div id="tabla" class="oculto"></div>
@@ -378,6 +409,22 @@ const PRINCIPALES = ['ak', 'm4', 'mp5', 'escopeta', 'francotirador'];
 const SECUNDARIAS = ['pistolaLigera', 'pistolaPesada'];
 const NOMBRE_MODO = { auto: 'Automática', semi: 'Semiautomática', cerrojo: 'Acción manual (cerrojo / corredera)' };
 
+// Cuchillo: tecla 3 para llevarlo en la mano, Q para una cuchillada rápida con cualquier arma.
+// dano = vida que quita (en la cabeza se multiplica por JUEGO.multCabeza); alcance en metros;
+// duracion = segundos que dura la cuchillada (golpea al 30 %); cono = grados de margen para acertar.
+const CUCHILLO = {
+  id: 'cuchillo', nombre: 'Cuchillo', corto: 'CUCH', tipo: 'cuchillo', modo: 'cuchillo',
+  dano: 55, alcance: 2.2, duracion: 0.5, cono: 7,
+  cargador: 0, reserva: 0, recarga: 0, cadencia: 120, perdigones: 0,
+  dispersion: 0, factorApuntar: 1, bloom: 0, bloomMax: 0, retroV: 0, retroH: 0, recuperacion: 10,
+  fovApuntar: 75, tApuntar: 0.15, velMovimiento: 1.08,
+  retroVisual: { z: 0, rot: 0 }, mira: 'ninguna',
+  posCadera: [0.22, -0.22, -0.5], rotCadera: [0.85, 0.3, -0.35]   // en la mano: punta hacia arriba y algo hacia dentro
+};
+
+// Cargadores que suelta cada combatiente al morir (se recogen con T)
+const BOTIN = { radio: 1.6, duracion: 30, max: 24, cargadores: 1 };   // cargadores = cuántos da a cada arma
+
 /* =====================================================================
    2. CONFIGURACIÓN GENERAL, JUGADOR Y BOTS
    ===================================================================== */
@@ -433,6 +480,7 @@ const rand = (a, b) => a + Math.random() * (b - a);
 const randInt = (a, b) => Math.floor(rand(a, b + 1));
 const suave = t => t * t * (3 - 2 * t);
 const r2 = v => Math.round((v || 0) * 100) / 100;   // redondeo a centímetros (mensajes online más cortos)
+const r1 = v => Math.round((v || 0) * 10) / 10;
 const $ = id => document.getElementById(id);
 function difAng(a, b) { let d = (b - a) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2; return d; }
 function girarHacia(a, b, max) { const d = difAng(a, b); return a + clamp(d, -max, max); }
@@ -458,6 +506,23 @@ if (!MODOS[AJUSTES.modo]) AJUSTES.modo = 'tct';
 if (!WEAPONS[AJUSTES.principal]) AJUSTES.principal = 'ak';
 if (!WEAPONS[AJUSTES.secundaria]) AJUSTES.secundaria = 'pistolaLigera';
 JUEGO.numerosDano = AJUSTES.numeros;
+
+// ---- Logros: estadísticas que se guardan entre partidas y premios para el jugador ----
+// stat = contador que se mira; meta = valor para conseguirlo; premio = texto; equipo = pieza que desbloquea
+const LOGROS = [
+  { id: 'chaleco1', nombre: 'Veterano',     stat: 'bajas',     meta: 1000, equipo: 'chaleco',
+    premio: 'Chaleco antibalas: los disparos en el pecho y la espalda te quitan la mitad.' },
+  { id: 'chaleco2', nombre: 'Leyenda',      stat: 'bajas',     meta: 2000, equipo: 'chaleco',
+    premio: 'Chaleco reforzado: los disparos en el pecho y la espalda ya no te hacen daño.' },
+  { id: 'casco',    nombre: 'Campeón',      stat: 'victorias', meta: 50,   equipo: 'casco',
+    premio: 'Casco: los disparos en la cabeza ya no te hacen daño.' }
+];
+const NOMBRE_STAT = { bajas: 'bajas', victorias: 'partidas ganadas' };
+const PROGRESO = Object.assign({ bajas: 0, victorias: 0, partidas: 0, equipo: { chaleco: true, casco: true } }, cargar('fc_logros', {}));
+const logroHecho = l => PROGRESO[l.stat] >= l.meta;
+// Nivel de chaleco (0 = ninguno, 1 = mitad de daño, 2 = sin daño) y casco, según logros y lo que lleves puesto
+function nivelChaleco() { return !PROGRESO.equipo.chaleco ? 0 : logroHecho(LOGROS[1]) ? 2 : logroHecho(LOGROS[0]) ? 1 : 0; }
+function tieneCasco() { return !!PROGRESO.equipo.casco && logroHecho(LOGROS[2]); }
 
 /* =====================================================================
    4. SONIDO (Web Audio, todo sintetizado)
@@ -535,6 +600,26 @@ const AUDIO = (() => {
       const t = ctx.currentTime;
       tono(t, 150, 55, 0.2, 0.7, 'sine', master);
       rafagaRuido(t, 0.1, 'lowpass', 600, 0.45, master);
+    },
+    // Silbido del cuchillo al cortar el aire (y golpe sordo si da a alguien)
+    cuchillo(acierta) {
+      if (!ctx) return;
+      const t = ctx.currentTime;
+      rafagaRuido(t, 0.16, 'bandpass', 3200, 0.35, master, 1.2);
+      if (acierta) { rafagaRuido(t + 0.05, 0.09, 'lowpass', 500, 0.7, master); tono(t + 0.05, 180, 80, 0.1, 0.5, 'sine', master); }
+    },
+    // La bala rebota en el chaleco o el casco
+    blindaje() {
+      if (!ctx) return;
+      const t = ctx.currentTime;
+      tono(t, 2600, 1900, 0.12, 0.25, 'triangle', master);
+      clic(5200, 0.4, 0);
+    },
+    recoger() { clic(2200, 0.5, 0); clic(3000, 0.5, 0.08); },
+    logro() {
+      if (!ctx) return;
+      const t = ctx.currentTime;
+      [660, 880, 1320].forEach((f, i) => tono(t + i * 0.12, f, f, 0.25, 0.3, 'triangle', master));
     }
   };
 })();
@@ -1733,9 +1818,24 @@ function trazarDisparo(tirador, o, d, max) {
     if (tc !== null && tc < mejorT) { mejorT = tc; res = { t: tc, ent: c, cabeza: true }; }
     const top = lerp(1.47, 0.95, c.altAgachado);
     const tb = rayoAABB(o, d, [c.pos.x - 0.28, 0, c.pos.z - 0.28], [c.pos.x + 0.28, top, c.pos.z + 0.28], mejorT);
-    if (tb && tb.t < mejorT) { mejorT = tb.t; res = { t: tb.t, ent: c, cabeza: false }; }
+    if (tb && tb.t < mejorT) {
+      // torso = de la cintura a los hombros (donde va el chaleco); por debajo, piernas
+      const y = o.y + d.y * tb.t;
+      mejorT = tb.t; res = { t: tb.t, ent: c, cabeza: false, torso: y >= lerp(0.88, 0.5, c.altAgachado) };
+    }
   }
   return res;
+}
+// Reparto del daño por zonas (para el casco y el chaleco)
+const partesDe = (imp, dano) => ({ cab: imp.cabeza ? dano : 0, tor: imp.torso ? dano : 0 });
+// Daño que queda después de la protección del que recibe el golpe
+function danoTrasBlindaje(ent, dano, partes) {
+  if (!partes) return dano;
+  let quita = 0;
+  if (ent.casco) quita += partes.cab || 0;
+  if (ent.chaleco >= 2) quita += partes.tor || 0;
+  else if (ent.chaleco === 1) quita += (partes.tor || 0) * 0.5;
+  return Math.max(0, dano - quita);
 }
 
 // ---- Rejilla y búsqueda de caminos (A*) ----
@@ -1926,6 +2026,16 @@ function construirArma(id) {
       ud.boca.set(0, -0.022, -0.135);
       ud.expulsion.set(0.022, -0.01, 0);
       break;
+    case 'cuchillo':
+      // Mango con guarda y hoja con filo y punta
+      caja(0.026, 0.032, 0.12, 0, -0.05, 0.04, MA.polimero);
+      caja(0.03, 0.036, 0.012, 0, -0.05, 0.1, MA.negro);
+      caja(0.05, 0.016, 0.014, 0, -0.05, -0.025, MA.metal);
+      caja(0.006, 0.034, 0.17, 0, -0.046, -0.115, MA.cromo);
+      caja(0.005, 0.02, 0.05, 0, -0.04, -0.215, MA.cromo, -0.45);
+      caja(0.007, 0.006, 0.15, 0, -0.03, -0.11, MA.metal);
+      ud.boca.set(0, -0.045, -0.24);
+      break;
   }
   if (ud.movil) { ud.basePos = ud.movil.position.clone(); ud.baseRot = ud.movil.rotation.clone(); }
   const fog = new THREE.Sprite(matFogonazo);
@@ -1941,7 +2051,8 @@ function construirArma(id) {
 const combatientes = [];
 function crearCombatiente(nombre, esJugador, color) {
   return { nombre, esJugador, color, pos: new V3(), vel: new V3(), vida: 100, vivo: true,
-           bajas: 0, muertes: 0, agachado: false, altAgachado: 0, tDano: -99, tReap: 0, bot: null };
+           bajas: 0, muertes: 0, agachado: false, altAgachado: 0, tDano: -99, tReap: 0, bot: null,
+           chaleco: 0, casco: false };   // protección (solo la llevan los jugadores que la han conseguido)
 }
 const alturaCabeza = c => lerp(1.64, 1.1, c.altAgachado);
 const alturaOjoBot = c => lerp(1.55, 1.0, c.altAgachado);
@@ -1950,7 +2061,7 @@ const alturaOjoBot = c => lerp(1.55, 1.0, c.altAgachado);
    10. JUGADOR: movimiento, cámara y retroceso de la mira
    ===================================================================== */
 const J = { ent: crearCombatiente('Tú', true, 0xffffff), yaw: 0, pitch: 0, altOjo: JUGADOR_CFG.alturaOjo,
-            corriendo: false, apuntando: false, velH: 0, bobFase: 0, sprintT: 0, swayX: 0, swayY: 0, muerteT: 0 };
+            corriendo: false, apuntando: false, apuntaFijo: false, velH: 0, bobFase: 0, sprintT: 0, swayX: 0, swayY: 0, muerteT: 0 };
 // Estado del armamento del jugador
 const JA = {
   slots: [null, null], actual: 0, estado: 'lista', t: 0, tTotal: 0, cambioA: 0, cambiado: false,
@@ -1993,8 +2104,9 @@ function actualizarJugador(dt) {
   const fw = activo ? (teclas.KeyW ? 1 : 0) - (teclas.KeyS ? 1 : 0) : 0;
   const rt = activo ? (teclas.KeyD ? 1 : 0) - (teclas.KeyA ? 1 : 0) : 0;
   J.agachado = activo && !!teclas.KeyC;
-  J.apuntando = raton.der && JA.estado === 'lista';
   J.corriendo = !!(teclas.ShiftLeft || teclas.ShiftRight) && fw > 0 && !J.agachado && !raton.der && !raton.izq;
+  // Apuntar: con el clic derecho mantenido o fijo con la E (al correr se deja de apuntar mientras dure)
+  J.apuntando = (raton.der || (J.apuntaFijo && !J.corriendo)) && JA.estado === 'lista' && def.modo !== 'cuchillo';
 
   let vel = J.agachado ? JUGADOR_CFG.velAgachado : J.corriendo ? JUGADOR_CFG.velCorrer : JUGADOR_CFG.velAndar;
   vel *= def.velMovimiento * lerp(1, JUGADOR_CFG.factorApuntar, JA.aimT);
@@ -2052,13 +2164,16 @@ function actualizarCamara(dt) {
    ===================================================================== */
 const modelosJugador = {};
 function modeloJugador(id) { return modelosJugador[id] || (modelosJugador[id] = construirArma(id)); }
-function ponerModelo() {
+// id = modelo que se pone en la mano (por defecto, el del arma actual)
+function ponerModelo(id) {
   while (armaRaiz.children.length) armaRaiz.remove(armaRaiz.children[0]);
-  armaRaiz.add(modeloJugador(JA.slots[JA.actual].id));
+  armaRaiz.add(modeloJugador(id || JA.slots[JA.actual].id));
 }
 function prepararArmas() {
   JA.slots = [AJUSTES.principal, AJUSTES.secundaria].map(id => ({ id, def: WEAPONS[id], mag: WEAPONS[id].cargador, res: WEAPONS[id].reserva }));
-  Object.assign(JA, { actual: 0, estado: 'lista', t: 0, proxDisparo: 0, bloom: 0, kick: 0, aimT: 0, ciclo: 99, eyectado: true, fogon: 0, clicNuevo: false });
+  JA.slots.push({ id: 'cuchillo', def: CUCHILLO, mag: 0, res: 0 });   // ranura 3
+  Object.assign(JA, { actual: 0, estado: 'lista', t: 0, proxDisparo: 0, bloom: 0, kick: 0, aimT: 0, ciclo: 99, eyectado: true, fogon: 0, clicNuevo: false,
+                      rapido: false, golpeDado: false });
   Object.assign(JA.retro, { p: 0, y: 0, pendP: 0, pendY: 0 });
   ponerModelo();
 }
@@ -2070,9 +2185,71 @@ function recargar() {
   AUDIO.recarga(s.def.recarga);
 }
 function cambiarArma(i) {
-  if (!J.ent.vivo || JA.estado === 'cambiando' || i === JA.actual) return;
+  if (!J.ent.vivo || JA.estado === 'cambiando' || JA.estado === 'cuchillada' || i === JA.actual) return;
   JA.estado = 'cambiando'; JA.t = JUEGO.tCambioArma; JA.cambioA = i; JA.cambiado = false;
   AUDIO.cambio();
+}
+
+// ---- Cuchillo ----
+// Con el cuchillo en la mano (tecla 3) el clic da la cuchillada. Con otra arma, la Q la guarda,
+// saca el cuchillo, da la cuchillada y vuelve a sacar el arma (corta la recarga si la había).
+const PRE_RAPIDA = 0.1;   // segundos que tarda en salir (y en guardarse) el cuchillo en la cuchillada rápida
+function cuchillada() {
+  if (!J.ent.vivo || (JA.estado !== 'lista' && JA.estado !== 'recargando')) return;
+  JA.rapido = defActual().modo !== 'cuchillo';
+  JA.estado = 'cuchillada'; JA.golpeDado = false; JA.aimT = 0;
+  JA.t = JA.tTotal = CUCHILLO.duracion + (JA.rapido ? PRE_RAPIDA * 2 : 0);
+  if (JA.rapido) ponerModelo('cuchillo');
+}
+// Avance de la cuchillada en sí (0 → 1), sin contar lo que tarda en salir y guardarse
+function progresoCuchillada() {
+  const pasado = JA.tTotal - JA.t - (JA.rapido ? PRE_RAPIDA : 0);
+  return clamp(pasado / CUCHILLO.duracion, 0, 1);
+}
+// El golpe: varios rayos cortos en abanico delante de la cámara; se queda el enemigo más cercano
+function golpeCuchillo() {
+  camara.updateMatrixWorld();
+  const origen = camara.getWorldPosition(new V3()), frente = camara.getWorldDirection(new V3());
+  const derecha = new V3().crossVectors(frente, new V3(0, 1, 0)).normalize();
+  const dir = new V3();
+  let mejor = null, pared = null;
+  for (const ay of [0, -1, 1]) for (const ap of [0, -0.8, 0.8]) {
+    dir.copy(frente).applyAxisAngle(new V3(0, 1, 0), ay * CUCHILLO.cono * DEG).applyAxisAngle(derecha, ap * CUCHILLO.cono * DEG);
+    const imp = trazarDisparo(J.ent, origen, dir, CUCHILLO.alcance);
+    if (!imp) continue;
+    if (imp.ent) { if (!mejor || imp.t < mejor.t) mejor = Object.assign({ dir: dir.clone() }, imp); }
+    else if (!ay && !ap) pared = Object.assign({ dir: dir.clone() }, imp);
+  }
+  AUDIO.cuchillo(!!mejor);
+  if (mejor) {
+    const punto = origen.clone().addScaledVector(mejor.dir, mejor.t);
+    const dano = CUCHILLO.dano * (mejor.cabeza ? JUEGO.multCabeza : 1), partes = partesDe(mejor, dano);
+    const mata = aplicarDano(mejor.ent, dano, J.ent, mejor.cabeza, partes);
+    marcadorImpacto(mejor.cabeza, mata);
+    numeroDano(punto, danoTrasBlindaje(mejor.ent, dano, partes), mejor.cabeza);
+    particulas(punto, mejor.dir.clone().negate(), 0xa02020, 6);
+  } else if (pared) {
+    particulas(origen.clone().addScaledVector(pared.dir, pared.t), pared.normal, 0x9a948a, 3);
+    AUDIO.clic(3800, 0.5, 0);
+  }
+}
+// Posición del cuchillo en pantalla durante la cuchillada: [x, y, z, rx, ry, rz]
+function poseCuchillada() {
+  const p = progresoCuchillada();
+  const R = CUCHILLO.posCadera.concat(CUCHILLO.rotCadera);   // en reposo
+  const A = [0.32, -0.08, -0.44, 0.25, 0.75, -0.8];       // atrás, arriba a la derecha
+  const B = [-0.18, -0.27, -0.56, -0.3, -0.8, 0.8];     // final del corte, abajo a la izquierda
+  let a, b, k;
+  if (p < 0.25) { a = R; b = A; k = p / 0.25; }
+  else if (p < 0.5) { a = A; b = B; k = (p - 0.25) / 0.25; }
+  else { a = B; b = R; k = (p - 0.5) / 0.5; }
+  k = suave(k);
+  const r = a.map((v, i) => lerp(v, b[i], k));
+  if (JA.rapido) {   // sale desde abajo y se guarda hacia abajo
+    const baja = Math.max(0, 1 - (JA.tTotal - JA.t) / PRE_RAPIDA, 1 - JA.t / PRE_RAPIDA);
+    r[1] -= 0.3 * baja;
+  }
+  return r;
 }
 
 function danoPorDistancia(def, d) {
@@ -2113,8 +2290,10 @@ function dispararJugador() {
     finales.push(f);
     if (!imp) continue;
     if (imp.ent) {
-      const g = golpes.get(imp.ent) || { dano: 0, cabeza: false, punto };
-      g.dano += danoPorDistancia(def, imp.t) * (imp.cabeza ? JUEGO.multCabeza : 1);
+      const g = golpes.get(imp.ent) || { dano: 0, cabeza: false, punto, cab: 0, tor: 0 };
+      const dd = danoPorDistancia(def, imp.t) * (imp.cabeza ? JUEGO.multCabeza : 1);
+      g.dano += dd;
+      if (imp.cabeza) g.cab += dd; else if (imp.torso) g.tor += dd;   // para el casco y el chaleco
       g.cabeza = g.cabeza || imp.cabeza;
       golpes.set(imp.ent, g);
       particulas(punto, dir.clone().negate(), 0xa02020, 4);
@@ -2124,9 +2303,9 @@ function dispararJugador() {
     }
   }
   for (const [ent, g] of golpes) {
-    const mata = aplicarDano(ent, g.dano, J.ent, g.cabeza);
+    const mata = aplicarDano(ent, g.dano, J.ent, g.cabeza, g);
     marcadorImpacto(g.cabeza, mata);
-    numeroDano(g.punto, g.dano, g.cabeza);
+    numeroDano(g.punto, danoTrasBlindaje(ent, g.dano, g), g.cabeza);
   }
 
   // Retroceso de la mira (menor apuntando y algo menor agachado)
@@ -2154,10 +2333,18 @@ function actualizarArma(dt) {
       JA.actual = JA.cambioA; JA.cambiado = true; JA.ciclo = 99; JA.eyectado = true; JA.aimT = 0; ponerModelo();
     }
     if (JA.t <= 0) JA.estado = 'lista';
+  } else if (JA.estado === 'cuchillada') {
+    JA.t -= dt;
+    if (!JA.golpeDado && progresoCuchillada() >= 0.3) { JA.golpeDado = true; if (J.ent.vivo) golpeCuchillo(); }
+    if (JA.t <= 0) { JA.estado = 'lista'; if (JA.rapido) { JA.rapido = false; ponerModelo(); } }
   }
   const d2 = defActual(), s2 = JA.slots[JA.actual];
+  // Con el cuchillo en la mano, el clic da una cuchillada (también corriendo)
+  if (d2.modo === 'cuchillo') {
+    if (J.ent.vivo && JA.estado === 'lista' && JA.clicNuevo) { JA.clicNuevo = false; cuchillada(); }
+  }
   // Gatillo
-  if (J.ent.vivo && JA.estado === 'lista' && !J.corriendo) {
+  else if (J.ent.vivo && JA.estado === 'lista' && !J.corriendo) {
     // Un clic rápido siempre dispara al menos una bala, aunque se suelte antes del siguiente fotograma
     const clic = JA.clicNuevo && reloj - JA.tClic < 0.25;
     const quiere = d2.modo === 'auto' ? (raton.izq || clic) : clic;
@@ -2191,6 +2378,7 @@ function actualizarModeloArma(dt) {
   const a = suave(JA.aimT);
   let x = lerp(hip[0], ads[0], a), y = lerp(hip[1], ads[1], a), z = lerp(hip[2], ads[2], a);
   let rx = 0, ry = 0, rz = 0;
+  if (def.rotCadera) [rx, ry, rz] = def.rotCadera;
   // Balanceo al andar
   const amp = (1 - a * 0.85) * clamp(J.velH / 5, 0, 1.3);
   x += Math.cos(J.bobFase) * 0.012 * amp;
@@ -2214,6 +2402,8 @@ function actualizarModeloArma(dt) {
     const dd = JA.t > h ? 1 - (JA.t - h) / h : JA.t / h;
     y -= 0.3 * dd; rx -= 0.6 * dd;
   }
+  // Cuchillada: el cuchillo sigue su propio recorrido
+  if (JA.estado === 'cuchillada') [x, y, z, rx, ry, rz] = poseCuchillada();
   armaRaiz.position.set(x, y, z);
   armaRaiz.rotation.set(rx, ry, rz);
 
@@ -2426,7 +2616,7 @@ function dispararBot(b, obj) {
   const fin = o.clone().addScaledVector(dir, imp ? imp.t : 80);
   const boca = new V3(e.pos.x + Math.sin(b.yaw) * 0.7 + Math.cos(b.yaw) * 0.1, lerp(1.3, 0.85, e.altAgachado), e.pos.z + Math.cos(b.yaw) * 0.7 - Math.sin(b.yaw) * 0.1);
   trazador(boca, fin);
-  if (imp && imp.ent) { aplicarDano(imp.ent, BOT_CFG.dano * (imp.cabeza ? JUEGO.multCabeza : 1), e, imp.cabeza); particulas(fin, dir.clone().negate(), 0xa02020, 3); }
+  if (imp && imp.ent) { const dano = BOT_CFG.dano * (imp.cabeza ? JUEGO.multCabeza : 1); aplicarDano(imp.ent, dano, e, imp.cabeza, partesDe(imp, dano)); particulas(fin, dir.clone().negate(), 0xa02020, 3); }
   else if (imp) { agujeroBala(fin, imp.normal); particulas(fin, imp.normal, 0x9a948a, 2); }
   sonidoDistante(e.pos, BOT_CFG.sonido);
   if (NET.anfitrion) {
@@ -2561,13 +2751,22 @@ function actualizarBot(b, dt) {
 /* =====================================================================
    13. COMBATE: daño, muertes y reapariciones
    ===================================================================== */
-function aplicarDano(ent, dano, atacante, cabeza) {
+// partes = { cab, tor }: cuánto de "dano" ha sido en la cabeza y en el torso (para casco y chaleco)
+function aplicarDano(ent, dano, atacante, cabeza, partes) {
   if (!ent.vivo) return false;
   // Por equipos no hay fuego amigo
   if (ent.equipo && atacante && atacante !== ent && atacante.equipo === ent.equipo) return false;
   // Online, como invitado: el impacto se manda al anfitrión, que es quien quita la vida
   if (NET.cliente) {
-    if (atacante === J.ent && ent.id) netEnviar({ t: 'hit', id: ent.id, d: Math.round(dano * 10) / 10, c: cabeza ? 1 : 0 });
+    if (atacante === J.ent && ent.id) netEnviar({ t: 'hit', id: ent.id, d: r1(dano), c: cabeza ? 1 : 0,
+                                                  h: r1(partes ? partes.cab || 0 : 0), o: r1(partes ? partes.tor || 0 : 0) });
+    return false;
+  }
+  // Casco y chaleco
+  dano = danoTrasBlindaje(ent, dano, partes);
+  if (dano <= 0) {
+    if (ent.esJugador) AUDIO.blindaje();
+    else if (ent.remoto && NET.anfitrion) netA(ent.slot, { t: 'blin' });
     return false;
   }
   ent.vida -= dano; ent.tDano = reloj;
@@ -2582,7 +2781,9 @@ function morir(ent, atacante, cabeza) {
   if (atacante && atacante !== ent) atacante.bajas++;
   anotarBaja(atacante, ent, cabeza);
   if (NET.anfitrion) netTodos({ t: 'baja', a: atacante ? atacante.id : null, v: ent.id, c: cabeza ? 1 : 0 });
-  if (ent.esJugador) { J.muerteT = 0; raton.izq = raton.der = false; JA.aimT = 0; }
+  if (ent.esJugador) { J.muerteT = 0; raton.izq = raton.der = false; JA.aimT = 0; J.apuntaFijo = false; }
+  soltarCargador(ent.pos);
+  if (atacante === J.ent && ent !== J.ent) sumarLogro('bajas', 1);
   if (MODO.equipos) {
     if (atacante && atacante.equipo && atacante.equipo !== ent.equipo) PUNTOS[atacante.equipo]++;
     if (PUNTOS.azul >= MODO.objetivo || PUNTOS.rojo >= MODO.objetivo) terminarPartida();
@@ -2634,6 +2835,95 @@ function reaparecerEn(ent, x, z) {
   J.yaw = Math.atan2(x, z); J.pitch = 0;
   prepararArmas(); setTexto('mensaje', '');
 }
+// ---- Cargadores en el suelo: cada combatiente suelta uno al morir; se recogen con T ----
+// Online, cada ordenador tiene los suyos (lo que recoges tú no se le quita a los demás).
+const botin = [];
+const modeloCargador = (() => {
+  const g = new THREE.Group();
+  const cuerpo = new THREE.Mesh(geoCaja, mat(0x2a2d31, 0.5, 0.6)); cuerpo.scale.set(0.07, 0.2, 0.13); cuerpo.rotation.z = 0.25; g.add(cuerpo);
+  const balas = new THREE.Mesh(geoCaja, mat(0xc9a54a, 0.3, 1)); balas.scale.set(0.05, 0.03, 0.1); balas.position.set(0.026, 0.105, 0); balas.rotation.z = 0.25; g.add(balas);
+  // Brillo para verlo de lejos
+  const halo = new THREE.Mesh(new THREE.RingGeometry(0.22, 0.3, 24), new THREE.MeshBasicMaterial({ color: 0xffc040, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false }));
+  halo.rotation.x = -Math.PI / 2; halo.position.y = -0.17; g.add(halo);
+  return g;
+})();
+function soltarCargador(p) {
+  if (!MAPA) return;
+  if (botin.length >= BOTIN.max) { escena.remove(botin[0].g); botin.shift(); }
+  const g = modeloCargador.clone();
+  g.position.set(p.x, 0.2, p.z);
+  escena.add(g);
+  botin.push({ g, x: p.x, z: p.z, t: BOTIN.duracion, fase: Math.random() * 6 });
+}
+function limpiarBotin() { for (const b of botin) escena.remove(b.g); botin.length = 0; }
+// Cargador más cercano al alcance (o null)
+function cargadorCerca() {
+  if (!J.ent.vivo) return null;
+  let mejor = null, dm = BOTIN.radio;
+  for (const b of botin) { const d = Math.hypot(b.x - J.ent.pos.x, b.z - J.ent.pos.z); if (d < dm) { dm = d; mejor = b; } }
+  return mejor;
+}
+function recogerCargador() {
+  const b = cargadorCerca();
+  if (!b) return;
+  escena.remove(b.g); botin.splice(botin.indexOf(b), 1);
+  for (const s of JA.slots) if (s.def.cargador) s.res += s.def.cargador * BOTIN.cargadores;   // un cargador más para cada arma
+  AUDIO.recoger();
+  avisoFeed('+ cargador');
+}
+function actualizarBotin(dt) {
+  for (let i = botin.length - 1; i >= 0; i--) {
+    const b = botin[i];
+    b.t -= dt; b.fase += dt;
+    if (b.t <= 0) { escena.remove(b.g); botin.splice(i, 1); continue; }
+    b.g.rotation.y = b.fase * 1.6;
+    b.g.position.y = 0.22 + Math.sin(b.fase * 3) * 0.04;
+    b.g.visible = b.t > 3 || Math.sin(b.t * 20) > 0;   // parpadea antes de desaparecer
+  }
+}
+
+// ---- Logros ----
+function miEquipo() { return { ch: nivelChaleco(), ca: tieneCasco() ? 1 : 0 }; }
+let tLogroAviso = 0;
+function sumarLogro(stat, n) {
+  const antes = LOGROS.filter(logroHecho);
+  PROGRESO[stat] = (PROGRESO[stat] || 0) + n;
+  guardar('fc_logros', PROGRESO);
+  for (const l of LOGROS) {
+    if (antes.includes(l) || !logroHecho(l)) continue;
+    // Recién conseguido: se pone solo y se avisa
+    PROGRESO.equipo[l.equipo] = true; guardar('fc_logros', PROGRESO);
+    $('logroAviso').innerHTML = `<b>LOGRO: ${l.nombre}</b>${l.meta} ${NOMBRE_STAT[l.stat]}. ${l.premio}`;
+    mostrar('logroAviso', true); tLogroAviso = 6;
+    AUDIO.logro();
+  }
+  ponerProteccion();
+}
+// Aplica el chaleco y el casco al jugador (al empezar, al conseguirlos o al cambiarlos en el menú)
+function ponerProteccion() {
+  J.ent.chaleco = nivelChaleco(); J.ent.casco = tieneCasco();
+  const t = [];
+  if (J.ent.chaleco) t.push(J.ent.chaleco === 2 ? 'CHALECO REFORZADO' : 'CHALECO');
+  if (J.ent.casco) t.push('CASCO');
+  setTexto('equipoHUD', t.join(' · '));
+}
+function abrirLogros() {
+  estado = 'logros'; mostrarPantalla('pantallaLogros');
+  $('logrosResumen').textContent = `Bajas: ${PROGRESO.bajas} · Partidas ganadas: ${PROGRESO.victorias} · Partidas jugadas: ${PROGRESO.partidas}`;
+  $('listaLogros').innerHTML = LOGROS.map((l, i) => {
+    const v = PROGRESO[l.stat], hecho = logroHecho(l);
+    // El chaleco se pone o quita con el del primer logro (el segundo lo mejora)
+    const casilla = hecho && (l.id !== 'chaleco2')
+      ? `<label><input type="checkbox" data-equipo="${l.equipo}" ${PROGRESO.equipo[l.equipo] ? 'checked' : ''}> Llevarlo puesto</label>` : '';
+    return `<div class="logro${hecho ? ' hecho' : ''}"><h4>${hecho ? '✔ ' : ''}${l.nombre}</h4>
+      <p>Consigue ${l.meta} ${NOMBRE_STAT[l.stat]}.</p><p>Premio: ${l.premio}</p>
+      <div class="barra"><i style="width:${Math.min(100, v / l.meta * 100).toFixed(1)}%"></i></div>
+      <p>${Math.min(v, l.meta)} / ${l.meta}</p>${casilla}</div>`;
+  }).join('');
+  for (const c of $('listaLogros').querySelectorAll('input[data-equipo]'))
+    c.onchange = () => { PROGRESO.equipo[c.dataset.equipo] = c.checked; guardar('fc_logros', PROGRESO); ponerProteccion(); };
+}
+
 function separarCombatientes() {
   for (let i = 0; i < combatientes.length; i++) for (let k = i + 1; k < combatientes.length; k++) {
     const a = combatientes[i], b = combatientes[k];
@@ -2791,18 +3081,19 @@ function actualizarHUD(dt) {
   if (HUDC.vidaW !== v) { HUDC.vidaW = v; $('vidaRelleno').style.width = v + '%'; $('vidaRelleno').classList.toggle('baja', v <= 30); }
   // Arma
   setTexto('armaNombre', def.nombre);
-  setTexto('munCar', String(s.mag)); setTexto('munRes', String(s.res));
-  const vacio = s.mag === 0;
+  const conCuchillo = def.modo === 'cuchillo';
+  setTexto('munCar', conCuchillo ? '—' : String(s.mag)); setTexto('munRes', conCuchillo ? '—' : String(s.res));
+  const vacio = s.mag === 0 && !conCuchillo;
   if (HUDC.vacio !== vacio) { HUDC.vacio = vacio; $('armaMun').classList.toggle('vacio', vacio); }
   const sl = JA.estado === 'cambiando' ? JA.cambioA : JA.actual;
   if (HUDC.slot !== sl) {
     HUDC.slot = sl;
-    $('slot1').textContent = '1 ' + JA.slots[0].def.corto; $('slot2').textContent = '2 ' + JA.slots[1].def.corto;
-    $('slot1').classList.toggle('activo', sl === 0); $('slot2').classList.toggle('activo', sl === 1);
+    for (let i = 0; i < 3; i++) { const el = $('slot' + (i + 1)); el.textContent = (i + 1) + ' ' + JA.slots[i].def.corto; el.classList.toggle('activo', sl === i); }
   }
   let aviso = '';
   if (JA.estado === 'recargando') aviso = 'RECARGANDO';
-  else if (s.mag === 0 && s.res === 0) aviso = 'SIN MUNICIÓN';
+  else if (conCuchillo) aviso = '';
+  else if (s.mag === 0 && s.res === 0) aviso = 'SIN MUNICIÓN · Q CUCHILLO';
   else if (s.mag <= Math.ceil(def.cargador * 0.25) && s.res > 0) aviso = 'R  RECARGAR';
   setTexto('armaAviso', aviso);
 
@@ -2819,6 +3110,10 @@ function actualizarHUD(dt) {
     mira.children[2].style.transform = `translateX(${-g - 9}px)`;
     mira.children[3].style.transform = `translateX(${g}px)`;
   }
+  // Cargador cerca, apuntado fijo y aviso de logro
+  mostrar('recoger', !!cargadorCerca());
+  mostrar('apuntaFijo', J.apuntaFijo && e.vivo);
+  if (tLogroAviso > 0) { tLogroAviso -= dt; if (tLogroAviso <= 0) mostrar('logroAviso', false); }
   // Marcador de impacto
   marcador.t -= dt;
   $('marcador').style.opacity = marcador.t > 0 ? 1 : 0;
@@ -2861,7 +3156,7 @@ function actualizarHUD(dt) {
 let estado = 'menu';           // 'menu' | 'armamento' | 'controles' | 'jugando' | 'pausa' | 'fin'
 let volverDesdeControles = 'menu';
 let bloqueado = false;
-const PANTALLAS = ['pantallaInicio', 'pantallaOnline', 'pantallaArmamento', 'pantallaControles', 'pantallaPausa', 'pantallaFin'];
+const PANTALLAS = ['pantallaInicio', 'pantallaOnline', 'pantallaArmamento', 'pantallaLogros', 'pantallaControles', 'pantallaPausa', 'pantallaFin'];
 function mostrarPantalla(id) { for (const p of PANTALLAS) $(p).classList.toggle('oculto', p !== id); }
 
 function actualizarResumen() {
@@ -3010,7 +3305,9 @@ function iniciarPartida(opts) {
   if (!MAPA || MAPA.modo !== claveModo) { construirMapa(MODO.mapa()); MAPA.modo = claveModo; }
   NET.on = !!opts.online;
   prepararCombatientes(NET.on ? opts.bots : JUEGO.numBots);
-  limpiarEfectos();
+  limpiarEfectos(); limpiarBotin();
+  J.apuntaFijo = false; ponerProteccion();
+  mostrar('logroAviso', false); tLogroAviso = 0;
   FEED.length = 0; $('killfeed').innerHTML = '';
   for (const ind of INDIC) ind.vida = 0;
   for (const n of NUMS) { n.vida = 0; n.el.style.display = 'none'; }
@@ -3060,6 +3357,10 @@ function terminarPartida() {
     $('finTitulo').textContent = gano ? 'Victoria' : ganadores.some(c => c.esJugador) ? 'Empate' : 'Derrota';
     $('finSub').textContent = ganadores.length === 1 ? `Gana ${ganadores[0].esJugador ? 'tú' : ganadores[0].nombre} con ${max} bajas` : `Empate a ${max} bajas`;
   }
+  // Logros: partida jugada y, si has ganado, victoria
+  sumarLogro('partidas', 1);
+  if ($('finTitulo').textContent === 'Victoria') sumarLogro('victorias', 1);
+  mostrar('logroAviso', false);
   $('finTabla').innerHTML = htmlTabla();
   $('hud').classList.add('oculto');
   mostrarPantalla('pantallaFin');
@@ -3080,9 +3381,14 @@ addEventListener('keydown', e => {
   if (e.code === 'Tab') e.preventDefault();
   teclas[e.code] = true;
   if (estado !== 'jugando') return;
+  if (e.repeat) return;
   if (e.code === 'KeyR') recargar();
   else if (e.code === 'Digit1') cambiarArma(0);
   else if (e.code === 'Digit2') cambiarArma(1);
+  else if (e.code === 'Digit3') cambiarArma(2);
+  else if (e.code === 'KeyE') { if (J.ent.vivo) J.apuntaFijo = !J.apuntaFijo; }   // apuntar sin mantener
+  else if (e.code === 'KeyQ') cuchillada();
+  else if (e.code === 'KeyT') recogerCargador();
 });
 addEventListener('keyup', e => { teclas[e.code] = false; });
 // ---- Modo de respaldo SIN captura del ratón ----
@@ -3120,7 +3426,7 @@ document.addEventListener('mouseleave', e => {
   // Si el puntero sale de la ventana por un lado, se queda "en el borde" y sigue girando
   if (!bloqueado) raton.x = e.clientX <= 0 ? 0 : e.clientX >= innerWidth - 1 ? innerWidth : raton.x;
 });
-addEventListener('wheel', e => { if (estado === 'jugando') cambiarArma(1 - JA.actual); }, { passive: true });
+addEventListener('wheel', e => { if (estado === 'jugando') cambiarArma(JA.actual === 0 ? 1 : 0); }, { passive: true });
 addEventListener('contextmenu', e => e.preventDefault());
 addEventListener('blur', () => { if (estado === 'jugando' && document.pointerLockElement) document.exitPointerLock(); });
 document.addEventListener('pointerlockchange', () => {
@@ -3154,13 +3460,15 @@ $('bOnline').onclick = abrirOnline;
 $('bNetCrear').onclick = netCrear;
 $('bNetUnirse').onclick = netUnirse;
 $('netCodigo').onkeydown = e => { if (e.key === 'Enter') netUnirse(); };
-$('netNombre').onchange = () => { guardarNombre(); if (NET.cliente) netEnviar({ t: 'hola', nombre: nombreJugador() }); else if (NET.anfitrion) { NET.slots[0].nombre = nombreJugador(); netSala(); } };
+$('netNombre').onchange = () => { guardarNombre(); if (NET.cliente) netEnviar({ t: 'hola', nombre: nombreJugador(), eq: miEquipo() }); else if (NET.anfitrion) { NET.slots[0].nombre = nombreJugador(); netSala(); } };
 $('bNetEmpezar').onclick = netEmpezar;
 $('netModo').onchange = () => pintarSala();
 $('selModo').onchange = e => { AJUSTES.modo = e.target.value; guardar('fc_ajustes', AJUSTES); actualizarResumen(); };
 $('bNetVolver').onclick = () => { netCerrar(); estado = 'menu'; mostrarPantalla('pantallaInicio'); };
 $('bArmamento').onclick = abrirArmamento;
 $('bControles').onclick = () => abrirControles('menu');
+$('bLogros').onclick = abrirLogros;
+$('bLogrosVolver').onclick = () => { estado = 'menu'; actualizarResumen(); mostrarPantalla('pantallaInicio'); };
 $('bArmVolver').onclick = () => { estado = 'menu'; actualizarResumen(); mostrarPantalla('pantallaInicio'); };
 $('bCtrlVolver').onclick = () => {
   if (volverDesdeControles === 'pausa') { estado = 'pausa'; mostrarPantalla('pantallaPausa'); }
@@ -3244,7 +3552,7 @@ async function netCrear() {
     peer.on('open', () => {
       if (NET.peer !== peer) return;
       Object.assign(NET, { anfitrion: true, codigo, yo: 0, msg: '' });
-      NET.slots = [{ nombre: nombreJugador() }];
+      NET.slots = [{ nombre: nombreJugador(), eq: miEquipo() }];
       pintarSala();
     });
     peer.on('error', err => {
@@ -3298,7 +3606,7 @@ async function netUnirse() {
     if (NET.peer !== peer) return;
     const conn = peer.connect(PREFIJO_PEER + codigo, { reliable: true });
     NET.conHost = conn; NET.codigo = codigo;
-    conn.on('open', () => { NET.cliente = true; NET.msg = ''; netEnviar({ t: 'hola', nombre: nombreJugador() }); pintarSala(); });
+    conn.on('open', () => { NET.cliente = true; NET.msg = ''; netEnviar({ t: 'hola', nombre: nombreJugador(), eq: miEquipo() }); pintarSala(); });
     conn.on('data', d => netEnCliente(d));
     conn.on('close', () => { if (NET.conHost === conn) netPerdido(); });
   });
@@ -3340,6 +3648,8 @@ function crearRemoto(slot, equipo) {
   const color = equipo ? COLOR_EQUIPO[equipo] : COLORES_JUG[slot % COLORES_JUG.length];
   const e = crearCombatiente(NET.slots[slot].nombre, false, color);
   e.id = 'h' + slot; e.remoto = true; e.slot = slot; e.equipo = equipo || null;
+  const eq = NET.slots[slot].eq || {};
+  e.chaleco = eq.ch || 0; e.casco = !!eq.ca;   // su chaleco y casco (lo que haya conseguido en su ordenador)
   const g = crearModeloBot(e.color);
   g.add(crearEtiqueta(e.nombre, e.color));
   escena.add(g);
@@ -3417,14 +3727,18 @@ function avisoFeed(texto) {
 
 // ---- Mensajes que recibe el anfitrión ----
 function netEnAnfitrion(slot, d) {
-  if (d.t === 'hola') { NET.slots[slot] = { nombre: limpiarNombre(d.nombre) || 'Jugador ' + (slot + 1) }; netSala(); return; }
+  if (d.t === 'hola') {
+    const eq = d.eq || {};
+    NET.slots[slot] = { nombre: limpiarNombre(d.nombre) || 'Jugador ' + (slot + 1), eq: { ch: clamp(Math.round(+eq.ch || 0), 0, 2), ca: eq.ca ? 1 : 0 } };
+    netSala(); return;
+  }
   if (!NET.on) return;
   const g = entPorId('h' + slot);
   if (!g) return;
   if (d.t === 's') { g.objetivo.set(+d.x || 0, 0, +d.z || 0); g.yaw = +d.y || 0; g.altObj = clamp(+d.a || 0, 0, 1); }
   else if (d.t === 'hit') {
     const v = entPorId(d.id);
-    if (v && v !== g && g.vivo) aplicarDano(v, clamp(+d.d || 0, 0, 260), g, !!d.c);
+    if (v && v !== g && g.vivo) aplicarDano(v, clamp(+d.d || 0, 0, 260), g, !!d.c, { cab: clamp(+d.h || 0, 0, 260), tor: clamp(+d.o || 0, 0, 260) });
   }
   else if (d.t === 'tiro') { efectoTiroRemoto(g, d); netTodos(Object.assign({}, d, { id: g.id }), slot); }
 }
@@ -3440,11 +3754,14 @@ function netEnCliente(d) {
   if (d.t === 'w') aplicarMundo(d);
   else if (d.t === 'tiro') { const e = entPorId(d.id); if (e && e !== J.ent) efectoTiroRemoto(e, d); }
   else if (d.t === 'dano') { indicadorDano({ x: d.x, z: d.z }); J.flash = 1; AUDIO.dolor(); J.ent.tDano = reloj; }
+  else if (d.t === 'blin') AUDIO.blindaje();
   else if (d.t === 'baja') {
     const a = entPorId(d.a), v = entPorId(d.v);
     if (v) {
       v.vivo = false;
-      if (v === J.ent) { J.ent.vida = 0; J.ent.tReap = JUEGO.reaparicion; J.muerteT = 0; raton.izq = raton.der = false; JA.aimT = 0; }
+      if (v === J.ent) { J.ent.vida = 0; J.ent.tReap = JUEGO.reaparicion; J.muerteT = 0; raton.izq = raton.der = false; JA.aimT = 0; J.apuntaFijo = false; }
+      soltarCargador(v.pos);
+      if (a === J.ent && v !== J.ent) sumarLogro('bajas', 1);
     }
     if (v) anotarBaja(a, v, !!d.c);
     if (a === J.ent && v !== J.ent) marcadorImpacto(!!d.c, true);
@@ -3501,6 +3818,7 @@ function paso(ahora, dibujar) {
     separarCombatientes();
     for (const c of combatientes) if (c.vivo) resolverColision(c.pos, c.esJugador ? JUGADOR_CFG.radio : BOT_CFG.radio);
     actualizarEfectos(dt);
+    actualizarBotin(dt);
     actualizarCamara(dt);
     actualizarModeloArma(dt);
     actualizarHUD(dt);
@@ -3520,7 +3838,10 @@ requestAnimationFrame(bucle);
 window.__FC = {
   get estado() { return estado; },
   forzarJuego() { estado = 'jugando'; bloqueado = true; mostrarPantalla(null); },
-  J, JA, combatientes, NET, PUNTOS, aplicarDano, get mapa() { return MAPA; }
+  J, JA, combatientes, NET, PUNTOS, aplicarDano, get mapa() { return MAPA; },
+  botin, PROGRESO, sumarLogro, cuchillada, recogerCargador, ponerProteccion,
+  // Avanza la simulación s segundos a 60 fotogramas por segundo (sin dibujar)
+  avanzar(s) { for (let i = 0; i < Math.round(s * 60); i++) paso(ultimoT + 1000 / 60, false); }
 };
 })();
 </script>
