@@ -1,0 +1,5 @@
+{"origen":"aqui","planos":[
+{"dur":3.6,"decorado":"despacho","maleta":false,"actores":[{"id":"prota","de":[0,3.4],"a":[0,0.4],"anim":"andar"},{"id":"lider","de":[0,-2.9],"th":0,"anim":"quieto"}],"camara":{"de":[2.8,1.7,2.8],"a":[2.4,1.6,2.2],"mira":[0,1.3,-0.8],"fov":50},"sub":[{"t":0.8,"quien":"{jefe}","texto":"Cierra la puerta."}]},
+{"dur":4.4,"decorado":"despacho","actores":[{"id":"prota","de":[0,0.4],"th":180,"anim":"quieto"},{"id":"lider","de":[0.3,-2.9],"th":0,"anim":"hablar"}],"camara":{"de":[0.8,1.65,1.5],"a":[0.7,1.65,1.2],"mira":[0.2,1.45,-2.9],"fov":40},"sub":[{"t":0.4,"quien":"{jefe}","texto":"{reaccion}","dur":3.6}]},
+{"dur":4,"decorado":"despacho","actores":[{"id":"prota","de":[0,0.4],"th":180,"anim":"quieto"},{"id":"lider","de":[0.3,-2.9],"th":0,"anim":"hablar"}],"camara":{"de":[-1.1,1.4,-2.2],"a":[-0.9,1.45,-2],"mira":[0,1.35,0.4],"fov":46},"sub":[{"t":0.4,"quien":"{jefe}","texto":"Tu parte: {parte} €.","dur":3}],"sale":0.8}
+]}

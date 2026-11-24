@@ -1,0 +1,71 @@
+{
+ "id": "m5", "titulo": "La caída o el trono", "inicio": "camino1", "alMorir": "muerte", "alDetener": "prision",
+ "finales": {
+  "trono": "Salvatierra te cedió su silla. Ahora la deuda es tuya.",
+  "huida": "Dejaste atrás la ciudad, el nombre y el dinero que no cabía en una bolsa.",
+  "prision": "Caíste. Cala Negra será tu casa durante mucho tiempo.",
+  "muerte": "Caíste en la calle, como tantos antes que tú.",
+  "ejecucion": "Salvatierra no perdona. Nadie volvió a preguntar por ti."
+ },
+ "pasos": {
+  "camino1": {"tipo": "si", "cond": {"marca": "traidor"}, "sig": "traicionado", "sino": "camino2"},
+  "camino2": {"tipo": "si", "cond": {"confianzaMax": 25}, "sig": "traicionado", "sino": "camino3"},
+  "camino3": {"tipo": "si", "cond": {"confianzaMin": 75}, "sig": "oferta", "sino": "trampa"},
+
+  "traicionado": {"tipo": "dialogo", "lineas": [["{jefe}", "He estado pensando en ti. En lo que me has costado."], ["{jefe}", "Esta noche hay una entrega en el patio de la nave. Ve solo."], ["Tú", "¿Solo?"], ["{jefe}", "Solo."]], "sig": "tCoche"},
+  "tCoche": {"tipo": "poner", "coche": [12, 204.6, 90], "color": "#1f2d3d", "balas": 60, "control": true, "sig": "tAviso"},
+  "tAviso": {"tipo": "si", "cond": {"marca": "chaval_leal"}, "sig": "tChaval", "sino": "tDecide"},
+  "tChaval": {"tipo": "llamada", "lineas": [["Chaval", "No vayas a la nave. Te están esperando, lo he oído en la plaza."]], "sig": "tDecide"},
+  "tDecide": {"tipo": "decision", "texto": "Algo no encaja en el encargo.", "segundos": 12, "opciones": [
+    {"id": "ir", "texto": "Ir a la nave, como te ha dicho", "peor": true, "resumen": "Acudiste a la cita de Salvatierra", "sig": "tIr"},
+    {"id": "huir", "texto": "Correr al muelle y marcharte", "resumen": "Decidiste huir de Salvatierra", "sig": "tHuir"},
+    {"id": "delatar", "texto": "Ir a comisaría y delatarlo", "resumen": "Delataste a Salvatierra", "sig": "tComi"}]},
+  "tIr": {"tipo": "ir", "objetivo": "Ve a la nave del polígono", "punto": [200, -80], "radio": 12, "sig": "tEjec"},
+  "tEjec": {"tipo": "final", "final": "ejecucion", "escena": "ejecucion"},
+  "tHuir": {"tipo": "si", "cond": {"marca": "rubio_contento"}, "sig": "tRubio", "sino": "tHuida"},
+  "tRubio": {"tipo": "llamada", "lineas": [["Rubio", "Te portaste bien conmigo. Te quito a un par de encima."]], "sig": "tHuidaF"},
+  "tHuidaF": {"tipo": "combate", "objetivo": "Queda un hombre de Salvatierra", "rivales": [[60, 250]], "vida": 60, "escapa": [150, 298], "control": true, "sig": "muelle"},
+  "tHuida": {"tipo": "combate", "objetivo": "Los hombres de Salvatierra te cortan el paso", "rivales": [[60, 250], [44, 238], [80, 290]], "vida": 70, "escapa": [150, 298], "control": true, "sig": "muelle"},
+  "tComi": {"tipo": "ir", "objetivo": "Llega a la comisaría", "punto": [80, 100], "radio": 8, "aPie": true, "sig": "tTestigo"},
+  "tTestigo": {"tipo": "dialogo", "lugar": "calle", "con": "agente1", "lineas": [["Agente", "Si declaras contra Salvatierra, reducimos tu condena. Pero entras."]], "sig": "prision"},
+
+  "oferta": {"tipo": "dialogo", "lineas": [["{jefe}", "Estoy viejo y tú no me has fallado nunca."], ["{jefe}", "Barrachina viene a por todo. Échalo de la ciudad y esta silla es tuya."]], "sig": "oDecide"},
+  "oDecide": {"tipo": "decision", "texto": "Salvatierra te ofrece su puesto.", "segundos": 12, "opciones": [
+    {"id": "aceptar", "texto": "Aceptar el trono", "resumen": "Aceptaste ocupar el lugar de Salvatierra", "sig": "oPrep"},
+    {"id": "irse", "texto": "Pedirle que te deje marchar", "resumen": "Pediste dejar la organización", "sig": "oIrse"},
+    {"id": "delatar", "texto": "Entregarlo a la policía", "resumen": "Entregaste a Salvatierra cuando confiaba en ti", "efectos": {"marca": "traidor"}, "sig": "tTestigo"},
+    {"id": "nada", "texto": "No contestar", "peor": true, "resumen": "Dejaste a Salvatierra sin respuesta", "efectos": {"confianza": -60}, "sig": "tCoche"}]},
+  "oPrep": {"tipo": "poner", "coche": [12, 204.6, 90], "color": "#101216", "companeros": 2, "balas": 96, "vida": 1, "control": true, "sig": "oIr"},
+  "oIr": {"tipo": "ir", "objetivo": "Ve a la nave de Barrachina", "punto": [190, 262], "radio": 12, "sig": "oRubio"},
+  "oRubio": {"tipo": "si", "cond": {"marca": "rubio_enemigo"}, "sig": "oAviso", "sino": "oGuerra"},
+  "oAviso": {"tipo": "mensaje", "quien": "Rubio", "texto": "Me dejaste sin nada. Hoy cobro con Barrachina.", "sig": "oGuerra2"},
+  "oGuerra2": {"tipo": "combate", "objetivo": "Acaba con Barrachina y con Rubio", "rivales": [[210, 264], [180, 284], [236, 270], [215, 290], [160, 270], [224, 262]], "vida": 90, "control": true, "sig": "oPerder"},
+  "oGuerra": {"tipo": "combate", "objetivo": "Acaba con la banda de Barrachina", "rivales": [[210, 264], [180, 284], [236, 270], [215, 290], [160, 270]], "vida": 80, "control": true, "sig": "oPerder"},
+  "oPerder": {"tipo": "perder", "objetivo": "Que nadie te siga", "sig": "oVolver"},
+  "oVolver": {"tipo": "ir", "objetivo": "Vuelve al despacho", "punto": [26, 218], "radio": 8, "sinPolicia": true, "sig": "trono"},
+  "trono": {"tipo": "final", "final": "trono", "escena": "trono"},
+  "oIrse": {"tipo": "dialogo", "lineas": [["{jefe}", "Nadie se va de aquí. Pero tú te lo has ganado."], ["{jefe}", "Hay una lancha en el muelle. No vuelvas."]], "sig": "muelle"},
+
+  "trampa": {"tipo": "dialogo", "lineas": [["{jefe}", "Última entrega. En el muelle, a medianoche."], ["Tú", "¿Quién viene?"], ["{jefe}", "Gente seria. No preguntes más."]], "sig": "pCoche"},
+  "pCoche": {"tipo": "poner", "coche": [12, 204.6, 90], "color": "#4b4f52", "balas": 60, "control": true, "sig": "pLeal"},
+  "pLeal": {"tipo": "si", "cond": {"marca": "chaval_leal"}, "sig": "pSalva", "sino": "pResent"},
+  "pSalva": {"tipo": "llamada", "efectos": {"marca": "avisado"}, "lineas": [["Chaval", "¡Es una trampa! El muelle está lleno de policía. Ve por la orilla."]], "sig": "pIr"},
+  "pResent": {"tipo": "si", "cond": {"marca": "chaval_resentido"}, "sig": "pDelata", "sino": "pIr"},
+  "pDelata": {"tipo": "mensaje", "quien": "Mensaje anónimo", "texto": "Esto te pasa por cómo me trataste.", "efectos": {"marca": "delatado"}, "sig": "pIr"},
+  "pIr": {"tipo": "ir", "objetivo": "Ve al muelle", "punto": [150, 262], "radio": 12, "sig": "pCae"},
+  "pCae": {"tipo": "si", "cond": {"marca": "avisado"}, "sig": "pPoca", "sino": "pCae2"},
+  "pCae2": {"tipo": "si", "cond": {"marca": "delatado"}, "sig": "pMucha", "sino": "pMedia"},
+  "pPoca": {"tipo": "poner", "estrellas": 2, "sig": "pDecide"},
+  "pMedia": {"tipo": "poner", "estrellas": 3, "sig": "pDecide"},
+  "pMucha": {"tipo": "poner", "estrellas": 4, "sig": "pDecide"},
+  "pDecide": {"tipo": "decision", "texto": "Es una trampa: la policía rodea el muelle.", "segundos": 8, "opciones": [
+    {"id": "huir", "texto": "Correr hacia la lancha", "resumen": "Intentaste huir en la lancha", "sig": "muelle"},
+    {"id": "rendirse", "texto": "Rendirte", "resumen": "Te entregaste en el muelle", "sig": "prision"},
+    {"id": "delatar", "texto": "Delatar a Salvatierra", "resumen": "Delataste a Salvatierra en el muelle", "efectos": {"marca": "traidor"}, "sig": "tTestigo"},
+    {"id": "nada", "texto": "Quedarte quieto", "peor": true, "resumen": "Te quedaste paralizado en la trampa", "sig": "prision"}]},
+
+  "muelle": {"tipo": "interactuar", "objetivo": "Llega a la lancha, al final del muelle", "punto": [150, 301], "radio": 3.5, "accion": "subir a la lancha", "control": true, "sig": "huida"},
+  "huida": {"tipo": "final", "final": "huida", "escena": "huida"},
+  "prision": {"tipo": "final", "final": "prision", "escena": "arresto", "rendido": true}
+ }
+}

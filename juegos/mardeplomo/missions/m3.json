@@ -1,0 +1,26 @@
+{
+ "id": "m3", "titulo": "La deuda", "inicio": "intro",
+ "pasos": {
+  "intro": {"tipo": "dialogo", "lineas": [["{jefe}", "Barrachina me debe veinte mil y se esconde en el puerto."], ["{jefe}", "Ve a cobrar. Si se pone tonto, ya sabes."], ["Tú", "¿Voy solo?"], ["{jefe}", "Si te mando compañía, pensará que le tengo miedo."]], "sig": "prep"},
+  "prep": {"tipo": "poner", "coche": [12, 204.6, 90], "color": "#2c2f31", "balas": 60, "control": true, "sig": "ir"},
+  "ir": {"tipo": "ir", "objetivo": "Ve a la nave del puerto", "punto": [190, 262], "radio": 10, "sig": "habla"},
+  "habla": {"tipo": "dialogo", "lugar": "calle", "con": "maton2", "lineas": [["Barrachina", "Así que ahora Salvatierra manda a los recaderos."], ["Tú", "Veinte mil. Y nos vamos todos a casa."], ["Barrachina", "Te doy cuarenta mil a ti. Solo tienes que decirme dónde duerme tu jefe."]], "control": true, "sig": "decide"},
+  "decide": {"tipo": "decision", "texto": "Barrachina te ofrece el doble por traicionar a Salvatierra.", "segundos": 10, "opciones": [
+    {"id": "cobrar", "texto": "Exigir la deuda y nada más", "resumen": "Rechazaste el dinero de Barrachina", "efectos": {"confianza": 10, "marca": "leal"}, "sig": "cobra"},
+    {"id": "traicion", "texto": "Aceptar los cuarenta mil", "resumen": "Vendiste a Salvatierra por cuarenta mil", "efectos": {"dinero": 4000, "marca": "traidor"}, "sig": "traicion"},
+    {"id": "disparar", "texto": "Desenfundar", "resumen": "Abriste fuego contra Barrachina", "efectos": {"marca": "m3_tiros"}, "sig": "tiroteo"},
+    {"id": "duda", "texto": "Quedarte callado", "peor": true, "resumen": "Dudaste ante Barrachina", "efectos": {"confianza": -5, "marca": "m3_tiros"}, "sig": "tiroteo"}]},
+  "cobra": {"tipo": "dialogo", "lugar": "calle", "con": "maton2", "lineas": [["Barrachina", "Eres más tonto de lo que pareces. Toma tu dinero."], ["Barrachina", "Y ahora, muchachos, que no salga del puerto."]], "sig": "emboscada"},
+  "emboscada": {"tipo": "combate", "objetivo": "Acaba con los hombres de Barrachina o huye por la avenida", "rivales": [[210, 264], [178, 284], [240, 270]], "vida": 70, "escapa": [40, 204], "control": true, "sig": "volver"},
+  "tiroteo": {"tipo": "combate", "objetivo": "Acaba con Barrachina y los suyos", "rivales": [[206, 264], [180, 280], [230, 272], [215, 290]], "vida": 80, "control": true, "sig": "maleta"},
+  "maleta": {"tipo": "interactuar", "objetivo": "Coge la maleta", "punto": [196, 266], "radio": 2.5, "accion": "coger la maleta", "sig": "volver"},
+  "volver": {"tipo": "perder", "objetivo": "Asegúrate de que nadie te sigue", "sig": "casa"},
+  "casa": {"tipo": "ir", "objetivo": "Vuelve con Salvatierra", "punto": [26, 218], "radio": 8, "sinPolicia": true, "sig": "como"},
+  "como": {"tipo": "si", "cond": {"sinMarca": "m3_tiros"}, "sig": "limpio", "sino": "problemas"},
+  "traicion": {"tipo": "mensaje", "quien": "Barrachina", "texto": "Buen chico. Vuelve y di que no me encontraste.", "sig": "casaT"},
+  "casaT": {"tipo": "ir", "objetivo": "Vuelve y miente a Salvatierra", "punto": [26, 218], "radio": 8, "sinPolicia": true, "sig": "mentira"},
+  "mentira": {"tipo": "fin", "resultado": "traicion", "pago": 0, "efectos": {"confianza": -15}, "reaccion": "¿Que no estaba? Qué raro. Me han dicho que te vieron con él."},
+  "limpio": {"tipo": "fin", "resultado": "limpio", "pago": 900, "efectos": {"confianza": 10}, "reaccion": "Todo el dinero. Y me dicen que te ofreció el doble. No lo olvidaré."},
+  "problemas": {"tipo": "fin", "resultado": "problemas", "pago": 600, "efectos": {"confianza": -5}, "reaccion": "Está el dinero, pero el puerto entero oyó los tiros."}
+ }
+}

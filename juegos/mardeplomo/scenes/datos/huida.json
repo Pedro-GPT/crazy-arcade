@@ -1,0 +1,4 @@
+{"origen":"aqui","planos":[
+{"dur":5.5,"lugar":[-150,300,0],"vehiculos":[{"id":"lancha","de":[0,-0.35,0],"a":[0,-0.35,42]}],"actores":[{"id":"prota","en":"lancha","asiento":"pie","anim":"quieto"}],"camara":{"en":"lancha","de":[3.0,2.0,4.2],"a":[2.6,2.1,3.8],"mira":[0,1.6,-0.6],"fov":50},"sonidos":[{"t":0,"id":"coche"}]},
+{"dur":6.5,"lugar":[-150,300,0],"vehiculos":[{"id":"lancha","de":[0,-0.35,30],"a":[16,-0.35,130]}],"actores":[{"id":"prota","en":"lancha","asiento":"pie","anim":"quieto"}],"camara":{"de":[5,2,16],"a":[4,5,16],"sigue":"prota","fov":42},"sale":2,"sonidos":[{"t":0,"id":"coche"}]}
+]}

@@ -1,0 +1,4 @@
+{"id":"prueba_billetes","texto":"En la maleta hay más dinero del que te dijeron. Nadie lo ha contado.","segundos":10,"opciones":[
+{"id":"todo","texto":"Entregarlo todo","resumen":"Entregaste todo el dinero","efectos":{"confianza":10,"marca":"honrado"}},
+{"id":"parte","texto":"Quedarte con una parte","resumen":"Te quedaste con parte del dinero","efectos":{"confianza":-10,"dinero":300,"marca":"sisa"}},
+{"id":"nada","texto":"Quedarte paralizado","peor":true,"resumen":"Dudaste y te vieron contando el dinero","efectos":{"confianza":-25,"marca":"sospechoso"}}]}

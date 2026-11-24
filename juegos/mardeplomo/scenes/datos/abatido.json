@@ -1,0 +1,4 @@
+{"origen":"aqui","planos":[
+{"dur":4.2,"lento":0.4,"conservar":1,"actores":[{"id":"prota","de":[0,0],"anim":"caer_herido"}],"camara":{"de":[2.2,1.2,2.6],"a":[2.6,1.5,2.2],"mira":[0,1.1,0],"miraA":[0,0.4,0.4]},"sonidos":[{"t":0,"id":"disparo"},{"t":0.8,"id":"latido"}]},
+{"dur":5,"lento":0.5,"conservar":1,"actores":[{"id":"prota","de":[0,0],"anim":"caer_herido","t0":1.7}],"camara":{"de":[1.2,2.4,0.8],"a":[2,15,0.6],"mira":[0,0.2,0.4],"giro":50,"fov":50},"sonidos":[{"t":0,"id":"sirena"}],"sale":1.6}
+]}

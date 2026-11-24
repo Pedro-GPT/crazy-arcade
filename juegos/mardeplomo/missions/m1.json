@@ -1,0 +1,30 @@
+{
+ "id": "m1", "titulo": "El primer encargo", "inicio": "intro",
+ "pasos": {
+  "intro": {"tipo": "dialogo", "lineas": [["{jefe}", "Siéntate. Me han dicho que conduces y que no haces preguntas."], ["Tú", "Depende de lo que paguen."], ["{jefe}", "Este paquete va al bar La Marea, en la Salina. Entero y sin ruido."]], "sig": "coche"},
+  "coche": {"tipo": "poner", "coche": [12, 204.6, 90], "color": "#31526b", "control": true, "sig": "tuto1"},
+  "tuto1": {"tipo": "mensaje", "texto": "WASD para moverte, ratón para mirar. Ve al coche azul y pulsa E.", "sig": "subir"},
+  "subir": {"tipo": "ir", "objetivo": "Sube al coche", "punto": [12, 204.6], "radio": 8, "enCoche": true, "sig": "tuto2"},
+  "tuto2": {"tipo": "mensaje", "texto": "W acelera, S frena, A/D giran, Espacio es el freno de mano.", "sig": "barrio"},
+  "barrio": {"tipo": "ir", "objetivo": "Conduce hasta el barrio de la Salina", "punto": [-120, 130], "radio": 12, "sig": "patrulla"},
+  "patrulla": {"tipo": "poner", "estrellas": 1, "control": true, "sig": "tuto3"},
+  "tuto3": {"tipo": "mensaje", "texto": "Una patrulla busca tu coche. Aléjate sin que te vean, o baja y escóndete en un contenedor verde (E).", "dur": 10, "sig": "perder"},
+  "perder": {"tipo": "perder", "objetivo": "Escóndete de la patrulla", "sig": "cerca"},
+  "cerca": {"tipo": "ir", "objetivo": "Lleva el paquete hacia el bar La Marea", "punto": [-160, 121], "radio": 14, "aPie": true, "sig": "parada"},
+  "parada": {"tipo": "dialogo", "lugar": "calle", "con": "maton1", "lineas": [["Policía de paisano", "Un momento. Policía. ¿Qué llevas ahí?"], ["Tú", "¿Algún problema, agente?"]], "control": true, "sig": "decide"},
+  "decide": {"tipo": "decision", "texto": "El policía señala el paquete.", "segundos": 10, "opciones": [
+    {"id": "calma", "texto": "Hablar con calma: es un encargo para el bar", "resumen": "Mantuviste la calma con el policía de paisano", "efectos": {"marca": "m1_calma"}, "sig": "calma"},
+    {"id": "soborno", "texto": "Ofrecerle 100 €", "resumen": "Intentaste sobornar al policía", "sig": "soborno"},
+    {"id": "huir", "texto": "Salir corriendo", "peor": true, "resumen": "Huiste del policía de paisano", "efectos": {"confianza": -5, "marca": "m1_huida"}, "sig": "huir"}]},
+  "calma": {"tipo": "dialogo", "lugar": "calle", "con": "maton1", "lineas": [["Tú", "Copas para La Marea. Pregunte al dueño, si quiere."], ["Policía de paisano", "Venga, circula. Te tengo visto."]], "sig": "entrega"},
+  "soborno": {"tipo": "si", "cond": {"dineroMin": 100}, "sig": "sobornoSi", "sino": "sobornoNo"},
+  "sobornoSi": {"tipo": "dialogo", "lugar": "calle", "con": "maton1", "efectos": {"dinero": -100, "marca": "soborno"}, "lineas": [["Policía de paisano", "Yo no he visto nada. Y tú a mí tampoco."]], "sig": "entrega"},
+  "sobornoNo": {"tipo": "dialogo", "lugar": "calle", "con": "maton1", "lineas": [["Policía de paisano", "¿Con qué dinero, si no tienes? Estás detenido."]], "sig": "huir"},
+  "huir": {"tipo": "poner", "estrellas": 2, "efectos": {"marca": "m1_ruido"}, "sig": "perder2"},
+  "perder2": {"tipo": "perder", "objetivo": "Despista a la policía", "sig": "entrega"},
+  "entrega": {"tipo": "interactuar", "objetivo": "Entrega el paquete en el bar", "punto": [-160, 114.8], "radio": 2.5, "accion": "entregar el paquete", "control": true, "sig": "como"},
+  "como": {"tipo": "si", "cond": {"sinMarca": "m1_ruido"}, "sig": "limpio", "sino": "problemas"},
+  "limpio": {"tipo": "fin", "resultado": "limpio", "pago": 400, "efectos": {"confianza": 10}, "reaccion": "Entregado y sin ruido. Empiezas bien."},
+  "problemas": {"tipo": "fin", "resultado": "problemas", "pago": 250, "efectos": {"confianza": -5}, "reaccion": "Llegó, pero media comisaría te ha visto correr."}
+ }
+}

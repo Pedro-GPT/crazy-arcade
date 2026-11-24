@@ -1,0 +1,27 @@
+{
+ "id": "m2", "titulo": "Esquina vigilada", "inicio": "intro",
+ "pasos": {
+  "intro": {"tipo": "dialogo", "lineas": [["{jefe}", "La plaza de la Salina es nuestra, pero la han llenado de cámaras."], ["{jefe}", "Coloca cinco paquetes. Si el ojo se llena, lárgate."], ["Tú", "¿Y si me ven?"], ["{jefe}", "Entonces no me conoces."]], "sig": "coche"},
+  "coche": {"tipo": "poner", "coche": [12, 204.6, 90], "color": "#6b7a4b", "control": true, "sig": "amigo"},
+  "amigo": {"tipo": "si", "cond": {"marca": "soborno"}, "sig": "mirada", "sino": "ir"},
+  "mirada": {"tipo": "mensaje", "quien": "Mensaje anónimo", "texto": "El policía al que pagaste libra hoy. Hay uno menos en la plaza.", "sig": "menos"},
+  "menos": {"tipo": "poner", "quitaPaisano": 1, "sig": "ir"},
+  "ir": {"tipo": "ir", "objetivo": "Ve a la plaza de la Salina", "punto": [-80, 108], "radio": 10, "sig": "chaval"},
+  "chaval": {"tipo": "dialogo", "lugar": "calle", "con": "civil4", "lineas": [["Chaval", "Eh, tú trabajas para Salvatierra, ¿no? Yo me sé la plaza de memoria."], ["Chaval", "Déjame trabajar contigo. Te aviso si viene alguien."]], "control": true, "sig": "decide"},
+  "decide": {"tipo": "decision", "texto": "El chaval espera tu respuesta.", "segundos": 10, "opciones": [
+    {"id": "si", "texto": "Aceptarlo: que vigile", "resumen": "Dejaste que el chaval trabajara para ti", "efectos": {"marca": "chaval"}, "sig": "ayuda"},
+    {"id": "no", "texto": "Mandarlo a su casa", "resumen": "Echaste al chaval para que no se metiera en esto", "efectos": {"marca": "chaval_fuera"}, "sig": "ventaDura"},
+    {"id": "nada", "texto": "Ignorarlo", "peor": true, "resumen": "Ignoraste al chaval y se quedó resentido", "efectos": {"marca": "chaval_resentido"}, "sig": "ventaDura"}]},
+  "ayuda": {"tipo": "mensaje", "quien": "Chaval", "texto": "Yo miro las esquinas. Con cuatro paquetes vamos sobrados, yo muevo el otro.", "sig": "venta"},
+  "venta": {"tipo": "vender", "objetivo": "Vende sin que se llene el ojo", "n": 4, "precio": 60, "sitios": [[-98, 88], [-64, 108], [-62, 74], [-92, 56], [-72, 54], [-100, 72]], "control": true, "sig": "reparto", "fallo": "pillado"},
+  "ventaDura": {"tipo": "vender", "objetivo": "Vende sin que se llene el ojo", "n": 5, "precio": 60, "sitios": [[-98, 88], [-64, 108], [-62, 74], [-92, 56], [-72, 54], [-100, 72]], "control": true, "sig": "como", "fallo": "pillado"},
+  "pillado": {"tipo": "perder", "objetivo": "Te han descubierto: despista a la policía", "efectos": {"marca": "m2_ruido"}, "sig": "siChaval"},
+  "siChaval": {"tipo": "si", "cond": {"marca": "chaval"}, "sig": "reparto", "sino": "como"},
+  "reparto": {"tipo": "decision", "texto": "El chaval pide su parte: 80 €.", "segundos": 10, "opciones": [
+    {"id": "paga", "texto": "Pagarle lo acordado", "resumen": "Pagaste al chaval lo suyo", "efectos": {"dinero": -80, "marca": "chaval_leal"}, "sig": "como"},
+    {"id": "sisa", "texto": "Darle 10 € y que se calle", "peor": true, "resumen": "Estafaste al chaval", "efectos": {"dinero": -10, "marca": "chaval_resentido"}, "sig": "como"}]},
+  "como": {"tipo": "si", "cond": {"sinMarca": "m2_ruido"}, "sig": "limpio", "sino": "problemas"},
+  "limpio": {"tipo": "fin", "resultado": "limpio", "pago": 500, "efectos": {"confianza": 10}, "reaccion": "Cinco paquetes y ni una sirena. La plaza vuelve a ser nuestra."},
+  "problemas": {"tipo": "fin", "resultado": "problemas", "pago": 200, "efectos": {"confianza": -10}, "reaccion": "Has quemado la plaza para un mes. Eso lo pagas tú."}
+ }
+}

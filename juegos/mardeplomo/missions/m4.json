@@ -1,0 +1,53 @@
+{
+ "id": "m4", "titulo": "El banco", "inicio": "intro",
+ "pasos": {
+  "intro": {"tipo": "dialogo", "lineas": [["{jefe}", "El Banco del Litoral. Mañana hay dos furgones de efectivo dentro."], ["{jefe}", "Te llevas a Nico y a Rubio. Tú mandas, tú lo planeas."]], "sig": "plan1"},
+  "plan1": {"tipo": "decision", "texto": "Plan: ¿cómo entráis?", "segundos": 20, "opciones": [
+    {"id": "silencio", "texto": "En silencio, como clientes", "resumen": "Planeaste entrar al banco en silencio", "efectos": {"marca": "silencio"}, "sig": "plan2"},
+    {"id": "bruto", "texto": "A lo bruto, rápido", "peor": true, "resumen": "Entraste al banco a lo bruto", "efectos": {"marca": "bruto"}, "sig": "plan2"}]},
+  "plan2": {"tipo": "decision", "texto": "Plan: ¿qué coche usáis?", "segundos": 20, "opciones": [
+    {"id": "rojo", "texto": "El rojo, aparcado en la puerta", "peor": true, "resumen": "Dejaste el coche a la vista en la puerta del banco", "sig": "cocheRojo"},
+    {"id": "gris", "texto": "El gris, escondido a la vuelta", "resumen": "Escondiste el coche a la vuelta del banco", "efectos": {"marca": "coche_oculto"}, "sig": "cocheGris"}]},
+  "cocheRojo": {"tipo": "poner", "coche": [0, 35.4, 90], "color": "#8b1e1e", "sig": "plan3"},
+  "cocheGris": {"tipo": "poner", "coche": [35.2, -8, 0], "color": "#6a6f72", "sig": "plan3"},
+  "plan3": {"tipo": "decision", "texto": "Plan: ¿por dónde huís?", "segundos": 20, "opciones": [
+    {"id": "norte", "texto": "Carretera del norte: larga y despejada", "peor": true, "resumen": "Elegiste huir por la carretera del norte", "efectos": {"marca": "ruta_norte"}, "sig": "grupo"},
+    {"id": "poligono", "texto": "El polígono: corta, con sitios para esconderse", "resumen": "Elegiste huir por el polígono", "efectos": {"marca": "ruta_poligono"}, "sig": "grupo"}]},
+  "grupo": {"tipo": "poner", "companeros": 2, "balas": 72, "vida": 1, "control": true, "sig": "ir"},
+  "ir": {"tipo": "ir", "objetivo": "Ve al Banco del Litoral", "punto": [0, 27], "radio": 7, "aPie": true, "sinPolicia": true, "sig": "puerta"},
+  "puerta": {"tipo": "interactuar", "objetivo": "Entra en el banco", "punto": [0, 23], "radio": 3, "accion": "empezar el atraco", "control": true, "sig": "grupo2"},
+  "grupo2": {"tipo": "poner", "companeros": 2, "sig": "dentro"},
+  "dentro": {"tipo": "interior", "lugar": "banco", "entra": [0, 7], "gente": [[-4, 1.5, "rendirse"], [4.2, 2.2, "rendirse"], [5, -2.6, "rendirse"]], "sig": "modo"},
+  "modo": {"tipo": "si", "cond": {"marca": "silencio"}, "sig": "calladito", "sino": "ruido"},
+  "calladito": {"tipo": "mensaje", "quien": "Nico", "texto": "Nadie ha tocado la alarma. Vamos a por la caja.", "sig": "caja1"},
+  "ruido": {"tipo": "mensaje", "quien": "Rubio", "texto": "¡Todos al suelo! La alarma ya está sonando, date prisa.", "efectos": {"marca": "alarma"}, "sig": "caja1"},
+  "caja1": {"tipo": "mantener", "objetivo": "Abre la caja fuerte", "punto": [1820, -6.2], "radio": 2.2, "seg": 8, "accion": "Abriendo la caja…", "sig": "rehen"},
+  "rehen": {"tipo": "decision", "texto": "Un rehén se levanta y va hacia la alarma.", "segundos": 8, "opciones": [
+    {"id": "calmar", "texto": "Hablarle: nadie va a salir herido", "resumen": "Calmaste al rehén", "efectos": {"marca": "rehen_bien", "confianza": 3}, "sig": "caja2"},
+    {"id": "golpe", "texto": "Reducirlo por la fuerza", "resumen": "Redujiste al rehén a golpes", "efectos": {"marca": "alarma"}, "sig": "caja2"},
+    {"id": "disparo", "texto": "Disparar al techo", "resumen": "Disparaste al techo del banco", "efectos": {"marca": "alarma", "confianza": -3}, "sig": "caja2"},
+    {"id": "nada", "texto": "No hacer nada", "peor": true, "resumen": "Dejaste que el rehén tocara la alarma", "efectos": {"marca": "alarma", "confianza": -5}, "sig": "caja2"}]},
+  "caja2": {"tipo": "mantener", "objetivo": "Llena las bolsas", "punto": [1820, -6.2], "radio": 2.2, "seg": 7, "accion": "Llenando las bolsas…", "sig": "salida"},
+  "salida": {"tipo": "interactuar", "objetivo": "Sal del banco", "punto": [1820, 8], "radio": 2.2, "accion": "salir", "sig": "fuera"},
+  "fuera": {"tipo": "salir", "sig": "alarma"},
+  "alarma": {"tipo": "si", "cond": {"marca": "alarma"}, "sig": "muchos", "sino": "pocos"},
+  "muchos": {"tipo": "si", "cond": {"marca": "coche_oculto"}, "sig": "tres", "sino": "cuatro"},
+  "cuatro": {"tipo": "poner", "companeros": 2, "estrellas": 4, "control": true, "sig": "ruta"},
+  "tres": {"tipo": "poner", "companeros": 2, "estrellas": 3, "control": true, "sig": "ruta"},
+  "pocos": {"tipo": "poner", "companeros": 2, "estrellas": 2, "control": true, "sig": "ruta"},
+  "ruta": {"tipo": "si", "cond": {"marca": "ruta_norte"}, "sig": "norte", "sino": "poligono"},
+  "norte": {"tipo": "ir", "objetivo": "Huye por la carretera del norte", "punto": [-40, -430], "radio": 14, "sig": "perder"},
+  "poligono": {"tipo": "ir", "objetivo": "Huye hasta el polígono", "punto": [200, -40], "radio": 14, "sig": "perder"},
+  "perder": {"tipo": "perder", "objetivo": "Despista a la policía", "sig": "reparto"},
+  "reparto": {"tipo": "dialogo", "lugar": "calle", "con": "civil5", "lineas": [["Rubio", "Yo abrí la puerta, yo me jugué el cuello. Quiero la mitad."], ["Tú", "Íbamos a partes iguales."]], "control": true, "sig": "decide"},
+  "decide": {"tipo": "decision", "texto": "Rubio exige más parte del botín.", "segundos": 10, "opciones": [
+    {"id": "ceder", "texto": "Darle parte de la tuya", "resumen": "Cediste parte de tu botín a Rubio", "efectos": {"marca": "rubio_contento", "dinero": -300}, "sig": "como"},
+    {"id": "firme", "texto": "Partes iguales o nada", "resumen": "Te plantaste ante Rubio", "efectos": {"confianza": 5}, "sig": "como"},
+    {"id": "echar", "texto": "Dejarlo sin nada", "resumen": "Dejaste a Rubio sin su parte", "efectos": {"marca": "rubio_enemigo", "dinero": 500}, "sig": "pelea"},
+    {"id": "nada", "texto": "Callarte", "peor": true, "resumen": "Rubio se llevó la mitad del botín", "efectos": {"confianza": -10, "dinero": -500}, "sig": "como"}]},
+  "pelea": {"tipo": "mensaje", "quien": "Nico", "texto": "Te has ganado un enemigo. Rubio no olvida.", "sig": "como"},
+  "como": {"tipo": "si", "cond": {"sinMarca": "alarma"}, "sig": "limpio", "sino": "problemas"},
+  "limpio": {"tipo": "fin", "resultado": "limpio", "pago": 3000, "efectos": {"confianza": 15}, "reaccion": "Ni una alarma. Hacía años que no veía algo así."},
+  "problemas": {"tipo": "fin", "resultado": "problemas", "pago": 2000, "efectos": {"confianza": 0}, "reaccion": "Tenemos el dinero y a toda la policía encima. Veremos."}
+ }
+}

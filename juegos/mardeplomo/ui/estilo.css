@@ -1,0 +1,22 @@
+*{box-sizing:border-box}body{margin:0;overflow:hidden;background:#111;color:#f3ede0;font:15px/1.4 system-ui,sans-serif}
+#lienzo{position:fixed;inset:0;width:100%;height:100%}#hud>*{position:fixed;text-shadow:0 1px 3px #000;pointer-events:none}
+#estado{top:20px;right:24px;text-align:right;font-size:20px;font-weight:700}#estrellas{letter-spacing:3px;color:#fff5}#estrellas b{color:#ffcf4d}#dinero{color:#a8d99a}#municion{font-size:15px}
+#zona{left:24px;bottom:250px;font-weight:600}#abajo{left:24px;bottom:24px;width:200px}#mapa{width:200px;height:200px;border-radius:8px;background:#26302f;display:block}
+#vida{height:8px;margin-top:6px;background:#0008;border-radius:4px;overflow:hidden}#vida i{display:block;height:100%;width:100%;background:#78b86b}
+#objetivo{top:20px;left:24px;max-width:340px}#mira{left:50%;top:50%;width:6px;height:6px;margin:-3px;border-radius:50%;background:#fff;box-shadow:0 0 0 1px #0008;display:none}
+#aviso{left:50%;bottom:16%;transform:translateX(-50%);background:#000a;padding:8px 16px;border-radius:6px}#aviso:empty{display:none}
+#velocidad{right:24px;bottom:24px;font-size:30px;font-weight:700}#visor{left:50%;top:24px;transform:translateX(-50%);background:#000b;padding:10px 20px;border-radius:6px}
+#portada{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;background:#10181ccc}
+#portada[hidden]{display:none}h1{font-size:clamp(36px,7vw,84px);letter-spacing:.08em;margin:0}button{font:700 18px system-ui;padding:12px 40px;border:0;border-radius:6px;background:#e0a64a;color:#1c1408;cursor:pointer}small{opacity:.8}
+#alerta{top:104px;right:24px;font-weight:700;font-size:14px}#radio{left:50%;top:22px;transform:translateX(-50%);font-style:italic;max-width:60%;text-align:center}
+#arresto{left:50%;top:58%;width:220px;transform:translateX(-50%);text-align:center}#arresto i{display:block;height:8px;width:0;background:#4d8dff;border-radius:4px}#arresto[hidden]{display:none}
+#fundido{inset:0;background:#000;opacity:0;display:flex;align-items:center;justify-content:center;font-size:54px;font-weight:700;letter-spacing:.1em}
+
+#cine{position:fixed;inset:0;pointer-events:none;z-index:5}#cine[hidden],#decide[hidden],#pantalla[hidden]{display:none}#negro{position:absolute;inset:0;background:#000}.banda{position:absolute;left:0;right:0;top:0;height:9%;background:#000}.banda.abajo{top:auto;bottom:0;height:11%}
+#subt{position:absolute;left:10%;right:10%;bottom:13%;text-align:center;font-size:clamp(16px,2vw,22px);text-shadow:0 1px 4px #000,0 0 2px #000}#subt b{color:#e9b860}#rotulo{position:absolute;left:5%;bottom:22%;font-size:clamp(20px,3vw,34px);font-weight:700;text-shadow:0 2px 6px #000}#salta{position:absolute;right:20px;bottom:3%;font-size:13px;opacity:.8}
+#decide{position:fixed;left:50%;bottom:12%;transform:translateX(-50%);width:min(560px,92vw);padding:18px 22px;background:#0d1417e8;border-radius:8px;z-index:6}#decide p{margin:0 0 12px;font-size:18px}.op{padding:10px 12px;margin-top:6px;background:#ffffff14;border-radius:5px;cursor:pointer}.op:hover{background:#e0a64a;color:#1c1408}.reloj{height:5px;margin-top:14px;background:#fff2;border-radius:3px}.reloj i{display:block;height:100%;background:#e0a64a;border-radius:3px}
+#pantalla{position:fixed;inset:0;background:#090c0e;z-index:7;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:24px;overflow:auto}#pantalla h2{font-size:clamp(28px,5vw,52px);margin:0 0 10px}#pantalla p{margin:0}#pantalla div{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:24px}button:disabled{opacity:.35;cursor:default}
+#pruebas{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;align-items:center;max-width:90vw}#pruebas[hidden]{display:none}#pruebas button{font-size:13px;padding:6px 12px;background:#3a4a50;color:#f3ede0}
+
+#telefono{right:24px;top:150px;width:min(300px,60vw);background:#0d1417e0;border-left:4px solid #e0a64a;padding:10px 14px;border-radius:4px}#telefono b{display:block;color:#e9b860;font-size:13px}#telefono[hidden],#barra[hidden]{display:none}#confianza{font-size:13px;font-weight:400}
+#barra{left:50%;bottom:24%;transform:translateX(-50%);width:220px;height:8px;background:#000a;border-radius:4px;overflow:hidden}#barra i{display:block;height:100%;background:#e0a64a}
