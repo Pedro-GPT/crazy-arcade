@@ -3184,7 +3184,25 @@ const SALA = (()=>{
     R(0,CH-T,256,T), R(320,CH-T,960-320,T),        // pared de abajo (puerta principal abierta)
     R(944,0,16,CH),                                // pared derecha de la sala VIP
     {...R(CW-T,224,T,32), si:()=>!bienes.vip} ];   // puerta VIP: cerrada sin pase
-  const libre=(x,y)=>{ const k=R(x-4,y-3,8,4); return !solidos.some(s=>(!s.si||s.si())&&choca(k,s)); };
+  // Los obstáculos se reparten en celdas de 64 px: al moverse solo se miran los de alrededor, no los ~400 del mapa
+  const CELDA=64, NCEL=Math.ceil(WW/CELDA);
+  let celdas=null, celdasN=-1;
+  function hacerCeldas(){
+    celdas=Array.from({length:NCEL*NCEL},()=>[]); celdasN=solidos.length;
+    const lim=v=>Math.max(0,Math.min(NCEL-1,Math.floor(v/CELDA)));
+    for(const s of solidos) for(let b=lim(s.y);b<=lim(s.y+s.h);b++) for(let a=lim(s.x);a<=lim(s.x+s.w);a++) celdas[b*NCEL+a].push(s);
+  }
+  function chocaSolido(k){
+    if(!celdas||celdasN!==solidos.length) hacerCeldas();
+    const lim=v=>Math.max(0,Math.min(NCEL-1,Math.floor(v/CELDA)));
+    const a1=lim(k.x+k.w), b1=lim(k.y+k.h);
+    for(let b=lim(k.y);b<=b1;b++) for(let a=lim(k.x);a<=a1;a++){
+      const L=celdas[b*NCEL+a];
+      for(let i=0;i<L.length;i++){ const s=L[i]; if(choca(k,s)&&(!s.si||s.si())) return true; }
+    }
+    return false;
+  }
+  const libre=(x,y)=>!chocaSolido(R(x-4,y-3,8,4));
   const azar=a=>a[Math.floor(Math.random()*a.length)];
 
   /* ---------- Personas ---------- */
@@ -3657,7 +3675,7 @@ const SALA = (()=>{
   function ubicar(){
     const P=PLANOS[ciudadActual().id]||{};
     for(const id in GRUPOS){ const b=SITIO_BASE[id], q=P[id]||b; moverGrupo(GRUPOS[id],q[0]-b[0],q[1]-b[1]); }
-    rejilla=null;
+    rejilla=null; celdas=null;
   }
   // Agencia de seguridad (los guardaespaldas se contratan aquí)
   const TIENDAS=[
@@ -3719,7 +3737,7 @@ const SALA = (()=>{
   const libreBarco=(x,y)=>{ const k=R(x-7,y-5,14,8); return k.y>=1962 && k.x>=4 && k.x+k.w<=WW-4 && k.y+k.h<=WH-4 && !choca(k,MUELLE); };
   // Gasolinera del muelle, remolque y la lancha negra de los atracadores
   const MUELLE_GAS=R(1470,1930,132,260), LANCHA_NEGRA={id:'pirata',forma:'lancha',color:'#d0021b',casco:'#151515',agua:1};
-  let pirata=null;
+  let pirata=null, finMar=false;
   const zonaGasPuerto={txt:'Gasolinera del puerto',boton:'LLENAR',accion:()=>llenarDeposito()};
   const zonaRemolque={txt:'Sin gasolina: llama al puerto',boton:'📞 LLAMAR',accion:()=>remolcar()};
   const precioRemolque=m=>Math.max(500,Math.round(m.precio*.001));
@@ -4059,7 +4077,7 @@ const SALA = (()=>{
   }
 
   const INTERIOR_COCHE=R(0,0,960,426);
-  const libreCoche=(x,y)=>{ const k=R(x-7,y-6,14,8); return !dentro(x,y,INTERIOR_COCHE) && !solidos.some(s=>(!s.si||s.si())&&choca(k,s)); };
+  const libreCoche=(x,y)=>{ const k=R(x-7,y-6,14,8); return !dentro(x,y,INTERIOR_COCHE) && !chocaSolido(k); };
   function subir(i){
     const cc=bienes.coches[i]; if(!cc) return;
     bienes.conduce=i; jugador.x=cc.x; jugador.y=cc.y; jugador.ruta=[]; jugador.auto=null;
@@ -4906,7 +4924,8 @@ const SALA = (()=>{
       if(j.autoCoche>=0){ const i=j.autoCoche; j.autoCoche=-1; const k=bienes.coches[i]; if(k&&Math.hypot(k.x-j.x,k.y-j.y)<18) subir(i); }
     } else if(cc && j.ruta.length){ const o=j.ruta[0]; cc.ang=Math.atan2(o.y-j.y,o.x-j.x); }
     if(barco && !libreBarco(j.x,j.y)){ j.x=x0; j.y=y0; j.ruta=[]; j.anda=false; }
-    if(barco && j.y>WH-22){ j.y=WH-44; j.ruta=[]; teclas.clear(); setTimeout(abrirViajeMar,0); }   // final del mar: ¿a qué ciudad?
+    if(!barco || j.y<WH-60) finMar=false;
+    else if(j.y>WH-22 && !finMar){ finMar=true; j.ruta=[]; teclas.clear(); setTimeout(abrirViajeMar,0); }   // final del mar: ¿a qué ciudad?
     if(cc){
       cc.x=j.x; cc.y=j.y;
       const dist=Math.hypot(j.x-x0,j.y-y0);
@@ -5037,9 +5056,11 @@ const SALA = (()=>{
     if(j.ruta.length){ const d=j.ruta[j.ruta.length-1]; c.strokeStyle='#ffcc33'; c.lineWidth=1; c.strokeRect(Math.round(d.x)-3,Math.round(d.y)-2,6,3); }
   }
   function bucle(ahora){
-    const dt=Math.min(.05,Math.max(0,(ahora-ultimo)/1000)); ultimo=ahora;
-    if(!enPausa){ actualizar(dt); dibujar(); }
-    anim=requestAnimationFrame(bucle);
+    const dt=Math.min(.15,Math.max(0,(ahora-ultimo)/1000)); ultimo=ahora;
+    anim=requestAnimationFrame(bucle);        // se pide antes, para que entrar en un juego pueda pararlo de verdad
+    if(enPausa) return;
+    for(let q=dt;q>0;q-=.05) actualizar(Math.min(q,.05));     // si el equipo va lento, varios pasos cortos: no va a cámara lenta
+    dibujar();
   }
   function medir(){
     const cw=$('zonaSala').clientWidth||320;
