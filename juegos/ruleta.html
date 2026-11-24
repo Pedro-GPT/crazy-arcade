@@ -856,7 +856,7 @@ let invJuego   = (E && E.invJuego) || {};                            // poderes 
 let suerte   = (E && E.suerte) || null;
 let hora     = (E && typeof E.hora==='number') ? E.hora : 10;      // reloj del juego (0-24)
 let dia      = (E && E.dia) || 1;
-let bienes   = Object.assign({vip:0, coches:[], conduce:-1, casas:{}, armas:{}, guardias:0, alquiler:{}, hijos:[], banco:0, ropa:{}, aspecto:{}, mascotas:{}, mascota:null, mejorasCasa:{}, mision:{i:0,prog:0}, casino:0, casinoCierra:1, casinoVig:0, casinoEchar:1, ciudad:'suerte', ciudades:{}, visitadas:{suerte:1}, protBarco:0}, (E && E.bienes) || {});   // coches, casas, armas...
+let bienes   = Object.assign({vip:0, coches:[], conduce:-1, casas:{}, armas:{}, guardias:0, alquiler:{}, hijos:[], banco:0, ropa:{}, aspecto:{}, mascotas:{}, mascota:null, mejorasCasa:{}, mision:{i:0,prog:0}, casino:0, casinoCierra:1, casinoVig:0, casinoEchar:1, ciudad:'suerte', ciudades:{}, visitadas:{suerte:1}, protBarco:0, desbloq:{}, billetes:{}, souvenirs:{}}, (E && E.bienes) || {});   // coches, casas, armas...
 bienes.conduce = -1;                              // bebida del bar: {n, ico, nombre} para la próxima jugada
 let preparados = {escudo:false, x2:false, tapar:false};            // poderes marcados para la próxima tirada
 let jugada   = null;                                               // tirada en curso
@@ -2154,7 +2154,7 @@ const CASAS_TIPO={
   villa:  {nombre:'Villa en la playa',  base:25000000,  w:220, h:150, pared:'#ffffff', tejado:'#d9c7a0', piscina:1, playa:1, desc:'Frente al mar, con piscina y palmeras.'},
   palacio:{nombre:'Palacio',            base:120000000, w:340, h:220, pared:'#f5ecd0', tejado:'#7a1a2a', jardin:1, piscina:1, fuente:1, desc:'Torres, cúpula de oro, fuente y piscina. Lo más caro del barrio.'},
 };
-const SIN_BIENES=()=>({vip:0, coches:[], conduce:-1, casas:{}, armas:{}, guardias:0, alquiler:{}, hijos:[], banco:0, ropa:{}, aspecto:{}, mascotas:{}, mascota:null, mejorasCasa:{}, mision:{i:0,prog:0}, casino:0, casinoCierra:1, casinoVig:0, casinoEchar:1, ciudad:'suerte', ciudades:{}, visitadas:{suerte:1}, protBarco:0});
+const SIN_BIENES=()=>({vip:0, coches:[], conduce:-1, casas:{}, armas:{}, guardias:0, alquiler:{}, hijos:[], banco:0, ropa:{}, aspecto:{}, mascotas:{}, mascota:null, mejorasCasa:{}, mision:{i:0,prog:0}, casino:0, casinoCierra:1, casinoVig:0, casinoEchar:1, ciudad:'suerte', ciudades:{}, visitadas:{suerte:1}, protBarco:0, desbloq:{}, billetes:{}, souvenirs:{}});
 
 /* ---------- Ventana de compra (concesionario, armería, agencia, portero, vecinos) ---------- */
 let panelPintar=null;
@@ -2316,6 +2316,8 @@ function abrirMisCosas(){
     C.insertAdjacentHTML('beforeend',`<p class="nota">🕴️ Guardaespaldas libres: <b>${libres}</b> de ${total}${total-libres?` (${total-libres} de misión)`:''}.
       Los que mandas de misión no te protegen hasta que vuelven.${total?'':' Contrátalos en la Agencia de seguridad.'}</p>`);
     C.insertAdjacentHTML('beforeend',`<p class="nota">📜 Encargo: <b>${textoEncargo()}</b><br>🏦 En el banco: <b>${fmt(bienes.banco||0)}</b> · 💼 Patrimonio: <b>${fmt(patrimonio())}</b></p>`);
+    const sv=SOUVENIRS.filter(x=>(bienes.souvenirs||{})[x.id]);
+    if(sv.length) C.insertAdjacentHTML('beforeend','<p class="nota">🎁 Souvenirs: '+sv.map(x=>x.ico+' '+x.nombre+' ×'+bienes.souvenirs[x.id]).join(', ')+'</p>');
     if(bienes.casino) filaAccion(C,{ico:'🎰',nombre:'Tu casino',desc:'Te da '+fmt(gananciaCasino())+' cada minuto.',boton:'GESTIONAR',lujo:1,accion:()=>abrirMiCasino()});
     if(bienes.hijos.length) C.insertAdjacentHTML('beforeend',`<h3 class="sec">👶 Hijos</h3><p class="nota">${bienes.hijos.map(h=>h.nombre+(h.casa?' (en su casa)':' (contigo)')).join(', ')}. Te cuestan <b>${fmt(COSTE_HIJO*bienes.hijos.length)}</b> cada minuto.</p>`);
     C.insertAdjacentHTML('beforeend','<h3 class="sec">🏠 Casas</h3>');
@@ -2562,29 +2564,73 @@ function abrirMotos(){
   });
 }
 function abrirPuerto(){
-  abrirPanel('⚓ PUERTO Y VIAJES',C=>{
+  abrirPanel('⚓ PUERTO',C=>{
     const ci=ciudadActual();
     C.insertAdjacentHTML('beforeend','<p class="nota">Estás en <b>'+ci.nombre+'</b>. Tu barco queda amarrado en el muelle. Los barcos gastan gasolina: llénalos junto al muelle. Si te quedas sin gasolina en el mar, llama al puerto y te remolcan (pagando). Cuidado: a veces sale una lancha negra de atracadores.</p>');
     C.insertAdjacentHTML('beforeend','<h3 class="sec">🛥️ Barcos</h3>');
-    COCHES.filter(m=>m.tipo==='barco').forEach(m=>filaCompra(C,{ico:m.ico,nombre:m.nombre,desc:'Hasta '+m.vel+' km/h por el mar'+(m.viaje?'. Sirve para viajar a otras ciudades.':''),precio:m.precio,lujo:m.precio>=1e6,
+    COCHES.filter(m=>m.tipo==='barco').forEach(m=>filaCompra(C,{ico:m.ico,nombre:m.nombre,desc:'Hasta '+m.vel+' km/h por el mar',precio:m.precio,lujo:m.precio>=1e6,
       estado:bienes.coches.some(x=>x.id===m.id)?'✔ Tuyo':'',
       accion:()=>{ const q=SALA.sitioBarco(); bienes.coches.push({id:m.id,x:q.x,y:q.y,ang:Math.PI/2,gas:100}); SALA.decir('Tu '+m.nombre+' está amarrado en el muelle'); }}));
     C.insertAdjacentHTML('beforeend','<h3 class="sec">🛡️ Protección</h3>');
-    filaCompra(C,{ico:'🛡️',nombre:'Escolta armada para tus barcos',desc:'Si te ataca la lancha negra (navegando o viajando), tu escolta la hunde. Sin escolta, si te alcanzan, mueres.',precio:PRECIO_PROT_BARCO,
+    filaCompra(C,{ico:'🛡️',nombre:'Escolta armada para tus barcos',desc:'Si te ataca la lancha negra, tu escolta la hunde. Sin escolta, si te alcanzan, mueres.',precio:PRECIO_PROT_BARCO,
       estado:bienes.protBarco?'✔ Contratada':'',accion:()=>{ bienes.protBarco=1; }});
-    C.insertAdjacentHTML('beforeend','<h3 class="sec">✈️ Viajar a otra ciudad</h3>');
+    C.insertAdjacentHTML('beforeend','<h3 class="sec">🗺️ Desbloquear ciudades</h3><p class="nota">Aquí no compras un billete: desbloqueas la ciudad para siempre. Después puedes ir en avión (billete en la agencia de viajes y vuelo desde el aeropuerto) o con tu barco, navegando hacia el sur hasta el final del mar.</p>');
     if(!ciudadCompleta(ci.id)){ const n=SALA.CASAS.filter(k=>bienes.casas[k.id]).length;
-      C.insertAdjacentHTML('beforeend','<p class="nota">Para ir a una ciudad nueva, primero completa esta: compra todas las casas ('+n+' de '+SALA.CASAS.length+') y el casino'+(bienes.casino?' ✔':'')+'.</p>'); }
-    const barco=barcoDeViaje();
-    CIUDADES.forEach((d,i)=>{ if(d.id===ci.id) return;
-      if(!puedeIr(i)){ filaAccion(C,{ico:'🔒',nombre:d.nombre,desc:'Se abre al completar '+CIUDADES[i-1].nombre+' (todas las casas y el casino).',boton:'CERRADA',off:1,accion:()=>{}}); return; }
-      filaCompra(C,{ico:'✈️',nombre:'Avión a '+d.nombre,desc:d.desc+' Billete de ida. Uno de cada cien aviones se estrella.',precio:precioBillete(d),accion:()=>viajar(d,null)});
-      if(barco){ const m=COCHES.find(x=>x.id===barco.id);
-        filaAccion(C,{ico:'🛳️',nombre:'En tu '+m.nombre.toLowerCase()+' a '+d.nombre,boton:'ZARPAR',off:(barco.gas??100)<50,
-          desc:'Gasta medio depósito (tienes ⛽ '+Math.round(barco.gas??100)+' %). '+(bienes.protBarco?'Llevas escolta armada.':'Sin escolta: si te atracan, mueres.'),accion:()=>viajar(d,barco)}); }
+      C.insertAdjacentHTML('beforeend','<p class="nota">Para desbloquear la siguiente ciudad, completa la anterior: todas las casas y el casino. Aquí llevas '+n+' de '+SALA.CASAS.length+' casas'+(bienes.casino?' y el casino ✔':' y te falta el casino')+'.</p>'); }
+    CIUDADES.forEach((d,i)=>{ if(!i || d.id===ci.id) return;
+      if(disponible(i)) filaAccion(C,{ico:'✅',nombre:d.nombre,desc:'Desbloqueada. '+d.desc,boton:'LISTA',off:1,accion:()=>{}});
+      else if(puedeDesbloquear(i)) filaCompra(C,{ico:'🗺️',nombre:'Desbloquear '+d.nombre,desc:d.desc,precio:precioDesbloqueo(d),lujo:1,
+        accion:()=>{ bienes.desbloq[d.id]=1; confeti(120); aviso('🗺️ ¡'+d.nombre+' desbloqueada! Compra el billete en la agencia de viajes o navega hacia el sur con tu barco.'); }});
+      else filaAccion(C,{ico:'🔒',nombre:d.nombre,desc:'Primero completa '+CIUDADES[i-1].nombre+' (todas las casas y el casino).',boton:'CERRADA',off:1,accion:()=>{}});
     });
-    if(!barco) C.insertAdjacentHTML('beforeend','<p class="nota">Con un yate, un megayate o un crucero propio también puedes viajar por mar.</p>');
   });
+}
+function abrirViajes(){
+  abrirPanel('🧳 AGENCIA DE VIAJES',C=>{
+    C.insertAdjacentHTML('beforeend','<p class="nota">Billetes de avión a las ciudades que ya has desbloqueado en el puerto. Con el billete, ve al <b>aeropuerto</b> y enséñalo en el mostrador. El vuelo dura un minuto y puedes pasear por el avión. Uno de cada cien aviones se estrella.</p>');
+    CIUDADES.forEach((d,i)=>{ if(d.id===ciudadActual().id) return;
+      if(!disponible(i)){ filaAccion(C,{ico:'🔒',nombre:d.nombre,desc:'Desbloquéala primero en el puerto.',boton:'BLOQUEADA',off:1,accion:()=>{}}); return; }
+      const n=(bienes.billetes||{})[d.id]||0;
+      filaCompra(C,{ico:'🎫',nombre:'Billete de avión a '+d.nombre,desc:d.desc+(n?' Ya tienes '+n+'.':''),precio:precioBillete(d),
+        accion:()=>{ bienes.billetes=bienes.billetes||{}; bienes.billetes[d.id]=(bienes.billetes[d.id]||0)+1; aviso('🎫 Billete a '+d.nombre+'. Ahora ve al aeropuerto.'); }});
+    });
+  });
+}
+const SOUVENIRS=[
+  {id:'postal',  ico:'💌', nombre:'Postal',              precio:5},
+  {id:'iman',    ico:'🧲', nombre:'Imán de nevera',      precio:15},
+  {id:'llavero', ico:'🔑', nombre:'Llavero del avión',   precio:25},
+  {id:'peluche', ico:'🧸', nombre:'Peluche piloto',      precio:60},
+  {id:'gafas',   ico:'🕶️', nombre:'Gafas de aviador',    precio:120},
+  {id:'maqueta', ico:'✈️', nombre:'Maqueta del avión',   precio:400},
+  {id:'perfume', ico:'🧴', nombre:'Perfume de lujo',     precio:2500},
+  {id:'reloj',   ico:'⌚', nombre:'Reloj de oro',         precio:50000},
+];
+function abrirSouvenirs(){
+  abrirPanel('🛍️ SOUVENIRS A BORDO',C=>{
+    C.insertAdjacentHTML('beforeend','<p class="nota">“¿Algún recuerdo del viaje?” Lo que compres sale en Mis cosas.</p>');
+    SOUVENIRS.forEach(x=>{ const n=(bienes.souvenirs||{})[x.id]||0;
+      filaCompra(C,{ico:x.ico,nombre:x.nombre,desc:n?'Tienes '+n+'.':'Recuerdo del vuelo.',precio:x.precio,
+        accion:()=>{ bienes.souvenirs=bienes.souvenirs||{}; bienes.souvenirs[x.id]=n+1; }}); });
+  });
+}
+function abrirViajeMar(){
+  const cc=SALA.conduciendo; if(!cc) return;
+  const ops=CIUDADES.map((d,i)=>[d,i]).filter(([d,i])=>d.id!==ciudadActual().id && disponible(i));
+  abrirPanel('🌊 ¿A DÓNDE QUIERES IR?',C=>{
+    if(!ops.length){ C.insertAdjacentHTML('beforeend','<p class="nota">Aquí se acaba el mar de '+ciudadActual().nombre+'. Cuando desbloquees otra ciudad en el puerto, podrás seguir navegando hasta ella.</p>');
+      filaAccion(C,{ico:'⚓',nombre:'Seguir aquí',desc:'Vuelves a tu mar.',boton:'VOLVER',accion:()=>cerrarPanel()}); return; }
+    const gas=Math.round(cc.gas??100);
+    C.insertAdjacentHTML('beforeend','<p class="nota">Has llegado al final del mar. Seguir hasta otra ciudad gasta 30 % de gasolina (tienes '+gas+' %). '+(bienes.protBarco?'Llevas escolta armada.':'Sin escolta: cuidado con las lanchas negras.')+'</p>');
+    ops.forEach(([d])=>filaAccion(C,{ico:'🛥️',nombre:d.nombre,desc:gas<30?'No te llega la gasolina.':d.desc,boton:'IR',off:gas<30,accion:()=>viajarPorMar(d)}));
+    filaAccion(C,{ico:'⚓',nombre:'Quedarme aquí',desc:'Sigues navegando por '+ciudadActual().nombre+'.',boton:'VOLVER',accion:()=>cerrarPanel()});
+  });
+}
+function viajarPorMar(d){
+  const cc=SALA.conduciendo; if(!cc||viajando) return;
+  cc.gas=Math.max(0,(cc.gas??100)-30); cerrarPanel(); viajando=true; SALA.soltarTeclas();
+  pantallaViaje('🌊','Navegando hacia '+d.nombre+'…','Sigues por el mar hasta la costa de '+d.nombre+'.');
+  setTimeout(()=>{ cambiarCiudad(d.id,cc,'mar'); $('viaje').className=''; viajando=false; aviso('🌊 Estás en el mar de '+d.nombre+'. Navega hacia arriba hasta la orilla.'); },2200);
 }
 
 /* ---------- Caja VIP: coches, armas, ropa y mascotas ---------- */
@@ -2827,31 +2873,49 @@ const VIGILANCIA=[
 ];
 /* ---------- Ciudades y viajes ---------- */
 const CIUDADES=[
-  {id:'suerte',     nombre:'Ciudad de la Suerte', mult:1,    casino:'CASINO',        tinte:null,                    desc:'Tu ciudad de siempre.'},
-  {id:'montecarlo', nombre:'Montecarlo',          mult:10,   casino:'GRAN CASINO',   tinte:'rgba(60,120,255,.12)',  desc:'Junto al mar. Casas y casino valen 10 veces más.'},
-  {id:'vegas',      nombre:'Las Vegas',           mult:100,  casino:'NEON PALACE',   tinte:'rgba(255,140,40,.14)',  desc:'En el desierto. Casas y casino valen 100 veces más.'},
-  {id:'macao',      nombre:'Macao',               mult:1000, casino:'DRAGON DE ORO', tinte:'rgba(255,40,80,.12)',   desc:'La capital del juego. Casas y casino valen 1000 veces más.'},
+  {id:'suerte',     nombre:'Ciudad de la Suerte', mult:1,    casino:'CASINO',        tinte:null, desc:'Tu ciudad de siempre.'},
+  {id:'montecarlo', nombre:'Montecarlo',          mult:10,   casino:'GRAN CASINO',   tinte:null, desc:'Junto al mar, casas de colores y lujo. Todo vale 10 veces más.'},
+  {id:'vegas',      nombre:'Las Vegas',           mult:100,  casino:'NEON PALACE',   tinte:null, desc:'En pleno desierto, con neones por todas partes. Todo vale 100 veces más.'},
+  {id:'macao',      nombre:'Macao',               mult:1000, casino:'DRAGON DE ORO', tinte:null, desc:'Templos, cerezos y oro. Todo vale 1000 veces más.'},
 ];
-const PRECIO_PROT_BARCO=250000, PROB_AVION=.01, PROB_PIRATA=.02;
+// Colores de cada ciudad: suelo, calles, playa, casino por dentro y por fuera, árboles y estilo de casas
+const PALETAS={
+  suerte:    {cesped:'#2f6b2a',cesped2:'#3a7f33',franja:'#1f5a22',acera:'#b8b2a6',calle:'#3a3a40',raya:'#e6e6e6',playa:'#e8d29a',playa2:'#d9c080',mar:'#2a7fd4',ola:'#bfe6ff',
+              cas:'#4a0d1c',cas2:'#6b1a2a',pared:'#2a0612',pared2:'#38091a',borde:'#1a040b',oro:'#ffcc33',oro2:'#a86f00',alfombra:'#8c0d20',techo:'#4a0d1c',techo2:'#3a0814',vip1:'#1d1226',vip2:'#120a1a',
+              ruleta:['#14234a','#22377a'],bj:['#0e3a22','#16512f'],traga:['#2e0d3a','#47175a'],arbol:'normal',casa:null,letrero:null},
+  montecarlo:{cesped:'#3f7d3a',cesped2:'#4c8f45',franja:'#2d6a2a',acera:'#efe8dc',calle:'#4a4a55',raya:'#ffffff',playa:'#f3e6c4',playa2:'#e6d4a6',mar:'#1f9ad6',ola:'#d6f2ff',
+              cas:'#0d1f4a',cas2:'#1a2f6b',pared:'#06122a',pared2:'#0a1a3a',borde:'#030916',oro:'#ffd700',oro2:'#b38f00',alfombra:'#1a2f8c',techo:'#1a2a5a',techo2:'#122048',vip1:'#0f1a33',vip2:'#081022',
+              ruleta:['#3a0d1c','#5a1a2a'],bj:['#0e3a3a','#16514f'],traga:['#2e2a0d','#47401a'],arbol:'cipres',casa:'mediterranea',letrero:'#ffd700'},
+  vegas:     {cesped:'#d4ac72',cesped2:'#c49a5e',franja:'#b88a50',acera:'#c9b28f',calle:'#2e2e33',raya:'#ffd23f',playa:'#ecd9a8',playa2:'#dcc48a',mar:'#2a8fd4',ola:'#c6ecff',
+              cas:'#3a0d4a',cas2:'#5a1a6b',pared:'#1c0624',pared2:'#2a0a36',borde:'#0e0313',oro:'#ff2bd6',oro2:'#8a0f76',alfombra:'#6a0d8c',techo:'#2a0d3a',techo2:'#3a1250',vip1:'#1a0a26',vip2:'#0e0518',
+              ruleta:['#0d2a4a','#1a3f6b'],bj:['#0d3a2a','#1a5a3f'],traga:['#4a0d2a','#6b1a3f'],arbol:'cactus',casa:'desierto',letrero:'#ff2bd6'},
+  macao:     {cesped:'#2c5f45',cesped2:'#377356',franja:'#204a35',acera:'#c79a8f',calle:'#38343a',raya:'#ffcc33',playa:'#efdcb0',playa2:'#e0c890',mar:'#1f7fae',ola:'#bfe6f2',
+              cas:'#5a0808',cas2:'#7a1010',pared:'#1a0303',pared2:'#2a0606',borde:'#0d0101',oro:'#ffcc33',oro2:'#a87a00',alfombra:'#b3122a',techo:'#7a0c0c',techo2:'#5a0606',vip1:'#2a0a0a',vip2:'#160404',
+              ruleta:['#0a3a2a','#14523c'],bj:['#3a2a0a','#524014'],traga:['#0a1a3a','#14285a'],arbol:'cerezo',casa:'pagoda',letrero:'#ffcc33'},
+};
+const PRECIO_PROT_BARCO=250000, PROB_AVION=.01, PROB_PIRATA=.02, T_VUELO=60;
 const DE_CIUDAD=['casas','mejorasCasa','casino','casinoCierra','casinoVig','casinoEchar'];
 const ciudadActual=()=>CIUDADES.find(ci=>ci.id===bienes.ciudad)||CIUDADES[0];
+const paleta=()=>PALETAS[ciudadActual().id]||PALETAS.suerte;
+const nombreCiudad=id=>(CIUDADES.find(ci=>ci.id===id)||CIUDADES[0]).nombre;
 const precioCasino=()=>PRECIO_CASINO*ciudadActual().mult;
 const gananciaCasino=()=>GANANCIA_CASINO*ciudadActual().mult;
 const precioBillete=ci=>1e6*ci.mult;
+const precioDesbloqueo=ci=>PRECIO_CASINO*ci.mult/5;      // Montecarlo 10²¹, Las Vegas 10²², Macao 10²³
 function datosCiudad(id){        // lo que tienes en cada ciudad (la actual vive directamente en bienes)
   if(id===ciudadActual().id) return bienes;
   return (bienes.ciudades||{})[id] || {casas:{},mejorasCasa:{},casino:0,casinoCierra:1,casinoVig:0,casinoEchar:1};
 }
 const ciudadCompleta=id=>{ const d=datosCiudad(id); return !!d.casino && SALA.CASAS.every(k=>d.casas[k.id]); };
-const puedeIr=i=> i===0 || !!(bienes.visitadas||{})[CIUDADES[i].id] || ciudadCompleta(CIUDADES[i-1].id);
-const barcoDeViaje=()=>bienes.coches.filter(k=>(COCHES.find(m=>m.id===k.id)||{}).viaje).sort((a,b)=>(b.gas??100)-(a.gas??100))[0]||null;
-function cambiarCiudad(id,barco){
+const disponible=i=> i===0 || !!(bienes.desbloq||{})[CIUDADES[i].id] || !!(bienes.visitadas||{})[CIUDADES[i].id];
+const puedeDesbloquear=i=> i>0 && !disponible(i) && ciudadCompleta(CIUDADES[i-1].id);
+function cambiarCiudad(id,barco,modo){
   const nueva=datosCiudad(id), antes=ciudadActual().id;
   bienes.ciudades=bienes.ciudades||{};
   const vieja={}; DE_CIUDAD.forEach(k=>vieja[k]=bienes[k]); bienes.ciudades[antes]=vieja;
   DE_CIUDAD.forEach(k=>bienes[k]=nueva[k]); delete bienes.ciudades[id];
   bienes.ciudad=id; bienes.visitadas=Object.assign(bienes.visitadas||{},{[id]:1});
-  SALA.llegar(barco); guardarEstado(); refrescar();
+  SALA.llegar(barco,modo); guardarEstado(); refrescar();
 }
 let viajando=false;
 function pantallaViaje(ico,tit,txt,muerte){
@@ -2859,22 +2923,8 @@ function pantallaViaje(ico,tit,txt,muerte){
   $('viaje').className='ver'+(muerte?' muerte':'');
 }
 function morir(ico,tit,txt){
-  viajando=true; SFX.ruina(); reiniciar(); SALA.ponerPrecios();
+  viajando=true; SFX.ruina(); reiniciar(); SALA.refrescarCiudad();
   pantallaViaje(ico,tit,txt,true);
-}
-function viajar(destino,barco){
-  if(viajando) return;
-  if(barco){ if((barco.gas??100)<50){ aviso('⛽ Para viajar necesitas al menos medio depósito. Llénalo junto al muelle.',true); return; } barco.gas-=50; }
-  viajando=true; cerrarPanel(); SALA.soltarTeclas(); guardarEstado(); refrescar();
-  const nb=barco&&COCHES.find(m=>m.id===barco.id).nombre.toLowerCase();
-  pantallaViaje(barco?'🛳️':'✈️', (barco?'Navegando hacia ':'Volando a ')+destino.nombre+'…', barco?'Vas en tu '+nb+'.':'Abróchate el cinturón.');
-  const malo=Math.random()<(barco?PROB_PIRATA:PROB_AVION);
-  setTimeout(()=>{
-    if(malo && !barco) return morir('💥','EL AVIÓN SE HA ESTRELLADO','No ha sobrevivido nadie. Has muerto y lo pierdes todo: empiezas de cero.');
-    if(malo && !bienes.protBarco) return morir('🏴‍☠️','TE HAN ATRACADO','Una lancha negra os ha alcanzado en alta mar y te han disparado. Has muerto y lo pierdes todo: empiezas de cero.');
-    if(malo) pantallaViaje('🛡️','¡LANCHA NEGRA!','Unos atracadores os han atacado en alta mar, pero tu escolta armada ha hundido su lancha.');
-    setTimeout(()=>{ cambiarCiudad(destino.id,barco); $('viaje').className=''; viajando=false; aviso('📍 Bienvenido a '+destino.nombre+'. '+destino.desc); }, malo?2600:0);
-  },2600);
 }
 
 function abrirMiCasino(){
@@ -2973,6 +3023,8 @@ function refrescarJuegos(){
    MÚSICA DE FONDO: cada juego tiene la suya (todo sintetizado)
    ===================================================================== */
 let musica = cargar('rds_musica', true);
+const MUS_CIUDAD={suerte:[0,1], montecarlo:[2,.9], vegas:[-3,1.15], macao:[5,1.05]};   // [semitonos, velocidad]
+const musCiudad=()=>MUS_CIUDAD[bienes&&bienes.ciudad]||MUS_CIUDAD.suerte;
 const MUS = (()=>{
   let bus=null, ruidoBuf=null, pista=null, n=0, t=0, timer=null;
   const hz = m => 440*Math.pow(2,(m-69)/12);
@@ -2985,7 +3037,7 @@ const MUS = (()=>{
   }
   function nota(m,t0,dur,tipo,vol,ataque=.008,corte=0){
     const o=AC.createOscillator(), g=AC.createGain();
-    o.type=tipo; o.frequency.value=hz(m);
+    o.type=tipo; o.frequency.value=hz(m+musCiudad()[0]);
     g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(vol,t0+ataque);
     g.gain.exponentialRampToValueAtTime(.0001,t0+Math.max(dur,ataque+.02));
     o.connect(g);
@@ -3095,7 +3147,7 @@ const MUS = (()=>{
     if(!pista||!bus) return;
     const P=PISTAS[pista];
     if(t<AC.currentTime) t=AC.currentTime+.05;
-    while(t<AC.currentTime+.3){ P.paso(n,t); t+=P.dur(n); n++; }
+    while(t<AC.currentTime+.3){ P.paso(n,t); t+=P.dur(n)/musCiudad()[1]; n++; }
   }
   function parar(){
     clearInterval(timer); timer=null;
@@ -3508,23 +3560,44 @@ const SALA = (()=>{
       }
     }});
   });
+  function estiloCasa(k,D){
+    const e=paleta().casa, i=parseInt(k.id.slice(1))||0;
+    if(e==='mediterranea') return {pared:['#f7d6c1','#f3e3a6','#f6c1c7','#e9efe0','#fde2b8'][i%5], tejado:'#c8643a', forma:'teja'};
+    if(e==='desierto')     return {pared:['#d9a066','#e0b47a','#c98d52','#e8c08a'][i%4], tejado:'#b8834e', forma:'plano'};
+    if(e==='pagoda')       return {pared:['#b3202a','#f2e6c9','#8a1a1a','#f5d7a1'][i%4], tejado:['#1e6b4a','#2a2a2a','#14523c'][i%3], forma:'pagoda'};
+    return {pared:D.pared, tejado:D.tejado, forma:'normal'};
+  }
+  function tejadoCasa(b,techo,S){
+    c.fillStyle=S.tejado; c.fillRect(b.x,b.y,b.w,techo);
+    if(S.forma==='plano'){             // azotea plana con aparatos de aire acondicionado
+      c.fillStyle='#0002'; c.fillRect(b.x+4,b.y+4,b.w-8,techo-8); c.fillStyle='#fff3'; c.fillRect(b.x,b.y,b.w,2); c.fillRect(b.x,b.y,2,techo);
+      c.fillStyle='#9aa4aa'; c.fillRect(b.x+b.w-18,b.y+6,8,6); c.fillRect(b.x+10,b.y+8,6,5); return; }
+    if(S.forma==='teja'){              // tejas rojas
+      c.fillStyle='#0003'; for(let yy=b.y+3;yy<b.y+techo;yy+=4) c.fillRect(b.x,yy,b.w,1); for(let xx=b.x+3;xx<b.x+b.w;xx+=6) c.fillRect(xx,b.y,1,techo);
+      c.fillStyle='#fff3'; c.fillRect(b.x,b.y,b.w,2); return; }
+    if(S.forma==='pagoda'){            // tejado oriental con aleros levantados y bordes de oro
+      c.fillStyle='#0003'; for(let yy=b.y+3;yy<b.y+techo;yy+=5) c.fillRect(b.x,yy,b.w,1);
+      c.fillStyle='#ffcc33'; c.fillRect(b.x-4,b.y+techo-3,b.w+8,3); c.fillRect(b.x,b.y+Math.round(techo/2),b.w,1);
+      c.fillStyle=S.tejado; c.fillRect(b.x-7,b.y+techo-7,6,4); c.fillRect(b.x+b.w+1,b.y+techo-7,6,4);
+      c.fillStyle='#ffcc33'; c.fillRect(b.x-8,b.y+techo-10,2,3); c.fillRect(b.x+b.w+6,b.y+techo-10,2,3); return; }
+    c.fillStyle='#0003'; for(let yy=b.y+3;yy<b.y+techo;yy+=4) c.fillRect(b.x,yy,b.w,1);
+    c.fillStyle='#fff2'; c.fillRect(b.x,b.y,b.w,2);
+  }
   function dibujaCasa(k){            // solo el edificio (el jardín, la piscina y la playa están en el fondo)
-    const D=CASAS_TIPO[k.tipo], {b}=k.partes, mia=!!bienes.casas[k.id];
+    const D=CASAS_TIPO[k.tipo], {b}=k.partes, mia=!!bienes.casas[k.id], S=estiloCasa(k,D);
     const techo=Math.round(b.h*.58), amplia=mejora(k,'ampliacion'), lujoD=mejora(k,'lujo');
     if(amplia){                       // otra planta encima, con ventanas y chimenea
       c.fillStyle='rgba(0,0,0,.25)'; c.fillRect(b.x+8,b.y-4,b.w-12,4);
-      c.fillStyle=D.pared; c.fillRect(b.x+6,b.y-14,b.w-12,16);
+      c.fillStyle=S.pared; c.fillRect(b.x+6,b.y-14,b.w-12,16);
       c.fillStyle='#8fd3ff'; for(let q=b.x+12;q<b.x+b.w-14;q+=16) c.fillRect(q,b.y-10,6,6);
-      c.fillStyle=D.tejado; c.fillRect(b.x+3,b.y-22,b.w-6,9); c.fillStyle='#0003'; c.fillRect(b.x+3,b.y-15,b.w-6,2);
+      c.fillStyle=S.tejado; c.fillRect(b.x+3,b.y-22,b.w-6,9); c.fillStyle='#0003'; c.fillRect(b.x+3,b.y-15,b.w-6,2);
       c.fillStyle='#7a3a2a'; c.fillRect(b.x+b.w-18,b.y-30,7,10); c.fillStyle='#ccc'; c.fillRect(b.x+b.w-17,b.y-34+Math.round(Math.sin(t*2)),3,3);
     }
     c.fillStyle='rgba(0,0,0,.25)'; c.fillRect(b.x+4,b.y+b.h-2,b.w,5);
-    c.fillStyle=D.tejado; c.fillRect(b.x,b.y,b.w,techo);
-    c.fillStyle='#0003'; for(let yy=b.y+3;yy<b.y+techo;yy+=4) c.fillRect(b.x,yy,b.w,1);
-    c.fillStyle='#fff2'; c.fillRect(b.x,b.y,b.w,2);
-    c.fillStyle=D.pared; c.fillRect(b.x,b.y+techo,b.w,b.h-techo);
+    tejadoCasa(b,techo,S);
+    c.fillStyle=S.pared; c.fillRect(b.x,b.y+techo,b.w,b.h-techo);
     if(k.tipo==='palacio'){
-      [[b.x-6,b.y-10],[b.x+b.w-14,b.y-10]].forEach(([tx,ty])=>{ c.fillStyle=D.pared; c.fillRect(tx,ty,20,b.h+10); c.fillStyle='#ffd700'; c.fillRect(tx,ty-6,20,6); c.fillRect(tx+8,ty-12,4,6); });
+      [[b.x-6,b.y-10],[b.x+b.w-14,b.y-10]].forEach(([tx,ty])=>{ c.fillStyle=S.pared; c.fillRect(tx,ty,20,b.h+10); c.fillStyle='#ffd700'; c.fillRect(tx,ty-6,20,6); c.fillRect(tx+8,ty-12,4,6); });
       c.fillStyle='#ffd700'; c.beginPath(); c.arc(b.x+b.w/2,b.y+6,16,Math.PI,0); c.fill();
     }
     if(k.tipo==='mansion'||k.tipo==='palacio'){ c.fillStyle='#fff'; const n=Math.floor(b.w/26); for(let q=0;q<n;q++) c.fillRect(b.x+12+q*26,b.y+techo,4,b.h-techo); }
@@ -3533,7 +3606,9 @@ const SALA = (()=>{
     for(let f=0;f<filas;f++) for(let q=0;q<cols;q++){
       const vx=b.x+8+q*(b.w-16)/cols; if(f===filas-1 && Math.abs(vx+3-(b.x+b.w/2))<10) continue;
       c.fillRect(Math.round(vx),b.y+techo+5+f*14,7,6);
+      if(S.forma==='teja'){ c.fillStyle='#2e7d32'; c.fillRect(Math.round(vx)-2,b.y+techo+5+f*14,2,6); c.fillRect(Math.round(vx)+7,b.y+techo+5+f*14,2,6); c.fillStyle='#8fd3ff'; }
     }
+    if(S.forma==='pagoda'){ const brillo=Math.floor(t*2)%2?'#ff3b3b':'#d0021b'; c.fillStyle=brillo; c.fillRect(b.x+b.w/2-14,b.y+b.h-16,5,6); c.fillRect(b.x+b.w/2+9,b.y+b.h-16,5,6); }
     const lujo = k.tipo==='mansion'||k.tipo==='palacio'||k.tipo==='villa'||lujoD;
     c.fillStyle= lujo ? '#ffd700' : '#5a2e12'; c.fillRect(b.x+b.w/2-5,b.y+b.h-12,10,12);
     if(lujoD){                        // bordes dorados y farolillos en la puerta
@@ -3559,12 +3634,39 @@ const SALA = (()=>{
       f.fillStyle= D.jardin||D.playa ? '#c9b99a' : '#b8b2a6'; f.fillRect(puerta.x-6,puerta.y,12,y+h-puerta.y+(D.jardin?0:12));
     });
   }
+  // Edificios que cambian de sitio en cada ciudad: se guardan en grupos y se desplazan enteros
+  const GRUPOS={};
+  const marca=()=>[solidos.length,zonas.length,objetos.length];
+  function grupo(id,[s0,z0,o0],extra=[]){
+    const G={sol:solidos.slice(s0),zon:zonas.slice(z0),obj:objetos.slice(o0),extra,dx:0,dy:0};
+    G.obj.forEach(o=>{ o.y0=o.y; const f=o.dibujar; o.dibujar=function(){ c.save(); c.translate(G.dx,G.dy); f.call(this); c.restore(); }; });
+    GRUPOS[id]=G;
+  }
+  function moverGrupo(G,dx,dy){
+    const ax=dx-G.dx, ay=dy-G.dy; if(!ax&&!ay) return;
+    G.sol.forEach(r=>{ r.x+=ax; r.y+=ay; }); G.extra.forEach(r=>{ r.x+=ax; r.y+=ay; });
+    G.zon.forEach(z=>{ z.x+=ax; z.y+=ay; if(z.clic&&z.clic!==z){ z.clic.x+=ax; z.clic.y+=ay; } });
+    G.obj.forEach(o=>o.y=o.y0+dy); G.dx=dx; G.dy=dy;
+  }
+  const SITIO_BASE={banco:[966,96], gas:[966,240], motos:[1180,110], escolta:[1180,300], viajes:[1250,1822]};
+  const PLANOS={            // dónde está cada edificio en cada ciudad (lo que no sale, en su sitio de siempre)
+    montecarlo:{escolta:[1180,110], gas:[1180,300], viajes:[966,96],  motos:[300,1822],  banco:[2150,1822]},
+    vegas:     {escolta:[1180,110], banco:[1180,300], viajes:[966,240], gas:[700,1822],  motos:[2000,1822]},
+    macao:     {gas:[966,96],       viajes:[966,300], escolta:[1180,300], motos:[1650,1822], banco:[80,1822]},
+  };
+  function ubicar(){
+    const P=PLANOS[ciudadActual().id]||{};
+    for(const id in GRUPOS){ const b=SITIO_BASE[id], q=P[id]||b; moverGrupo(GRUPOS[id],q[0]-b[0],q[1]-b[1]); }
+    rejilla=null;
+  }
   // Agencia de seguridad (los guardaespaldas se contratan aquí)
   const TIENDAS=[
     {id:'motos',   x:1180,y:110, w:180, h:96, pared:'#3a3a3a', tejado:'#d0021b', letrero:'MOTOS', col:'#ff7f2a', txt:'Concesionario de motos', boton:'ENTRAR', accion:()=>abrirMotos()},
     {id:'escolta', x:1180,y:300, w:160, h:110, pared:'#2a3a6a', tejado:'#111a33', letrero:'SEGURIDAD', col:'#4aa3ff', txt:'Agencia de seguridad', boton:'ENTRAR', accion:()=>abrirAgencia()},
+    {id:'viajes',  x:1250,y:1822,w:120, h:90,  pared:'#f4f4f4', tejado:'#1e6fd9', letrero:'VIAJES',    col:'#8fd3ff', txt:'Agencia de viajes',    boton:'ENTRAR', accion:()=>abrirViajes()},
   ];
   TIENDAS.forEach(s=>{
+    const mk=marca();
     solidos.push(R(s.x,s.y,s.w,s.h));
     zona(R(s.x+s.w/2-20,s.y+s.h,40,26),R(s.x,s.y,s.w,s.h+20),s.txt,s.boton,s.accion);
     objetos.push({y:s.y+s.h,dibujar(){
@@ -3575,14 +3677,23 @@ const SALA = (()=>{
       c.fillStyle='#5a2e12'; c.fillRect(s.x+s.w/2-6,s.y+s.h-12,12,12);
       neon(s.letrero,s.x+s.w/2,s.y+techo/2,s.col,s.id.length);
     }});
+    grupo(s.id,mk);
   });
   // Árboles, estanque y palmeras
   const ARBOLES=[[1400,80],[1480,130],[1580,90],[1420,200],[1540,230],[1680,120],[1720,300],[1400,380],[1600,400],[1760,60],
     [1180,1080],[1220,1180],[1180,1300],[1200,1460],[1740,1080],[1760,1220],[1700,1400],[1500,1500],[1300,1500],[1620,1500]];
-  ARBOLES.forEach(([x,y])=>{ solidos.push(R(x-3,y-3,6,4)); objetos.push({y,dibujar(){
+  function dibujaArbol(x,y){
+    const a=paleta().arbol;
+    if(a==='cactus'){ c.fillStyle='#2f7d3a'; c.fillRect(x-2,y-20,5,20); c.fillRect(x-8,y-14,3,8); c.fillRect(x-8,y-8,6,3); c.fillRect(x+5,y-17,3,8); c.fillRect(x+3,y-11,5,3);
+      c.fillStyle='#4aa356'; c.fillRect(x-1,y-20,1,18); c.fillStyle='#ff5f9e'; c.fillRect(x,y-22,2,2); return; }
+    if(a==='cipres'){ c.fillStyle='#5a3a1a'; c.fillRect(x-1,y-5,3,5); c.fillStyle='#1d4d2a'; c.beginPath(); c.ellipse(x,y-17,5,13,0,0,TAU); c.fill(); c.fillStyle='#2a6a3a'; c.fillRect(x-2,y-26,2,14); return; }
+    if(a==='cerezo'){ c.fillStyle='#5a3a1a'; c.fillRect(x-2,y-8,4,8); c.fillStyle='#f48fb1'; c.beginPath(); c.arc(x,y-14,10,0,TAU); c.fill();
+      c.fillStyle='#fce4ec'; c.beginPath(); c.arc(x-3,y-17,5,0,TAU); c.fill(); c.fillStyle='#ec407a'; c.fillRect(x+3,y-12,2,2); c.fillRect(x-5,y-10,2,2); return; }
     c.fillStyle='#5a3a1a'; c.fillRect(x-2,y-8,4,8);
     c.fillStyle='#1f6a2a'; c.beginPath(); c.arc(x,y-14,10,0,TAU); c.fill();
-    c.fillStyle='#2e8a3a'; c.beginPath(); c.arc(x-3,y-17,5,0,TAU); c.fill(); }}); });
+    c.fillStyle='#2e8a3a'; c.beginPath(); c.arc(x-3,y-17,5,0,TAU); c.fill();
+  }
+  ARBOLES.forEach(([x,y])=>{ solidos.push(R(x-3,y-3,6,4)); objetos.push({y,dibujar(){ dibujaArbol(x,y); }}); });
   const PALMERAS=[[30,1700],[330,1740],[720,1700],[1110,1740],[1500,1700],[1890,1740],[2300,1720]];
   CASAS.filter(k=>k.tipo==='villa').forEach(k=>PALMERAS.push([k.x+14,k.y+k.h-6],[k.x+k.w-14,k.y+k.h-6]));
   PALMERAS.forEach(([x,y])=>{ solidos.push(R(x-3,y-3,6,4)); objetos.push({y,dibujar(){
@@ -3649,12 +3760,16 @@ const SALA = (()=>{
     }
   }
   function ponerPrecios(){ const m=ciudadActual().mult; CASAS.forEach(k=>k.valor=k.valor0*m); }
-  function llegar(barco){          // al llegar a otra ciudad: apareces en la puerta del puerto
-    ponerPrecios();
+  function refrescarCiudad(){ pintarFondo(); ubicar(); ponerPrecios(); }
+  function llegar(barco,modo){     // en avión apareces en la puerta del aeropuerto; en barco, en tu barco al fondo del mar
+    refrescarCiudad();
     CASAS.forEach(k=>{ k.vecino.oculto=true; k.cerrada=false; k.msg=null; k.minimo=0; k.paciencia=3; k.enfado=0; k.contra=0; });
-    ladrones.length=0; policias.length=0; busca=0; carrera=null; pirata=null; enCasa=null; cine=null; bienes.conduce=-1;
-    if(barco){ barco.x=1500; barco.y=2000; barco.ang=Math.PI/2; }
-    Object.assign(jugador,{x:1530,y:1915,dir:'d',ruta:[],auto:null,autoCoche:-1,vuelta:null,oculto:false});
+    ladrones.length=0; policias.length=0; busca=0; carrera=null; pirata=null; enCasa=null; cine=null; vuelo=null; bienes.conduce=-1;
+    if(modo==='mar' && barco && bienes.coches.includes(barco)){
+      bienes.conduce=bienes.coches.indexOf(barco); barco.y=WH-60; barco.ang=-Math.PI/2;
+      Object.assign(jugador,{x:barco.x,y:barco.y,dir:'u',ruta:[],auto:null,autoCoche:-1,vuelta:null,oculto:false});
+      pirata = Math.random()<PROB_PIRATA ? {espera:t+4+Math.random()*6} : null;
+    } else Object.assign(jugador,{x:PUERTA_AERO.x,y:PUERTA_AERO.y,dir:'d',ruta:[],auto:null,autoCoche:-1,vuelta:null,oculto:false});
     escoltas.forEach((g,k)=>{ g.x=jugador.x+(k%2?10:-10); g.y=jugador.y+(k<2?8:-8); });
     rejilla=null; pistaVista=undefined;
   }
@@ -3665,7 +3780,8 @@ const SALA = (()=>{
   }
   function sitioMoto(){
     const n=bienes.coches.filter(k=>cocheDe(k).tipo==='moto').length;
-    return {x:1196+(n%8)*20, y:250+Math.floor(n/8)%2*18};
+    const G=GRUPOS.motos||{dx:0,dy:0}, playa=G.dy>1000;
+    return {x:1196+G.dx+(n%8)*20, y:(playa?1920:250+G.dy)+Math.floor(n/8)%2*18};
   }
 
   // --- Coches ---
@@ -3723,6 +3839,225 @@ const SALA = (()=>{
     persona({...p, dir, anda:false, burbuja:null, sentado:m.forma!=='patinete', y:p.y-(m.forma==='patinete'?3:1)});
   }
   const conduciendo = () => bienes.conduce>=0 ? bienes.coches[bienes.conduce] : null;
+
+  /* ---------- Aeropuerto y vuelos ---------- */
+  const AEROPUERTO=R(1300,1062,280,110), PUERTA_AERO={x:1440,y:1192};
+  solidos.push(AEROPUERTO);
+  zona(R(1420,1172,40,26),R(1300,1040,280,140),'Aeropuerto','ENTRAR',()=>entrarAeropuerto());
+  objetos.push({y:1172,dibujar(){
+    const {x,y,w,h}=AEROPUERTO;
+    c.fillStyle='rgba(0,0,0,.25)'; c.fillRect(x+4,y+h-2,w,5);
+    c.fillStyle='#cfd8dc'; c.fillRect(x,y+26,w,h-26);
+    c.fillStyle='#78909c'; c.fillRect(x-4,y+20,w+8,10);
+    c.fillStyle='#8fd3ffcc'; for(let q=x+10;q<x+w-50;q+=22) c.fillRect(q,y+40,16,40);
+    c.fillStyle='#5a6a74'; c.fillRect(x+w/2-16,y+h-22,32,22); c.fillStyle='#8fd3ff'; c.fillRect(x+w/2-14,y+h-20,13,20); c.fillRect(x+w/2+1,y+h-20,13,20);
+    c.fillStyle='#b0bec5'; c.fillRect(x+w-40,y-30,16,56); c.fillStyle='#37474f'; c.fillRect(x+w-46,y-42,28,14); c.fillStyle='#8fd3ff'; c.fillRect(x+w-44,y-40,24,8);
+    c.fillStyle=Math.floor(t*2)%2?'#ff2b2b':'#550000'; c.fillRect(x+w-33,y-46,2,4);
+    neon('AEROPUERTO',x+w/2-20,y+10,'#8fd3ff',15);
+  }});
+  let vuelo=null;
+  function avionArriba(x,y,s,ang,sombra){          // el avión visto desde arriba (mira a la derecha)
+    c.save(); c.translate(x,y); c.rotate(ang||0); c.scale(s,s);
+    const col=k=>sombra?'rgba(0,0,0,.28)':k;
+    c.fillStyle=col('#d9dde0');
+    [[1,-1],[1,1]].forEach(([_,m])=>{ c.beginPath(); c.moveTo(8,6*m); c.lineTo(-8,44*m); c.lineTo(-18,44*m); c.lineTo(-8,6*m); c.closePath(); c.fill();
+      c.beginPath(); c.moveTo(-34,4*m); c.lineTo(-44,17*m); c.lineTo(-49,17*m); c.lineTo(-44,4*m); c.closePath(); c.fill(); });
+    c.fillStyle=col('#f4f4f4'); c.beginPath(); c.ellipse(0,0,48,7,0,0,TAU); c.fill();
+    if(!sombra){ c.fillStyle='#9aa4aa'; c.fillRect(-4,-27,12,5); c.fillRect(-4,22,12,5);
+      c.fillStyle='#1e3a6a'; c.fillRect(39,-3,5,6); c.fillStyle='#d0021b'; c.fillRect(-42,-1,78,2);
+      c.fillStyle='#8fd3ff'; for(let q=-30;q<32;q+=6) c.fillRect(q,-4,2,1); }
+    c.restore();
+  }
+  function entrarAeropuerto(){
+    if(conduciendo()) bajar();
+    const W=400,H=230, sentados=[];
+    [[40,120],[40,160],[240,120],[240,160]].forEach(([x,y])=>{ for(let q=0;q<8;q++) if(Math.random()<.35) sentados.push({x:x+8+q*15,y:y+12,dir:'u',ropa:ropaAzar(),sentado:true,paso:0}); });
+    vuelo={fase:'terminal',W,H,ox:0,oy:0,destino:null,
+      p:{x:W/2,y:H-14,dir:'u',ropa:jugador.ropa,paso:0,anda:false},
+      agentes:[{x:176,y:48,dir:'d',ropa:{piel:'#f1c27d',pelo:'#2b1b0e',camisa:'#1e3a6a',pant:'#1e3a6a',zap:'#111'},paso:0},{x:224,y:48,dir:'d',ropa:{piel:'#c68642',pelo:'#111',camisa:'#1e3a6a',pant:'#1e3a6a',zap:'#111'},paso:0}],
+      gente:sentados.concat([0,1,2].map(k=>({x:80+k*120,y:96,dir:'d',ropa:ropaAzar(),paso:0,obj:null})))};
+    teclas.clear(); jugador.ruta=[]; pistaVista=undefined; $('salaAyuda').style.opacity=0;
+    tono(500,0,.08,'triangle',.1); tono(700,.1,.1,'triangle',.1);
+  }
+  function salirAeropuerto(){ vuelo=null; Object.assign(jugador,{x:PUERTA_AERO.x,y:PUERTA_AERO.y,dir:'d',ruta:[]}); pistaVista=undefined; tono(700,0,.08,'triangle',.1); }
+  const OBST_TERM=[R(120,52,160,18),R(40,120,120,10),R(40,160,120,10),R(240,120,120,10),R(240,160,120,10)];
+  const libreTerminal=(x,y)=>{ const V=vuelo; if(x<12||x>V.W-12||y<40||y>V.H-6) return false; const k=R(x-4,y-3,8,4); return !OBST_TERM.some(o=>choca(k,o)); };
+  const libreCabina=(x,y)=>{ const V=vuelo, W=V.W;
+    const ok=(x>44&&x<W-16&&y>64&&y<86) || (x>W-76&&x<W-18&&y>22&&y<128); if(!ok) return false;
+    return !choca(R(x-4,y-3,8,4),R(V.tro.x-8,V.tro.y-6,16,12)); };
+  function moverInt(p,tx,ty,vel,dt,lib){
+    const dx=tx-p.x, dy=ty-p.y, d=Math.hypot(dx,dy); if(d<2){ p.anda=false; return false; }
+    const s=Math.min(d,vel*dt), nx=p.x+dx/d*s, ny=p.y+dy/d*s; let mov=false;
+    if(lib(nx,p.y)){ p.x=nx; mov=true; } if(lib(p.x,ny)){ p.y=ny; mov=true; }
+    p.dir=dirDe(dx,dy); p.anda=mov; p.paso+=s/2.2; return mov;
+  }
+  function nuevoVuelo(id){
+    const W=560,H=150, asientos=[];
+    for(let r=0;r<13;r++) [30,48,102,120].forEach((y,q)=>asientos.push({x:84+r*34,y,r,q}));
+    const mio=asientos.find(a=>a.r===3&&a.q===1);
+    return {fase:'despegue',e:0,off:0,alt:0,dest:id,W,H,ox:0,oy:0,destino:null,asientos,asiento:mio,
+      pasajeros:asientos.filter(a=>a!==mio&&Math.random()<.6).map(a=>({x:a.x,y:a.y+5,dir:'l',ropa:ropaAzar(),sentado:true,paso:0})),
+      tro:{x:W-46,y:36}, azafata:{x:W-30,y:60,dir:'l',ropa:{piel:azar(PIELES),pelo:'#2b1b0e',camisa:'#1e3a6a',pant:'#1e3a6a',zap:'#111'},paso:0},
+      p:{x:mio.x,y:76,dir:'l',ropa:jugador.ropa,paso:0,anda:false},
+      crash: Math.random()<PROB_AVION ? 12+Math.random()*38 : null,
+      nubes:Array.from({length:16},()=>({x:Math.random(),y:Math.random(),r:.6+Math.random()*.8,v:.6+Math.random()*.6}))};
+  }
+  function embarcar(id){
+    const B=bienes.billetes=bienes.billetes||{};
+    const ops=CIUDADES.filter(d=>d.id!==ciudadActual().id && B[d.id]>0);
+    if(!id){
+      if(!ops.length){ vuelo.agentes[0].burbuja={txt:'¿Su billete?',hasta:t+2}; avisoSala('🎫 No tienes billete. Cómpralo en la agencia de viajes.',true); return; }
+      if(ops.length>1){ abrirPanel('🎫 ¿A DÓNDE VUELAS?',C=>ops.forEach(d=>filaAccion(C,{ico:'✈️',nombre:d.nombre,desc:'Tienes '+B[d.id]+' billete'+(B[d.id]>1?'s':'')+'.',boton:'EMBARCAR',accion:()=>{ cerrarPanel(); embarcar(d.id); }}))); return; }
+      id=ops[0].id;
+    }
+    if(!(B[id]>0)) return;
+    B[id]--; guardarEstado();
+    vuelo=nuevoVuelo(id); teclas.clear(); pistaVista=undefined;
+    SFX.efecto(); avisoSala('🛫 Embarcas rumbo a '+nombreCiudad(id)+'. ¡Despegamos!');
+  }
+  function levantarse(){ const V=vuelo; if(!V||V.fase!=='aire') return; V.fase='cabina'; V.p.x=V.asiento.x; V.p.y=76; V.p.dir='d'; V.destino=null; teclas.clear();
+    tono(900,0,.05,'square',.06); avisoSala('🔓 Te desabrochas el cinturón. Puedes pasear por el avión.'); }
+  function sentarse(forzado){ const V=vuelo; if(!V||V.fase!=='cabina') return; V.fase='aire'; V.destino=null; teclas.clear();
+    tono(600,0,.05,'square',.06); avisoSala(forzado?'🔔 Vamos a aterrizar: vuelves a tu asiento y te abrochas el cinturón.':'🔒 Te sientas y te abrochas el cinturón.'); }
+  const zonaMostrador={txt:'Mostrador: enseña tu billete',boton:'EMBARCAR',accion:()=>embarcar()};
+  const zonaSalidaAero={txt:'Salida del aeropuerto',boton:'SALIR',accion:()=>salirAeropuerto()};
+  const zonaLevantarse={txt:'Cinturón abrochado',boton:'LEVANTARSE',accion:()=>levantarse()};
+  const zonaSentarse={txt:'Tu asiento',boton:'SENTARSE',accion:()=>sentarse(false)};
+  const zonaSouvenirs={txt:'Azafata: souvenirs',boton:'COMPRAR',accion:()=>abrirSouvenirs()};
+  function ponerPista(z){ if(z!==pistaVista){ pistaVista=z; const P=$('salaPista');
+    if(z){ $('salaTxt').textContent=z.txt; $('btnEntrar').textContent=z.boton; P.classList.add('ver'); } else P.classList.remove('ver'); } }
+  function ponerHud(h){ if(h!==hudTxt){ hudTxt=h; $('salaHud').textContent=h; } if(atVisible){ atVisible=false; $('btnAtacar').classList.add('oculto'); } }
+  function actualizarVuelo(dt){
+    const V=vuelo;
+    if(V.fase==='terminal'||V.fase==='cabina'){
+      const p=V.p, lib=V.fase==='terminal'?libreTerminal:libreCabina; let dx=0,dy=0;
+      if(teclas.has('ArrowLeft')||teclas.has('KeyA')) dx--; if(teclas.has('ArrowRight')||teclas.has('KeyD')) dx++;
+      if(teclas.has('ArrowUp')||teclas.has('KeyW')) dy--;   if(teclas.has('ArrowDown')||teclas.has('KeyS')) dy++;
+      if(dx||dy){ V.destino=null; moverInt(p,p.x+dx*20,p.y+dy*20,70,dt,lib); }
+      else if(V.destino){ if(!moverInt(p,V.destino.x,V.destino.y,70,dt,lib)) V.destino=null; }
+      else p.anda=false;
+    }
+    if(V.fase==='terminal'){
+      V.gente.forEach(g=>{ if(g.sentado) return;
+        if(!g.obj||t>g.obj.t) g.obj={x:30+Math.random()*(V.W-60),y:90+Math.random()*(V.H-110),t:t+3+Math.random()*4};
+        if(!moverInt(g,g.obj.x,g.obj.y,30,dt,libreTerminal)) g.obj.t=0; });
+      const p=V.p;
+      ponerPista(p.y<86 && Math.abs(p.x-V.W/2)<80 ? zonaMostrador : p.y>V.H-24 && Math.abs(p.x-V.W/2)<26 ? zonaSalidaAero : null);
+      ponerHud('✈️ Aeropuerto de '+ciudadActual().nombre);
+      return;
+    }
+    V.e+=dt;
+    if(V.crash!==null && V.e>=V.crash && (V.fase==='aire'||V.fase==='cabina')){
+      V.fase='cae'; V.tc=V.e; avisoSala('⚠️ ¡Fallo en los motores! ¡El avión cae!',true);
+      [800,600,800,600,800,600].forEach((f,k)=>tono(f,k*.3,.25,'square',.1)); }
+    if(V.fase==='despegue' && V.e>=7){ V.fase='aire'; avisoSala('✈️ Ya estamos en el aire. Pulsa E (o LEVANTARSE) para desabrocharte el cinturón.'); }
+    if(V.fase==='cabina' && V.e>=T_VUELO-6) sentarse(true);
+    if(V.fase==='aire' && V.e>=T_VUELO){ V.fase='aterrizaje'; V.ta=V.e; avisoSala('🛬 Aterrizando en '+nombreCiudad(V.dest)+'…'); }
+    const k = V.fase==='despegue' ? V.e : V.fase==='aterrizaje' ? Math.max(0,6-(V.e-V.ta))*1.2 : 7.2;
+    V.alt=Math.min(1,Math.max(0,(k-4)/3)); V.vel=Math.min(1,k/4)*320; V.off+=V.vel*dt;
+    if(V.fase==='aterrizaje' && V.e-V.ta>=6.5){
+      const id=V.dest; vuelo=null; ponerPista(null); cambiarCiudad(id,null,'avion');
+      aviso('📍 Bienvenido a '+nombreCiudad(id)+'. '+(CIUDADES.find(ci=>ci.id===id)||{}).desc); return; }
+    if(V.fase==='cae'){
+      if(!V.boom && V.e-V.tc>=3.2){ V.boom=true; SFX.ruina(); tono(60,0,1.2,'sawtooth',.25,20); }
+      if(V.e-V.tc>=4.8){ vuelo=null; ponerPista(null);
+        morir('💥','EL AVIÓN SE HA ESTRELLADO','No ha sobrevivido nadie. Has muerto y lo pierdes todo: empiezas de cero.'); return; }
+    }
+    if(V.fase==='cabina'){ const p=V.p;
+      ponerPista(Math.hypot(p.x-V.tro.x,p.y-V.tro.y)<32 ? zonaSouvenirs : Math.abs(p.x-V.asiento.x)<16 && p.y<84 ? zonaSentarse : null); }
+    else ponerPista(V.fase==='aire'?zonaLevantarse:null);
+    const resta=Math.max(0,Math.ceil(T_VUELO-V.e));
+    ponerHud('✈️ '+nombreCiudad(V.dest)+' · '+Math.floor(resta/60)+':'+String(resta%60).padStart(2,'0')+(V.fase==='cabina'?' · 🔓 de pie':V.fase==='aire'?' · 🔒 sentado':''));
+  }
+  function camaraInt(V,p){
+    V.ox = vw>=V.W ? Math.round((vw-V.W)/2) : Math.round(-Math.max(0,Math.min(V.W-vw,p.x-vw/2)));
+    V.oy = vh>=V.H ? Math.round((vh-V.H)/2) : Math.round(-Math.max(0,Math.min(V.H-vh,p.y-vh/2)));
+  }
+  function nubes(V,alfa,vel){
+    V.nubes.forEach(n=>{ const x=((n.x*vw*1.4 - V.off*vel*n.v*.05)%(vw*1.4)+vw*1.4)%(vw*1.4)-vw*.2, y=n.y*vh;
+      c.fillStyle='rgba(255,255,255,'+alfa+')'; c.beginPath(); c.ellipse(x,y,26*n.r,12*n.r,0,0,TAU); c.fill(); c.beginPath(); c.ellipse(x+14*n.r,y-5*n.r,16*n.r,9*n.r,0,0,TAU); c.fill(); });
+  }
+  function dibujarVuelo(){
+    const V=vuelo;
+    c.setTransform(1,0,0,1,0,0);
+    if(V.fase==='terminal'){
+      camaraInt(V,V.p); c.fillStyle='#000'; c.fillRect(0,0,vw,vh); c.setTransform(1,0,0,1,V.ox,V.oy);
+      const W=V.W,H=V.H;
+      c.fillStyle='#e9e4da'; c.fillRect(0,0,W,H);
+      c.fillStyle='#d9d2c4'; for(let y=36;y<H;y+=16) for(let x=((y-36)/16)%2?8:0;x<W;x+=16) c.fillRect(x,y,8,8);
+      c.fillStyle='#37474f'; c.fillRect(0,0,W,36); c.fillStyle='#263238'; c.fillRect(0,34,W,2);
+      c.fillStyle='#8fd3ff'; c.fillRect(W-130,4,120,26); avionArriba(W-70,17,.3,0);
+      c.fillStyle='#111'; c.fillRect(12,2,176,32); c.font='6px '+FUENTE; c.textAlign='left'; c.textBaseline='middle';
+      c.fillStyle='#ffcc33'; c.fillText('SALIDAS',18,9);
+      CIUDADES.filter(d=>d.id!==ciudadActual().id).forEach((d,i)=>{ c.fillStyle='#fff'; c.fillText(d.nombre.toUpperCase().slice(0,14),18,17+i*7); c.fillStyle='#2ecc71'; c.fillText('A TIEMPO',128,17+i*7); });
+      c.fillStyle='#1e6fd9'; c.fillRect(140,38,120,10); c.textAlign='center'; c.fillStyle='#fff'; c.fillText('MOSTRADOR',200,43);
+      c.fillStyle='#8fd3ff'; c.fillRect(W/2-24,H-6,48,6);
+      [[18,H-20],[W-18,H-20],[18,52],[W-18,52]].forEach(([x,y])=>{ c.fillStyle='#7a3a12'; c.fillRect(x-4,y-6,8,6); c.fillStyle='#2ecc71'; c.fillRect(x-5,y-14,10,8); });
+      const lista=[];
+      lista.push({y:51,dibujar:()=>{ c.fillStyle='#5a6a74'; c.fillRect(120,52,160,18); c.fillStyle='#90a4ae'; c.fillRect(120,52,160,3); }});
+      [[40,120],[40,160],[240,120],[240,160]].forEach(([x,y])=>lista.push({y:y+9,dibujar:()=>{ c.fillStyle='#455a64'; c.fillRect(x,y,120,10); c.fillStyle='#607d8b'; for(let q=0;q<8;q++) c.fillRect(x+2+q*15,y+1,12,8); }}));
+      V.agentes.forEach(g=>lista.push({y:g.y,dibujar:()=>persona(g)}));
+      V.gente.forEach(g=>lista.push({y:g.y,dibujar:()=>persona(g)}));
+      lista.push({y:V.p.y,dibujar:()=>persona(V.p)});
+      lista.sort((a,b)=>a.y-b.y).forEach(o=>o.dibujar());
+      return;
+    }
+    if(V.fase==='cabina'){
+      camaraInt(V,V.p);
+      c.fillStyle='#8fd3ff'; c.fillRect(0,0,vw,vh); nubes(V,.85,1);
+      c.setTransform(1,0,0,1,V.ox,V.oy);
+      const W=V.W,H=V.H;
+      c.fillStyle='#e6e6e6'; c.beginPath(); c.moveTo(34,0); c.lineTo(W-8,0); c.lineTo(W-8,H); c.lineTo(34,H); c.quadraticCurveTo(-14,H/2,34,0); c.fill();
+      c.fillStyle='#d8d0c0'; c.fillRect(34,14,W-50,H-28);
+      c.fillStyle='#2b3a8c'; c.fillRect(44,62,W-62,26);
+      c.fillStyle='#8fd3ff'; for(let x=72;x<W-30;x+=34){ c.fillRect(x,4,10,6); c.fillRect(x,H-10,10,6); }
+      c.fillStyle='#37474f'; c.fillRect(34,14,6,H-28); c.fillStyle='#1e3a6a'; c.fillRect(12,H/2-16,16,32); c.fillStyle='#8fd3ff'; c.fillRect(8,H/2-12,6,24);
+      c.fillStyle='#bdbdbd'; c.fillRect(W-76,14,58,6); c.fillRect(W-76,H-20,58,6);
+      c.font='6px '+FUENTE; c.textAlign='center'; c.textBaseline='middle'; c.fillStyle='#555'; c.fillText('PILOTOS',22,H/2+24);
+      const lista=[];
+      V.asientos.forEach(a=>lista.push({y:a.y-1,dibujar:()=>{ c.fillStyle=a===V.asiento?'#c9940a':'#3a4a9a'; c.fillRect(a.x-7,a.y-7,14,14); c.fillStyle='#0004'; c.fillRect(a.x+4,a.y-7,3,14); }}));
+      const T2=V.tro; lista.push({y:T2.y+6,dibujar:()=>{ c.fillStyle='#ccc'; c.fillRect(T2.x-8,T2.y-6,16,12); c.fillStyle='#d0021b'; c.fillRect(T2.x-8,T2.y-6,16,2);
+        c.fillStyle='#ffd700'; c.fillRect(T2.x-5,T2.y-2,3,3); c.fillStyle='#ff5f6d'; c.fillRect(T2.x+1,T2.y-2,3,3); }});
+      V.pasajeros.forEach(g=>lista.push({y:g.y,dibujar:()=>persona(g)}));
+      lista.push({y:V.azafata.y,dibujar:()=>persona(V.azafata)});
+      lista.push({y:V.p.y,dibujar:()=>persona(V.p)});
+      lista.sort((a,b)=>a.y-b.y).forEach(o=>o.dibujar());
+      return;
+    }
+    // el avión visto desde fuera
+    const cx=vw/2, cy=vh/2, alt=V.alt;
+    if(V.fase==='aire'||V.fase==='cae'){
+      c.fillStyle='#2a7fd4'; c.fillRect(0,0,vw,vh);
+      c.fillStyle='#bfe6ff'; for(let y=6;y<vh;y+=18) for(let x=0;x<vw+40;x+=40){ const xx=((x-V.off*.15+(y%36?20:0))%(vw+40)+vw+40)%(vw+40)-20; c.fillRect(xx,y,10,1); }
+      for(let q=0;q<3;q++){ const xx=((q*vw*.6-V.off*.12)%(vw*1.8)+vw*1.8)%(vw*1.8)-vw*.4, yy=vh*(.2+q*.3);
+        c.fillStyle='#e8d29a'; c.beginPath(); c.ellipse(xx,yy,40,20,0,0,TAU); c.fill(); c.fillStyle='#3a7f33'; c.beginPath(); c.ellipse(xx,yy,30,13,0,0,TAU); c.fill(); }
+    } else {
+      c.fillStyle=paleta().cesped; c.fillRect(0,0,vw,vh);
+      c.fillStyle='#555a60'; c.fillRect(0,cy-26,vw,52); c.fillStyle='#fff';
+      for(let x=0;x<vw+40;x+=40){ const xx=((x-V.off)%(vw+40)+vw+40)%(vw+40)-40; c.fillRect(xx,cy-1,22,2); }
+      c.fillStyle='#ffcc33'; c.fillRect(0,cy-26,vw,1); c.fillRect(0,cy+25,vw,1);
+    }
+    if(V.fase==='cae'){
+      const e=V.e-V.tc;
+      if(e<3.2){ const ang=e*e*.9, s=Math.max(.5,1.7-e*.35);
+        for(let q=0;q<10;q++){ c.fillStyle='rgba(60,60,60,'+(.5-q*.045)+')'; c.beginPath(); c.arc(cx-q*10-e*8,cy-q*3,4+q*1.5,0,TAU); c.fill(); }
+        avionArriba(cx+e*6,cy+e*e*6,s,ang); }
+      else { const r=(e-3.2)*90; c.fillStyle='#ff7f2a'; c.beginPath(); c.arc(cx,cy+60,r,0,TAU); c.fill();
+        c.fillStyle='#ffd23f'; c.beginPath(); c.arc(cx,cy+60,r*.6,0,TAU); c.fill(); c.fillStyle='rgba(255,255,255,'+Math.max(0,.8-(e-3.2))+')'; c.fillRect(0,0,vw,vh); }
+    } else {
+      const s=1+alt*.8, bob=V.fase==='aire'?Math.sin(V.e*2)*2:0;
+      avionArriba(cx+10+alt*30,cy+10+alt*30,s*.9,0,true);
+      avionArriba(cx,cy+bob,s,0);
+      if(alt>0) nubes(V,Math.min(.8,alt*.8),2);
+    }
+    // barra del viaje
+    const prog=Math.min(1,V.e/T_VUELO);
+    c.fillStyle='#000a'; c.fillRect(10,vh-40,vw-20,18); c.fillStyle='#333'; c.fillRect(16,vh-28,vw-32,3); c.fillStyle='#ffcc33'; c.fillRect(16,vh-28,(vw-32)*prog,3);
+    c.font='6px '+FUENTE; c.textAlign='left'; c.textBaseline='middle'; c.fillStyle='#fff';
+    c.fillText(ciudadActual().nombre.toUpperCase(),16,vh-35); c.textAlign='right'; c.fillText(nombreCiudad(V.dest).toUpperCase(),vw-16,vh-35);
+    if(V.fase==='aire'){ c.textAlign='center'; c.fillStyle='#fff'; c.fillText('PULSA E PARA LEVANTARTE',cx,vh-52); }
+  }
+
   const INTERIOR_COCHE=R(0,0,960,426);
   const libreCoche=(x,y)=>{ const k=R(x-7,y-6,14,8); return !dentro(x,y,INTERIOR_COCHE) && !solidos.some(s=>(!s.si||s.si())&&choca(k,s)); };
   function subir(i){
@@ -3861,7 +4196,8 @@ const SALA = (()=>{
   /* =====================================================================
      BANCO, GASOLINERA, DON FORTUNATO, PARKING, MASCOTAS, POLICÍA Y CARRERAS
      ===================================================================== */
-  // --- Banco (al lado del casino) ---
+  // --- Banco (al lado del casino, salvo en otras ciudades) ---
+  const mkBanco=marca();
   solidos.push(R(966,96,118,100));
   zona(R(1005,196,40,26),R(966,80,118,120),'Banco','ENTRAR',()=>abrirBanco());
   objetos.push({y:196,dibujar(){
@@ -3872,8 +4208,9 @@ const SALA = (()=>{
     c.fillStyle='#ffd700'; c.fillRect(1022,184,2,2);
     neon('BANCO',1025,104,'#ffd700',11);
   }});
+  grupo('banco',mkBanco);
   // --- Gasolinera ---
-  const GAS_ZONA=R(966,300,118,64);
+  const GAS_ZONA=R(966,300,118,64), mkGas=marca();
   solidos.push(R(966,240,118,50), R(990,322,8,10), R(1050,322,8,10));
   objetos.push({y:290,dibujar(){
     c.fillStyle='#e6e6e6'; c.fillRect(966,240,118,50); c.fillStyle='#d0021b'; c.fillRect(966,240,118,8);
@@ -3884,6 +4221,22 @@ const SALA = (()=>{
     [[990,322],[1050,322]].forEach(([x,y])=>{ c.fillStyle='#d0021b'; c.fillRect(x,y-12,8,22); c.fillStyle='#fff'; c.fillRect(x+1,y-9,6,4); c.fillStyle='#111'; c.fillRect(x+8,y-6,2,10); });
   }});
   objetos.push({y:368,dibujar(){ c.fillStyle='#ffffff22'; c.fillRect(966,300,118,4); c.fillStyle='#d0021b'; c.fillRect(966,298,118,3); }});
+  grupo('gas',mkGas,[GAS_ZONA]);
+  // --- Carteles de publicidad (solo en las otras ciudades) ---
+  const CARTELES={montecarlo:[[966,250],[600,1830],[1900,1830]], vegas:[[966,100],[1000,1830],[2250,1830]], macao:[[1200,120],[500,1830],[2020,1830]]};
+  const TEXTOS_CARTEL=[ci=>[ci.casino,ci.nombre.toUpperCase()], ()=>['RULETA DE','LA SUERTE'], ()=>['¡JUEGA YA!','EL VIDEOJUEGO']];
+  for(const cid in CARTELES) CARTELES[cid].forEach(([x,y],i)=>{
+    const si=()=>ciudadActual().id===cid;
+    solidos.push({...R(x+9,y+44,6,6),si},{...R(x+97,y+44,6,6),si});
+    objetos.push({y:y+50,si,dibujar(){
+      const col=paleta().letrero||'#ffd700', [a,b]=TEXTOS_CARTEL[i%3](ciudadActual());
+      c.fillStyle='#555'; c.fillRect(x+10,y+30,4,20); c.fillRect(x+98,y+30,4,20);
+      c.fillStyle='#111'; c.fillRect(x,y,112,36); c.fillStyle=col; c.fillRect(x,y,112,2); c.fillRect(x,y+34,112,2); c.fillRect(x,y,2,36); c.fillRect(x+110,y,2,36);
+      c.font='8px '+FUENTE; c.textAlign='center'; c.textBaseline='middle';
+      c.fillStyle='#fff'; c.fillText(a,x+56,y+13); c.fillStyle=col; c.fillText(b,x+56,y+25);
+      if(Math.floor(t*2+i)%2){ c.fillStyle=col; c.fillRect(x+4,y+4,2,2); c.fillRect(x+106,y+4,2,2); }
+    }});
+  });
   const zonaGas={txt:'Gasolinera',boton:'LLENAR',accion:()=>llenarDeposito()};
   function precioLlenar(cc){ const m=cocheDe(cc); return Math.max(10,Math.round((100-(cc.gas??100))*m.vel/10)); }
   function llenarDeposito(){
@@ -4207,7 +4560,7 @@ const SALA = (()=>{
   }
   // --- Atracos a mano armada (si eres el dueño del casino) ---
   function atraco(){
-    const j=jugador; if(enCasa || cine || juego!=='sala') return false;
+    const j=jugador; if(enCasa || cine || vuelo || juego!=='sala') return false;
     let n=0;
     for(let k=0;k<3;k++){
       for(let q=0;q<15;q++){ const a=Math.random()*TAU, r=170+Math.random()*80, x=j.x+Math.cos(a)*r, y=j.y+Math.sin(a)*r;
@@ -4419,47 +4772,47 @@ const SALA = (()=>{
   /* ---------- Fondo fijo (suelo y paredes) ---------- */
   function pintarFondo(){
     fondo=document.createElement('canvas'); fondo.width=WW; fondo.height=WH;
-    const f=fondo.getContext('2d');
+    const f=fondo.getContext('2d'), P=paleta();
     const suelo=(x,y,w,h,base,dib,paso=8)=>{ f.fillStyle=base; f.fillRect(x,y,w,h); if(!dib) return; f.fillStyle=dib;
       for(let yy=y;yy<y+h;yy+=paso) for(let xx=x+((yy/paso)%2?paso/2:0);xx<x+w;xx+=paso) f.fillRect(xx+3,yy+3,2,2); };
     // ===== Barrio =====
-    suelo(0,0,WW,WH,'#2f6b2a','#3a7f33',12);
-    f.fillStyle='#1f5a22'; f.fillRect(960,0,WW-960,3*T);
+    suelo(0,0,WW,WH,P.cesped,P.cesped2,12);
+    f.fillStyle=P.franja; f.fillRect(960,0,WW-960,3*T);
     const CALLES=[R(0,448,WW,48),R(0,1000,WW,48),R(0,1560,WW,48),R(1100,0,48,1608),R(1800,0,48,1608)];
-    f.fillStyle='#b8b2a6'; CALLES.forEach(r=>f.fillRect(r.x-12,r.y-12,r.w+24,r.h+24)); f.fillRect(0,CH,960,32);
-    f.fillStyle='#3a3a40'; CALLES.forEach(r=>f.fillRect(r.x,r.y,r.w,r.h));
-    f.fillStyle='#e6e6e6';
+    f.fillStyle=P.acera; CALLES.forEach(r=>f.fillRect(r.x-12,r.y-12,r.w+24,r.h+24)); f.fillRect(0,CH,960,32);
+    f.fillStyle=P.calle; CALLES.forEach(r=>f.fillRect(r.x,r.y,r.w,r.h));
+    f.fillStyle=P.raya;
     CALLES.forEach(r=>{ if(r.w>r.h) for(let x=r.x;x<r.x+r.w;x+=24) f.fillRect(x,r.y+r.h/2-1,12,2); else for(let y=r.y;y<r.y+r.h;y+=24) f.fillRect(r.x+r.w/2-1,y,2,12); });
     for(let x=262;x<316;x+=8) f.fillRect(x,450,4,44);                 // paso de cebra delante del casino
     for(let x=322;x<960;x+=36) f.fillRect(x,420,1,26);                // plazas de aparcamiento en la puerta
-    f.fillStyle='#e8d29a'; f.fillRect(0,1620,WW,340);                 // playa
-    f.fillStyle='#d9c080'; for(let k=0;k<900;k++) f.fillRect((k*97)%WW,1622+(k*53)%336,2,1);
-    f.fillStyle='#2a7fd4'; f.fillRect(0,1960,WW,WH-1960);              // mar
-    f.fillStyle='#bfe6ff'; for(let y=1966;y<WH;y+=14) for(let x=(y%28?0:10);x<WW;x+=26) f.fillRect(x,y,10,2);
+    f.fillStyle=P.playa; f.fillRect(0,1620,WW,340);                 // playa
+    f.fillStyle=P.playa2; for(let k=0;k<900;k++) f.fillRect((k*97)%WW,1622+(k*53)%336,2,1);
+    f.fillStyle=P.mar; f.fillRect(0,1960,WW,WH-1960);              // mar
+    f.fillStyle=P.ola; for(let y=1966;y<WH;y+=14) for(let x=(y%28?0:10);x<WW;x+=26) f.fillRect(x,y,10,2);
     f.fillStyle='#2a7fd4'; f.beginPath(); f.ellipse(1480,1255,104,58,0,0,TAU); f.fill();   // estanque
     f.fillStyle='#bfe6ff'; f.fillRect(1440,1240,24,2); f.fillRect(1500,1270,28,2);
     pintarParcelas(f);
-    f.fillStyle='#8c0d20'; f.fillRect(16*T,CH,4*T,32);                // alfombra roja en la puerta
+    f.fillStyle=P.alfombra; f.fillRect(16*T,CH,4*T,32);                // alfombra roja en la puerta
     // ===== Casino =====
-    suelo(0,0,CW,CH,'#4a0d1c','#6b1a2a');
-    suelo(T,3*T,11*T,10*T,'#14234a','#22377a');        // ruletas
-    suelo(12*T,3*T,11*T,10*T,'#0e3a22','#16512f');     // blackjack
-    suelo(23*T,3*T,12*T,10*T,'#2e0d3a','#47175a');     // tragaperras
-    f.fillStyle='#ffcc3355'; f.fillRect(T,13*T,CW-2*T,1); f.fillRect(12*T,3*T,1,10*T); f.fillRect(23*T,3*T,1,10*T);
-    f.fillStyle='#8c0d20'; f.fillRect(15*T,20*T,6*T,5*T); f.fillStyle='#ffcc33'; f.fillRect(15*T,20*T,6*T,1); f.fillRect(15*T,20*T,1,5*T); f.fillRect(21*T-1,20*T,1,5*T);
+    suelo(0,0,CW,CH,P.cas,P.cas2);
+    suelo(T,3*T,11*T,10*T,...P.ruleta);        // ruletas
+    suelo(12*T,3*T,11*T,10*T,...P.bj);     // blackjack
+    suelo(23*T,3*T,12*T,10*T,...P.traga);     // tragaperras
+    f.fillStyle=P.oro+'55'; f.fillRect(T,13*T,CW-2*T,1); f.fillRect(12*T,3*T,1,10*T); f.fillRect(23*T,3*T,1,10*T);
+    f.fillStyle=P.alfombra; f.fillRect(15*T,20*T,6*T,5*T); f.fillStyle=P.oro; f.fillRect(15*T,20*T,6*T,1); f.fillRect(15*T,20*T,1,5*T); f.fillRect(21*T-1,20*T,1,5*T);
     // ===== Sala VIP =====
-    for(let y=3*T;y<CH-T;y+=16) for(let x=CW;x<944;x+=16){ f.fillStyle=((x-CW)/16+y/16)%2?'#1d1226':'#120a1a'; f.fillRect(x,y,16,16); }
+    for(let y=3*T;y<CH-T;y+=16) for(let x=CW;x<944;x+=16){ f.fillStyle=((x-CW)/16+y/16)%2?P.vip1:P.vip2; f.fillRect(x,y,16,16); }
     f.fillStyle='#ffd70033'; for(let y=3*T;y<CH-T;y+=16) for(let x=CW;x<944;x+=16) f.fillRect(x+7,y+7,2,2);
     f.fillStyle='#6a0d3a'; f.fillRect(620,380,280,4);
     // ===== Paredes =====
-    f.fillStyle='#2a0612'; f.fillRect(0,0,960,3*T);
-    f.fillStyle='#38091a'; for(let x=0;x<960;x+=12) f.fillRect(x,0,6,3*T-4);
-    f.fillStyle='#ffcc33'; f.fillRect(0,3*T-4,960,2); f.fillStyle='#a86f00'; f.fillRect(0,3*T-2,960,2);
-    f.fillStyle='#1a040b'; f.fillRect(0,0,T,CH); f.fillRect(CW-T,0,T,CH); f.fillRect(944,0,16,CH); f.fillRect(0,CH-T,960,T);
-    f.fillStyle='#ffcc33'; f.fillRect(T-2,3*T,2,CH-4*T); f.fillRect(CW-T,3*T,2,CH-4*T); f.fillRect(T,CH-T,960-2*T,2); f.fillRect(942,3*T,2,CH-4*T);
+    f.fillStyle=P.pared; f.fillRect(0,0,960,3*T);
+    f.fillStyle=P.pared2; for(let x=0;x<960;x+=12) f.fillRect(x,0,6,3*T-4);
+    f.fillStyle=P.oro; f.fillRect(0,3*T-4,960,2); f.fillStyle=P.oro2; f.fillRect(0,3*T-2,960,2);
+    f.fillStyle=P.borde; f.fillRect(0,0,T,CH); f.fillRect(CW-T,0,T,CH); f.fillRect(944,0,16,CH); f.fillRect(0,CH-T,960,T);
+    f.fillStyle=P.oro; f.fillRect(T-2,3*T,2,CH-4*T); f.fillRect(CW-T,3*T,2,CH-4*T); f.fillRect(T,CH-T,960-2*T,2); f.fillRect(942,3*T,2,CH-4*T);
     f.fillStyle='#3a0a2a'; f.fillRect(CW-T,224,T,32);                 // hueco de la puerta VIP
-    f.fillStyle='#4a0d1c'; f.fillRect(16*T,CH-T,4*T,T);               // puerta principal abierta
-    f.fillStyle='#ffcc33'; f.fillRect(16*T-2,CH-T,2,T); f.fillRect(20*T,CH-T,2,T);
+    f.fillStyle=P.cas; f.fillRect(16*T,CH-T,4*T,T);               // puerta principal abierta
+    f.fillStyle=P.oro; f.fillRect(16*T-2,CH-T,2,T); f.fillRect(20*T,CH-T,2,T);
   }
   function neon(txt,x,y,col,i){
     const apag = Math.sin(t*3.1+i*7)>.97 || (Math.floor(t*9+i)%37===0);
@@ -4521,7 +4874,7 @@ const SALA = (()=>{
   function volverAEntrar(){
     for(let i=gente.length-1;i>=0;i--) if(gente[i].tipo==='guardia') gente.splice(i,1);
     cine=null; Object.assign(jugador,{x:18*T,y:24*T+6,dir:'u',oculto:false,salto:0,ruta:[],auto:null,autoCoche:-1,vuelta:null,burbuja:null});
-    ladrones.length=0; escoltas.length=0; misiones.length=0; ninos.length=0;
+    ladrones.length=0; escoltas.length=0; misiones.length=0; ninos.length=0; vuelo=null; pirata=null;
     policias.length=0; busca=0; carrera=null; mascota=null; jugador.ropa=aspectoJugador(); enCasa=null; for(const k in zcache) delete zcache[k]; rejilla=null;
     CASAS.forEach(k=>{ k.vecino.oculto=true; k.cerrada=false; k.msg=null; k.minimo=0; k.paciencia=3; k.enfado=0; k.contra=0; });
   }
@@ -4530,6 +4883,7 @@ const SALA = (()=>{
   function actualizar(dt){
     t+=dt;
     if(cine){ escena(dt); for(const w of RUEDAS) w.ang+=w.vel*dt; return; }
+    if(vuelo){ actualizarVuelo(dt); return; }
     if(enCasa){ actualizarCasa(dt); return; }
     // jugador
     let dx=0, dy=0;
@@ -4552,6 +4906,7 @@ const SALA = (()=>{
       if(j.autoCoche>=0){ const i=j.autoCoche; j.autoCoche=-1; const k=bienes.coches[i]; if(k&&Math.hypot(k.x-j.x,k.y-j.y)<18) subir(i); }
     } else if(cc && j.ruta.length){ const o=j.ruta[0]; cc.ang=Math.atan2(o.y-j.y,o.x-j.x); }
     if(barco && !libreBarco(j.x,j.y)){ j.x=x0; j.y=y0; j.ruta=[]; j.anda=false; }
+    if(barco && j.y>WH-22){ j.y=WH-44; j.ruta=[]; teclas.clear(); setTimeout(abrirViajeMar,0); }   // final del mar: ¿a qué ciudad?
     if(cc){
       cc.x=j.x; cc.y=j.y;
       const dist=Math.hypot(j.x-x0,j.y-y0);
@@ -4614,6 +4969,7 @@ const SALA = (()=>{
   }
   const zonaDe=(x,y)=> fuera(x,y) ? 'calle' : x>=CW ? 'ruleta' : y<13*T ? (x<12*T?'ruleta': x<23*T?'bj':'traga') : 'sala';
   function dibujar(){
+    if(vuelo) return dibujarVuelo();
     if(enCasa) return dibujarCasa();
     const j=jugador, cc=conduciendo();
     camX = vw>=WW ? Math.round((WW-vw)/2) : Math.round(Math.max(0,Math.min(WW-vw,j.x-vw/2)));
@@ -4629,7 +4985,7 @@ const SALA = (()=>{
     }
     const vis=y=>y>camY-30 && y<camY+vh+160;
     const lista=[];
-    objetos.forEach(o=>{ if(vis(o.y)) lista.push(o); });
+    objetos.forEach(o=>{ if(vis(o.y) && (!o.si||o.si())) lista.push(o); });
     gente.forEach(p=>{ if(!p.oculto && !vaciado(p) && vis(p.y)) lista.push({y:p.y,dibujar:()=>persona(p)}); });
     ladrones.forEach(p=>lista.push({y:p.y,dibujar:()=>persona(p)}));
     ninos.forEach(p=>{ if(!p.oculto) lista.push({y:p.y,dibujar:()=>persona(p)}); });
@@ -4657,11 +5013,19 @@ const SALA = (()=>{
     if(!fueraYo) LAMPARAS.forEach(([x,y])=>{ c.fillStyle='#ffd700'; c.fillRect(x-9,y,18,2); c.fillRect(x-1,y-14,2,14);
       for(let k=0;k<4;k++){ c.fillStyle=Math.floor(t*5+k)%3?'#fff2a0':'#ffd700'; c.fillRect(x-8+k*5,y-3,2,3); } });
     if(fueraYo){        // desde la calle se ve el tejado del casino
-      c.fillStyle='#4a0d1c'; c.fillRect(0,0,960,CH-T);
-      c.fillStyle='#3a0814'; for(let yy=6;yy<CH-T;yy+=8) c.fillRect(0,yy,960,2);
-      c.fillStyle='#a86f00'; c.fillRect(CW-3,0,6,CH-T);
+      const PC=paleta();
+      c.fillStyle=PC.techo; c.fillRect(0,0,960,CH-T);
+      c.fillStyle=PC.techo2; for(let yy=6;yy<CH-T;yy+=8) c.fillRect(0,yy,960,2);
+      c.fillStyle=PC.oro2; c.fillRect(CW-3,0,6,CH-T);
+      if(PC.letrero){            // letrero grande con bombillas encima de la entrada
+        const L=PC.letrero, Y=280; c.fillStyle='#000c'; c.fillRect(138,Y,300,82);
+        c.fillStyle=L; c.fillRect(138,Y,300,3); c.fillRect(138,Y+79,300,3); c.fillRect(138,Y,3,82); c.fillRect(435,Y,3,82);
+        for(let q=0;q<24;q++){ c.fillStyle=(Math.floor(t*6)+q)%2?'#fff6c2':L; c.fillRect(146+q*12,Y+6,3,3); c.fillRect(146+q*12,Y+72,3,3); }
+        c.font='16px '+FUENTE; c.textAlign='center'; c.textBaseline='middle'; c.shadowColor=L; c.shadowBlur=10; c.fillStyle='#fff'; c.fillText(ciudadActual().casino,288,Y+32); c.shadowBlur=0;
+        c.font='8px '+FUENTE; c.fillStyle=L; c.fillText(ciudadActual().nombre.toUpperCase(),288,Y+58);
+      }
       c.font='16px '+FUENTE; c.textAlign='center'; c.textBaseline='middle';
-      c.shadowColor='#ff2bd6'; c.shadowBlur=10; c.fillStyle='#ffe6fb'; c.fillText(ciudadActual().casino,288,190);
+      c.shadowColor='#ff2bd6'; c.shadowBlur=10; c.fillStyle='#ffe6fb'; if(!PC.letrero) c.fillText(ciudadActual().casino,288,190);
       c.shadowColor='#ffd700'; c.fillStyle='#fff2a0'; c.fillText('VIP',760,190); c.shadowBlur=0;
       c.font='8px '+FUENTE; c.fillStyle='#ffcc33'; c.fillText('ENTRADA',288,372);
       neon('P  PARKING VIGILADO',640,409,'#4aa3ff',13); c.fillRect(286,382,5,3); c.fillRect(287,385,3,2);
@@ -4700,6 +5064,7 @@ const SALA = (()=>{
     audio();
     if(cine) return;
     const r=cv.getBoundingClientRect();
+    if(vuelo){ if(vuelo.fase==='terminal'||vuelo.fase==='cabina') vuelo.destino={x:(e.clientX-r.left)/r.width*vw-vuelo.ox, y:(e.clientY-r.top)/r.height*vh-vuelo.oy}; return; }
     if(enCasa){ enCasa.destino={x:(e.clientX-r.left)/r.width*vw-enCasa.ox, y:(e.clientY-r.top)/r.height*vh-enCasa.oy}; return; }
     const wx=camX+(e.clientX-r.left)/r.width*vw, wy=camY+(e.clientY-r.top)/r.height*vh;
     jugador.autoCoche=-1;
@@ -4729,6 +5094,7 @@ const SALA = (()=>{
   if(document.fonts) document.fonts.load('8px "Press Start 2P"').catch(()=>{});
   $('salaAyuda').textContent = matchMedia('(hover:none)').matches ? 'Toca el suelo para andar' : 'Flechas o WASD para andar · E para jugar';
 
+  ubicar();
   return {
     iniciar(){
       if(!fondo) pintarFondo();
@@ -4747,7 +5113,7 @@ const SALA = (()=>{
       if(cine){ e.preventDefault&&e.preventDefault(); return; }
       const mov=['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','KeyA','KeyD','KeyW','KeyS'];
       if(mov.includes(e.code)){ e.preventDefault(); abajo ? teclas.add(e.code) : teclas.delete(e.code); return; }
-      if(abajo && (e.code==='KeyQ'||e.code==='KeyF')){ e.preventDefault(); if(!enCasa) atacar(); return; }
+      if(abajo && (e.code==='KeyQ'||e.code==='KeyF')){ e.preventDefault(); if(!enCasa&&!vuelo) atacar(); return; }
       if(abajo && ['KeyE','Space','Enter'].includes(e.code)){ e.preventDefault(); usar(); }
     },
     get zonaMusica(){ return zonaMus; },
@@ -4760,7 +5126,7 @@ const SALA = (()=>{
     atacar, ladrones, escoltas, CASAS, TIENDAS, mandar, misiones, ninos, robarCoches, empezarCarrera, policias, subirBusca, llenarDeposito,
     get carrera(){ return carrera; }, entrarCasa, salirCasa, echarDelCasino, atraco, get enCasa(){ return !!enCasa; }, get casaActual(){ return enCasa; },
     get enElCasino(){ return !enCasa && !fuera(jugador.x,jugador.y); }, dormir, get busca(){ return busca; }, get mascota(){ return mascota; }, aplicarAspecto(){ jugador.ropa=aspectoJugador(); },
-    get guardiasLibres(){ ajustarEscoltas(); return escoltas.filter(g=>!g.mision).length; }, subir, bajar, nuevoLadron, llegar, ponerPrecios, remolcar, lanzarPirata(){ pirata={espera:t}; }, get pirata(){ return pirata; }, get conduciendo(){ return conduciendo(); }, fuera,
+    get guardiasLibres(){ ajustarEscoltas(); return escoltas.filter(g=>!g.mision).length; }, subir, bajar, nuevoLadron, llegar, ponerPrecios, refrescarCiudad, remolcar, entrarAeropuerto, salirAeropuerto, embarcar, levantarse, sentarse, get vuelo(){ return vuelo; }, GRUPOS, AEROPUERTO, lanzarPirata(){ pirata={espera:t}; }, get pirata(){ return pirata; }, get conduciendo(){ return conduciendo(); }, fuera,
   };
 })();
 
@@ -4871,7 +5237,7 @@ window.__R={RULETAS,elegirCasilla, forzar:null, get dinero(){return dinero}, set
   forzarTraga:null, bjCartas:null, rapido:false, SIMBOLOS, pagoTraga, puntos, cambiarJuego, tirar, repartir, pedir, plantarse, doblar,
   get BJ(){return BJ}, get TR(){return TR}, get juego(){return juego}, MUS, SALA, COCHES, ARMAS, CASAS_TIPO, negociar, oferta, abrirCajaVip, abrirAgencia, abrirPortero,
   get bienes(){return bienes}, abrirMiCasino, avanzarHora, saltarAManana, get hora(){return hora}, set hora(v){hora=v}, get dia(){return dia}, minutoCasino, casinoCerrado, abrirMisCosas, abrirBanco, abrirRanking, abrirEncargos, abrirCajaVip, patrimonio, evento, tickMinuto, ENCARGOS, ROPA, MASCOTAS, abrirExcusa, inventarExcusa, abrirAlquilerCoche, PODERES_JUEGO, prepJuego, usarPJ, pintarTiendaJuego, get invJuego(){return invJuego}, cobrarAlquileres, fichaCasaMia, CA, PK, caJugar, caCobrar, pkRepartir, pkPasar, pkApostar, pkIgualar, pkRetirarse, mejorMano, NOMBRES_MANO,
-  caCartas:null, pkCartas:null, BEBIDAS, precioBebida, comprarBebida, abrirBar, abrirPuerto, viajar, CIUDADES, ciudadCompleta, puedeIr, cambiarCiudad, ciudadActual, morir,
+  caCartas:null, pkCartas:null, BEBIDAS, precioBebida, comprarBebida, abrirBar, abrirPuerto, abrirViajes, abrirViajeMar, abrirSouvenirs, disponible, puedeDesbloquear, CIUDADES, ciudadCompleta, cambiarCiudad, ciudadActual, morir,
   get suerte(){return suerte}, set suerte(v){suerte=v;refrescar()}};
 })();
 </script>
